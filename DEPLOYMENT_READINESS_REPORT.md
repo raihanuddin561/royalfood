@@ -29,7 +29,7 @@
 #### Required Environment Variables:
 ```bash
 DATABASE_URL="postgresql://..." # PostgreSQL connection string
-NEXTAUTH_URL="https://your-app.vercel.app"
+NEXTAUTH_URL="https://royal-food-rs.vercel.app"
 NEXTAUTH_SECRET="32-character-secure-string"
 NODE_ENV="production"
 ```

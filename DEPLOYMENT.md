@@ -20,7 +20,7 @@
 4. Add these environment variables:
    ```
    DATABASE_URL = your-neon-connection-string
-   NEXTAUTH_URL = https://your-app-name.vercel.app  
+   NEXTAUTH_URL = https://royal-food-rs.vercel.app  
    NEXTAUTH_SECRET = any-random-32-character-string
    NODE_ENV = production
    ```
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   }
 }
 ```
-3. Visit `https://your-app.vercel.app/api/init-db` once
+3. Visit `https://royal-food-rs.vercel.app/api/init-db` once
 4. Delete the `/api/init-db.ts` file
 
 ## 🔑 Default Login

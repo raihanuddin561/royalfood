@@ -23,7 +23,7 @@ This error typically occurs during Vercel deployment when Prisma can't properly 
 1. **Set Environment Variables in Vercel**:
    ```bash
    DATABASE_URL="postgresql://..."
-   NEXTAUTH_URL="https://your-app.vercel.app"
+   NEXTAUTH_URL="https://royal-food-rs.vercel.app"
    NEXTAUTH_SECRET="your-32-char-secret"
    NODE_ENV="production"
    ```
@@ -56,7 +56,7 @@ This error typically occurs during Vercel deployment when Prisma can't properly 
 Copy to Vercel dashboard:
 ```bash
 DATABASE_URL=postgresql://username:password@host/database?sslmode=require
-NEXTAUTH_URL=https://your-app-name.vercel.app
+NEXTAUTH_URL=https://royal-food-rs.vercel.app
 NEXTAUTH_SECRET=generate-with-crypto-randomBytes-32-toString-hex
 NODE_ENV=production
 ```

@@ -7,7 +7,7 @@ Copy these variables to your Vercel dashboard or production environment:
 DATABASE_URL="postgresql://username:password@your-neon-host/your-database?sslmode=require"
 
 # NextAuth Configuration (Required)
-NEXTAUTH_URL="https://your-app-name.vercel.app"
+NEXTAUTH_URL="https://royal-food-rs.vercel.app"
 NEXTAUTH_SECRET="generate-a-secure-32-character-string-for-production"
 
 # Node Environment (Required)
