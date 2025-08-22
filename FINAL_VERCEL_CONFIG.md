@@ -2,7 +2,7 @@
 
 ## Set these in Vercel Dashboard → royal-food-rs → Settings → Environment Variables
 
-### 1. DATABASE_URL (Use the pooled connection - CORRECTED DATABASE NAME)
+### 1. DATABASE_URL (Use the pooled connection - FINAL CORRECT URL)
 ```
 postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
 ```

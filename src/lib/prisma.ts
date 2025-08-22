@@ -11,22 +11,28 @@ function createPrismaClient() {
 
   if (!databaseUrl) {
     const errorMessage = `
-DATABASE_URL environment variable is not set.
+❌ DATABASE_URL environment variable is not set.
 
-For local development, ensure you have a .env file with:
-DATABASE_URL="postgresql://username:password@localhost:5432/database"
+🔍 Debug Info:
+- NODE_ENV: ${process.env.NODE_ENV || 'undefined'}
+- Platform: ${process.env.VERCEL ? 'Vercel' : 'Other'}
+- Available DATABASE vars: ${Object.keys(process.env).filter(k => k.includes('DATABASE')).join(', ') || 'none'}
+- All env vars starting with DB: ${Object.keys(process.env).filter(k => k.startsWith('DB')).join(', ') || 'none'}
 
-For production deployment, set the DATABASE_URL environment variable in your hosting platform.
+📋 Solutions:
+1. For Vercel: Set DATABASE_URL in Environment Variables
+2. For local: Check your .env file
+3. For other hosts: Verify environment variable is set
 
-Current NODE_ENV: ${process.env.NODE_ENV || 'undefined'}
-Available env vars: ${Object.keys(process.env).filter(k => k.includes('DATABASE')).join(', ') || 'none'}
+🔗 Expected format:
+DATABASE_URL="postgresql://user:pass@host:5432/database?sslmode=require"
     `.trim()
     
     console.error(errorMessage)
     throw new Error('DATABASE_URL is not defined. Please check your environment variables.')
   }
 
-  console.log(`Connecting to database with NODE_ENV: ${process.env.NODE_ENV}`)
+  console.log(`✅ DATABASE_URL found, connecting to database (NODE_ENV: ${process.env.NODE_ENV})`)
   
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
