@@ -1,0 +1,587 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core Authentication & User Management
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  password     String
+  name         String
+  role         UserRole @default(EMPLOYEE)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  employeeProfile Employee?
+  createdOrders   Order[]
+  createdSales    Sale[]
+  inventoryLogs   InventoryLog[]
+  stockUsage      StockUsage[]  // Track who recorded stock usage
+  securityLogs    SecurityLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  CUSTOMER
+}
+
+// Partnership Management
+model Partner {
+  id          String  @id @default(cuid())
+  name        String
+  sharePercent Float   // 40.0 or 60.0
+  email       String  @unique
+  phone       String?
+  address     String?
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  profitShares ProfitShare[]
+
+  @@map("partners")
+}
+
+model ProfitShare {
+  id        String   @id @default(cuid())
+  partnerId String
+  period    DateTime // Monthly period
+  revenue   Float
+  expenses  Float
+  profit    Float
+  share     Float
+  createdAt DateTime @default(now())
+
+  // Relations
+  partner Partner @relation(fields: [partnerId], references: [id])
+
+  @@map("profit_shares")
+}
+
+// Employee Management
+model Employee {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  employeeId  String   @unique
+  position    String
+  department  String
+  salary      Float
+  hourlyRate  Float?
+  hireDate    DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user       User         @relation(fields: [userId], references: [id])
+  attendance Attendance[]
+  payrolls   Payroll[]
+  expenses   Expense[]    // Employee-related expenses
+
+  @@map("employees")
+}
+
+model Attendance {
+  id         String    @id @default(cuid())
+  employeeId String
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  totalHours Float?
+  overtimeHours Float?
+  createdAt  DateTime  @default(now())
+
+  // Relations
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@map("attendance")
+}
+
+model Payroll {
+  id           String   @id @default(cuid())
+  employeeId   String
+  period       DateTime
+  basicSalary  Float
+  overtime     Float    @default(0)
+  bonuses      Float    @default(0)
+  deductions   Float    @default(0)
+  totalAmount  Float
+  status       PayrollStatus @default(PENDING)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  employee Employee @relation(fields: [employeeId], references: [id])
+  expenses Expense[] // Related expense records
+
+  @@map("payrolls")
+}
+
+enum PayrollStatus {
+  PENDING
+  APPROVED
+  PAID
+}
+
+// Inventory Management
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  items    Item[]
+  menuItems MenuItem[]
+
+  @@map("categories")
+}
+
+model Supplier {
+  id          String   @id @default(cuid())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  items      Item[]
+  purchases  Purchase[]
+
+  @@map("suppliers")
+}
+
+model Item {
+  id            String   @id @default(cuid())
+  name          String
+  categoryId    String
+  supplierId    String?
+  sku           String   @unique
+  description   String?
+  specification String?  // e.g., "Ribeye Cut", "Basmati Premium", "Organic"
+  brand         String?  // e.g., "Tilda", "Uncle Ben's", "Local Farm"
+  grade         String?  // e.g., "Grade A", "Premium", "Standard"
+  unit          String   // kg, piece, liter, etc.
+  packSize      String?  // e.g., "25kg bag", "1kg pack", "500g"
+  costPrice     Float
+  sellingPrice  Float?
+  reorderLevel  Float
+  currentStock  Float    @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  category      Category       @relation(fields: [categoryId], references: [id])
+  supplier      Supplier?      @relation(fields: [supplierId], references: [id])
+  inventoryLogs InventoryLog[]
+  purchaseItems PurchaseItem[]
+  recipeItems   RecipeItem[]   // Used in recipes
+  orderItems    OrderItem[]
+  stockUsage    StockUsage[]   // Track actual usage in production
+
+  @@map("items")
+}
+
+model InventoryLog {
+  id          String          @id @default(cuid())
+  itemId      String
+  userId      String
+  type        InventoryLogType
+  quantity    Float
+  previousStock Float
+  newStock    Float
+  reason      String?
+  reference   String?         // Purchase ID, Sale ID, etc.
+  createdAt   DateTime        @default(now())
+
+  // Relations
+  item Item @relation(fields: [itemId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("inventory_logs")
+}
+
+enum InventoryLogType {
+  STOCK_IN      // Purchase/receiving stock
+  STOCK_OUT     // Used in production
+  ADJUSTMENT    // Manual corrections
+  WASTE         // Spoiled/expired items
+  TRANSFER      // Between locations
+}
+
+// Stock Usage Tracking - When ingredients are used in production
+model StockUsage {
+  id           String   @id @default(cuid())
+  itemId       String   // Which ingredient was used
+  menuItemId   String?  // Which menu item it was used for
+  orderId      String?  // Specific order (if applicable)
+  quantity     Float    // How much was used
+  unit         String   // kg, pieces, etc.
+  costPerUnit  Float    // Cost at time of usage (FIFO)
+  totalCost    Float    // quantity × costPerUnit
+  usageDate    DateTime @default(now())
+  reason       String   @default("PRODUCTION") // PRODUCTION, SAMPLE, WASTE
+  userId       String   // Who recorded the usage
+  createdAt    DateTime @default(now())
+
+  // Relations
+  item     Item      @relation(fields: [itemId], references: [id])
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id])
+  order    Order?    @relation(fields: [orderId], references: [id])
+  user     User      @relation(fields: [userId], references: [id])
+
+  @@map("stock_usage")
+}
+
+// Menu Item Sales Tracking with Cost Analysis
+model MenuItemSale {
+  id           String   @id @default(cuid())
+  menuItemId   String
+  saleId       String   // Link to main sale record
+  quantity     Int      // How many portions sold
+  unitPrice    Float    // Price per portion
+  totalPrice   Float    // quantity × unitPrice
+  unitCost     Float    // Recipe cost per portion at time of sale
+  totalCost    Float    // quantity × unitCost
+  grossProfit  Float    // totalPrice - totalCost
+  profitMargin Float    // (grossProfit ÷ totalPrice) × 100
+  saleDate     DateTime
+  createdAt    DateTime @default(now())
+
+  // Relations
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+  sale     Sale     @relation(fields: [saleId], references: [id])
+
+  @@map("menu_item_sales")
+}
+
+// Purchase Management
+model Purchase {
+  id             String   @id @default(cuid())
+  supplierId     String
+  purchaseNumber String   @unique
+  purchaseDate   DateTime
+  totalAmount    Float
+  status         PurchaseStatus @default(PENDING)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  supplier      Supplier       @relation(fields: [supplierId], references: [id])
+  purchaseItems PurchaseItem[]
+  expenses      Expense[]      // Related expense records
+
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id           String   @id @default(cuid())
+  purchaseId   String
+  itemId       String
+  quantity     Float
+  unitPrice    Float
+  totalPrice   Float
+  createdAt    DateTime @default(now())
+
+  // Relations
+  purchase Purchase @relation(fields: [purchaseId], references: [id])
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@map("purchase_items")
+}
+
+enum PurchaseStatus {
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
+// Menu Management with Recipe System
+model MenuItem {
+  id           String   @id @default(cuid())
+  name         String
+  categoryId   String
+  description  String?
+  price        Float
+  costPrice    Float    @default(0) // Auto-calculated from recipe ingredients
+  isAvailable  Boolean  @default(true)
+  isActive     Boolean  @default(true)
+  image        String?
+  prepTime     Int?     // in minutes
+  servingSize  Int      @default(1) // number of portions this recipe makes
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  category      Category      @relation(fields: [categoryId], references: [id])
+  recipeItems   RecipeItem[]  // Recipe ingredients with quantities
+  orderItems    OrderItem[]
+  menuItemSales MenuItemSale[]
+  stockUsage    StockUsage[]  // Track ingredient usage for this menu item
+
+  @@map("menu_items")
+}
+
+// Recipe Management - Links menu items to ingredients with quantities
+model RecipeItem {
+  id          String   @id @default(cuid())
+  menuItemId  String
+  itemId      String   // The stock ingredient
+  quantity    Float    // Amount needed for the recipe
+  unit        String   // kg, pieces, liters, etc.
+  cost        Float    @default(0) // Auto-calculated: quantity × current item cost
+  notes       String?  // e.g., "finely chopped", "marinated overnight"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@map("recipe_items")
+}
+
+// Order Management (Customer Orders)
+model Order {
+  id           String      @id @default(cuid())
+  orderNumber  String      @unique
+  customerId   String?     // Optional for walk-in customers
+  userId       String      // Staff who created the order
+  orderType    OrderType
+  status       OrderStatus @default(PENDING)
+  tableNumber  String?
+  totalAmount  Float
+  taxAmount    Float       @default(0)
+  discountAmount Float     @default(0)
+  finalAmount  Float
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relations
+  user       User         @relation(fields: [userId], references: [id])
+  orderItems OrderItem[]
+  sale       Sale?
+  stockUsage StockUsage[] // Track ingredient usage for this order
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  menuItemId String?  // For menu items
+  itemId     String?  // For direct items
+  quantity   Float
+  unitPrice  Float
+  totalPrice Float
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  order    Order     @relation(fields: [orderId], references: [id])
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id])
+  item     Item?     @relation(fields: [itemId], references: [id])
+
+  @@map("order_items")
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  SERVED
+  COMPLETED
+  CANCELLED
+}
+
+// Sales & Revenue Management
+model Sale {
+  id            String      @id @default(cuid())
+  orderId       String?     @unique
+  saleNumber    String      @unique
+  userId        String
+  saleDate      DateTime
+  totalAmount   Float
+  taxAmount     Float       @default(0)
+  discountAmount Float      @default(0)
+  finalAmount   Float
+  paymentMethod PaymentMethod
+  status        SaleStatus  @default(COMPLETED)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  order         Order?          @relation(fields: [orderId], references: [id])
+  user          User            @relation(fields: [userId], references: [id])
+  menuItemSales MenuItemSale[]  // Detailed sales by menu item with cost analysis
+
+  @@map("sales")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  DIGITAL_WALLET
+  BANK_TRANSFER
+}
+
+enum SaleStatus {
+  COMPLETED
+  REFUNDED
+  CANCELLED
+}
+
+// Expense Management - Enhanced for comprehensive tracking
+model ExpenseCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  type        ExpenseType @default(OPERATIONAL)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  expenses Expense[]
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  id                String          @id @default(cuid())
+  expenseCategoryId String
+  description       String
+  amount            Float
+  expenseDate       DateTime
+  receiptImage      String?
+  supplierInfo      String?         // For stock-related expenses
+  payrollId         String?         // Link to payroll for salary expenses
+  employeeId        String?         // For employee-related expenses
+  purchaseId        String?         // Link to purchase for stock expenses
+  taxAmount         Float           @default(0)
+  isRecurring       Boolean         @default(false)
+  recurringPeriod   RecurringPeriod?
+  nextDueDate       DateTime?
+  notes             String?
+  status            ExpenseStatus   @default(APPROVED)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Relations
+  expenseCategory ExpenseCategory @relation(fields: [expenseCategoryId], references: [id])
+  payroll         Payroll?        @relation(fields: [payrollId], references: [id])
+  employee        Employee?       @relation(fields: [employeeId], references: [id])
+  purchase        Purchase?       @relation(fields: [purchaseId], references: [id])
+
+  @@map("expenses")
+}
+
+enum ExpenseType {
+  OPERATIONAL     // Daily operations
+  STOCK          // Inventory purchases
+  PAYROLL        // Employee salaries
+  UTILITIES      // Electricity, water, gas
+  RENT           // Property rent
+  MARKETING      // Advertising, promotions
+  MAINTENANCE    // Equipment, repairs
+  INSURANCE      // Business insurance
+  TAXES          // Government taxes
+  OTHER          // Miscellaneous
+}
+
+enum ExpenseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum RecurringPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+// Financial Reports & Analytics
+model FinancialReport {
+  id              String      @id @default(cuid())
+  reportType      ReportType
+  periodStart     DateTime
+  periodEnd       DateTime
+  totalRevenue    Float
+  totalExpenses   Float
+  totalProfit     Float
+  stockExpenses   Float
+  payrollExpenses Float
+  operationalExpenses Float
+  taxExpenses     Float
+  partnerShare1   Float       // 40% partner
+  partnerShare2   Float       // 60% partner
+  reportData      Json        // Detailed breakdown
+  generatedAt     DateTime    @default(now())
+
+  @@map("financial_reports")
+}
+
+enum ReportType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+// Security & Audit Logging
+model SecurityLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  eventType   String   // LOGIN, LOGOUT, CREATE_USER, DELETE_USER, PASSWORD_CHANGE, etc.
+  description String
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?    // Additional context data
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("security_logs")
+}

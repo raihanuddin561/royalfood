@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff; /* Keep white background even in dark mode for consistency */
+    --foreground: #171717; /* Keep dark text for readability */
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+}
+
+/* Smooth scrolling for better UX */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced form input visibility */
+input, select, textarea {
+  font-size: 14px !important;
+}
+
+/* Ensure high contrast for form inputs */
+input[type="text"], 
+input[type="number"], 
+input[type="email"], 
+input[type="password"], 
+select, 
+textarea {
+  color: #111827 !important; /* Very dark gray/black for maximum contrast */
+  background-color: #ffffff !important; /* Pure white background */
+}
+
+/* Placeholder styling for better visibility */
+input::placeholder,
+textarea::placeholder {
+  color: #6b7280 !important; /* Medium gray for placeholders */
+  opacity: 1 !important;
+}
+
+/* Focus states for better visibility */
+input:focus, 
+select:focus, 
+textarea:focus {
+  color: #111827 !important; /* Maintain dark text on focus */
+  background-color: #ffffff !important; /* Maintain white background */
+  outline: none !important;
+  border-color: #3b82f6 !important; /* Blue border on focus */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Option elements for better visibility in selects */
+option {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
+
+/* Disabled state styling */
+input:disabled, 
+select:disabled, 
+textarea:disabled {
+  color: #9ca3af !important;
+  background-color: #f9fafb !important;
+  cursor: not-allowed !important;
+}
+
+/* Selected text styling for better visibility */
+input::selection, 
+textarea::selection {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+/* Custom scrollbar for better aesthetics */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Ensure proper contrast in all environments */
+@media (prefers-color-scheme: dark) {
+  input[type="text"], 
+  input[type="number"], 
+  input[type="email"], 
+  input[type="password"], 
+  select, 
+  textarea {
+    color: #111827 !important; /* Keep dark text even in dark mode for forms */
+    background-color: #ffffff !important; /* Keep white backgrounds for forms */
+    border-color: #d1d5db !important;
+  }
+  
+  option {
+    color: #111827 !important;
+    background-color: #ffffff !important;
+  }
+}
+
+/* Animation for smooth transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* Ensure sidebar and header don't create overlay issues */
+.sidebar {
+  z-index: 40;
+}
+
+.header {
+  z-index: 50;
+}
+
+/* Prevent layout shifts */
+* {
+  box-sizing: border-box;
+}
+
+/* Better focus visibility for accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Loading animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Gradient text effect */
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Professional shadows */
+.shadow-professional {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-professional-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}

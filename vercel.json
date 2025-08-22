@@ -1,0 +1,12 @@
+{
+  "buildCommand": "npm run vercel-build",
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "env": {
+    "PRISMA_GENERATE_SKIP_POSTINSTALL_WARNING": "true"
+  },
+  "outputDirectory": ".next"
+}
