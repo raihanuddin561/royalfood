@@ -1,12 +1,13 @@
 {
-  "buildCommand": "npm run vercel-build",
+  "buildCommand": "prisma generate && next build",
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
     }
   },
   "env": {
-    "PRISMA_GENERATE_SKIP_POSTINSTALL_WARNING": "true"
+    "PRISMA_GENERATE_SKIP_POSTINSTALL_WARNING": "true",
+    "SKIP_ENV_VALIDATION": "true"
   },
   "outputDirectory": ".next"
 }
