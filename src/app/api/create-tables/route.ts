@@ -1,49 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 // Create all remaining tables for the Royal Food restaurant system
 export async function GET(request: NextRequest) {
   try {
-    const { Pool } = require('pg')
-    
-    const databaseUrl = process.env.DATABASE_URL_NEW
-    if (!databaseUrl) {
-      return NextResponse.json({ 
-        error: 'DATABASE_URL_NEW not found in environment variables',
-        success: false 
-      }, { status: 500 })
-    }
-    
-    const pool = new Pool({ connectionString: databaseUrl })
-    const client = await pool.connect()
-    
     console.log('🚀 Starting complete database schema creation...')
+    
+    // Test connection
+    await prisma.$connect()
+    console.log('✅ Database connection successful')
     
     try {
       // Create all enum types first
       console.log('📋 Creating enum types...')
       
       const enums = [
-        `CREATE TYPE "PayrollStatus" AS ENUM ('PENDING', 'APPROVED', 'PAID');`,
-        `CREATE TYPE "InventoryLogType" AS ENUM ('STOCK_IN', 'STOCK_OUT', 'ADJUSTMENT', 'WASTE', 'TRANSFER');`,
-        `CREATE TYPE "PurchaseStatus" AS ENUM ('PENDING', 'RECEIVED', 'CANCELLED');`,
-        `CREATE TYPE "OrderType" AS ENUM ('DINE_IN', 'TAKEAWAY', 'DELIVERY');`,
-        `CREATE TYPE "OrderStatus" AS ENUM ('PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'COMPLETED', 'CANCELLED');`,
-        `CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CARD', 'DIGITAL_WALLET', 'BANK_TRANSFER');`,
-        `CREATE TYPE "SaleStatus" AS ENUM ('COMPLETED', 'REFUNDED', 'CANCELLED');`,
-        `CREATE TYPE "ExpenseType" AS ENUM ('OPERATIONAL', 'STOCK', 'PAYROLL', 'UTILITIES', 'RENT', 'MARKETING', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'OTHER');`,
-        `CREATE TYPE "ExpenseStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'PAID');`,
-        `CREATE TYPE "RecurringPeriod" AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY');`,
-        `CREATE TYPE "ReportType" AS ENUM ('DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY', 'CUSTOM');`
+        'CREATE TYPE "PayrollStatus" AS ENUM (\'PENDING\', \'APPROVED\', \'PAID\');',
+        'CREATE TYPE "InventoryLogType" AS ENUM (\'STOCK_IN\', \'STOCK_OUT\', \'ADJUSTMENT\', \'WASTE\', \'TRANSFER\');',
+        'CREATE TYPE "PurchaseStatus" AS ENUM (\'PENDING\', \'RECEIVED\', \'CANCELLED\');',
+        'CREATE TYPE "OrderType" AS ENUM (\'DINE_IN\', \'TAKEAWAY\', \'DELIVERY\');',
+        'CREATE TYPE "OrderStatus" AS ENUM (\'PENDING\', \'CONFIRMED\', \'PREPARING\', \'READY\', \'SERVED\', \'COMPLETED\', \'CANCELLED\');',
+        'CREATE TYPE "PaymentMethod" AS ENUM (\'CASH\', \'CARD\', \'DIGITAL_WALLET\', \'BANK_TRANSFER\');',
+        'CREATE TYPE "SaleStatus" AS ENUM (\'COMPLETED\', \'REFUNDED\', \'CANCELLED\');',
+        'CREATE TYPE "ExpenseType" AS ENUM (\'OPERATIONAL\', \'STOCK\', \'PAYROLL\', \'UTILITIES\', \'RENT\', \'MARKETING\', \'MAINTENANCE\', \'INSURANCE\', \'TAXES\', \'OTHER\');',
+        'CREATE TYPE "ExpenseStatus" AS ENUM (\'PENDING\', \'APPROVED\', \'REJECTED\', \'PAID\');',
+        'CREATE TYPE "RecurringPeriod" AS ENUM (\'DAILY\', \'WEEKLY\', \'MONTHLY\', \'QUARTERLY\', \'YEARLY\');',
+        'CREATE TYPE "ReportType" AS ENUM (\'DAILY\', \'WEEKLY\', \'MONTHLY\', \'QUARTERLY\', \'YEARLY\', \'CUSTOM\');'
       ]
       
       for (const enumSql of enums) {
-        await client.query(`
+        await prisma.$executeRaw`
           DO $$ BEGIN
             ${enumSql}
           EXCEPTION
             WHEN duplicate_object THEN null;
           END $$;
-        `)
+        `
       }
       
       console.log('✅ Enum types created')
