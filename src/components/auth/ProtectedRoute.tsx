@@ -12,20 +12,21 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
-  // Ensure component is mounted before doing any redirects
   useEffect(() => {
-    setMounted(true);
+    // Add a small delay to allow NextAuth to restore session on page refresh
+    const checkSession = setTimeout(() => {
+      setSessionChecked(true);
+    }, 100); // 100ms should be enough for session restoration
+
+    return () => clearTimeout(checkSession);
   }, []);
 
   useEffect(() => {
-    if (!mounted) return; // Wait for component to mount
-    
-    if (status === 'loading') return; // Still loading session
+    if (!sessionChecked || status === 'loading') return; // Wait for session check
 
-    if (status === 'unauthenticated' || !session) {
-      console.log('No session found, redirecting to signin');
+    if (!session) {
       router.push('/auth/signin');
       return;
     }
@@ -42,17 +43,13 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
       const requiredRoleLevel = roleHierarchy[requiredRole] || 0;
 
       if (userRoleLevel < requiredRoleLevel) {
-        console.log('Insufficient role, redirecting to unauthorized');
         router.push('/unauthorized');
         return;
       }
     }
+  }, [session, status, router, requiredRole, sessionChecked]);
 
-    console.log('Access granted for user:', session.user.email, 'Role:', session.user.role);
-  }, [mounted, session, status, router, requiredRole]);
-
-  // Don't render anything until mounted and session is determined
-  if (!mounted || status === 'loading') {
+  if (!sessionChecked || status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -63,8 +60,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     );
   }
 
-  // Show redirecting message if no session
-  if (status === 'unauthenticated' || !session) {
+  if (!session) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
