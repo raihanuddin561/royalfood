@@ -6,23 +6,52 @@ import bcrypt from 'bcryptjs'
 // Delete this file after running it once for security
 export async function GET(request: NextRequest) {
   try {
+    console.log('🚀 Starting database initialization...')
+    
+    // First, try to apply database migrations to create tables
+    console.log('📋 Creating database schema...')
+    
+    // Since we can't run prisma migrate in serverless, we'll create tables manually
+    await prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "users" (
+        "id" TEXT NOT NULL,
+        "email" TEXT NOT NULL,
+        "password" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "role" TEXT NOT NULL DEFAULT 'EMPLOYEE',
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+      );
+    `
+    
+    await prisma.$executeRaw`
+      CREATE UNIQUE INDEX IF NOT EXISTS "users_email_key" ON "users"("email");
+    `
+    
+    console.log('✅ Basic users table created')
+
     // Check if admin user already exists
     const existingAdmin = await prisma.user.findUnique({
       where: { email: 'admin@royalfood.com' }
-    })
+    }).catch(() => null) // Ignore errors if table doesn't exist yet
 
     if (existingAdmin) {
       return NextResponse.json({ 
-        message: 'Database already initialized. Delete this API endpoint for security.',
-        success: false
+        message: 'Database already initialized. Admin user exists. Delete this API endpoint for security.',
+        success: false,
+        adminEmail: 'admin@royalfood.com'
       })
     }
 
     // Create admin user
+    console.log('👤 Creating admin user...')
     const hashedPassword = await bcrypt.hash('11food22', 12)
     
     const adminUser = await prisma.user.create({
       data: {
+        id: 'admin-' + Date.now(),
         email: 'admin@royalfood.com',
         password: hashedPassword,
         name: 'System Administrator',
@@ -31,51 +60,34 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Create basic expense categories
-    const expenseCategories = [
-      { name: 'Stock Purchase', type: 'STOCK' },
-      { name: 'Employee Salaries', type: 'PAYROLL' },
-      { name: 'Utilities', type: 'UTILITIES' },
-      { name: 'Rent', type: 'RENT' },
-      { name: 'Marketing', type: 'MARKETING' },
-      { name: 'Maintenance', type: 'MAINTENANCE' },
-      { name: 'Other Expenses', type: 'OTHER' }
-    ]
-
-    await prisma.expenseCategory.createMany({
-      data: expenseCategories,
-      skipDuplicates: true
-    })
-
-    // Create basic inventory categories
-    const categories = [
-      { name: 'Meat & Poultry', description: 'Fresh and frozen meat products' },
-      { name: 'Vegetables', description: 'Fresh vegetables and herbs' },
-      { name: 'Rice & Grains', description: 'Rice, wheat, and other grains' },
-      { name: 'Spices & Seasonings', description: 'All types of spices and seasonings' },
-      { name: 'Beverages', description: 'Drinks and beverages' },
-      { name: 'Dairy Products', description: 'Milk, cheese, yogurt, etc.' }
-    ]
-
-    await prisma.category.createMany({
-      data: categories,
-      skipDuplicates: true
-    })
+    console.log('✅ Admin user created successfully')
 
     return NextResponse.json({ 
-      message: 'Database initialized successfully! Admin user created. IMPORTANT: Delete this API endpoint now for security.',
+      message: '🎉 Database initialized successfully! Basic schema and admin user created.',
       success: true,
       adminEmail: 'admin@royalfood.com',
       adminPassword: '11food22',
-      warning: 'Change the admin password immediately after first login!'
+      userId: adminUser.id,
+      warning: '⚠️ IMPORTANT: Delete this API endpoint now for security! Change admin password after first login.',
+      nextSteps: [
+        '1. Login with admin@royalfood.com / 11food22',
+        '2. Change the admin password immediately',
+        '3. Delete this /api/init-db endpoint',
+        '4. Set up your restaurant data'
+      ]
     })
 
   } catch (error) {
-    console.error('Database initialization error:', error)
+    console.error('❌ Database initialization error:', error)
     return NextResponse.json({ 
       message: 'Failed to initialize database',
       error: error instanceof Error ? error.message : 'Unknown error',
-      success: false
+      success: false,
+      troubleshooting: [
+        'Ensure DATABASE_URL_NEW is set in Vercel environment variables',
+        'Verify Neon database is active and accessible',
+        'Check Vercel function logs for detailed error information'
+      ]
     }, { status: 500 })
   }
 }
