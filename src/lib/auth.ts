@@ -56,10 +56,26 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      // When user signs in, attach role/isActive
       if (user) {
         token.role = user.role
         token.isActive = user.isActive
+        return token
       }
+
+      // On subsequent requests, refresh token fields from DB to reflect state changes
+      try {
+        if (token?.sub) {
+          const dbUser = await prisma.user.findUnique({ where: { id: token.sub } })
+          if (dbUser) {
+            token.role = dbUser.role
+            token.isActive = dbUser.isActive
+          }
+        }
+      } catch (e) {
+        console.error('JWT refresh error', e)
+      }
+
       return token
     },
     async session({ session, token }) {

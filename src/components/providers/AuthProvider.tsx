@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, ReactNode } from 'react'
+import { createContext, useContext, ReactNode, useEffect } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { Session } from 'next-auth'
 
@@ -17,6 +17,26 @@ export function AuthProvider({
   children: ReactNode
   session: Session | null 
 }) {
+  // Expose the server-provided session on window so client-only components
+  // (Sidebar, RoleGuard, etc.) can fall back to it while next-auth client rehydrates.
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        ;(window as any).__royal_food_server_session = session ?? null
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    return () => {
+      try {
+        if (typeof window !== 'undefined') (window as any).__royal_food_server_session = null
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [session])
+
   return (
     <SessionProvider 
       session={session}

@@ -20,6 +20,17 @@ interface Employee {
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [newEmployee, setNewEmployee] = useState({
+    name: '',
+    email: '',
+    employeeId: '',
+    position: 'Kitchen',
+    department: 'Kitchen',
+    salary: 0,
+    password: ''
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [departmentFilter, setDepartmentFilter] = useState('All')
 
@@ -65,7 +76,7 @@ export default function EmployeesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Employee Management</h1>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+        <button onClick={() => setShowAddModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Add Employee
         </button>
@@ -230,6 +241,73 @@ export default function EmployeesPage() {
           </p>
         </div>
       )}
+
+        {/* Add Employee Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Add Employee</h3>
+                <button onClick={() => setShowAddModal(false)} className="text-gray-500">✕</button>
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                setCreating(true)
+                try {
+                  const payload = {
+                    email: newEmployee.email,
+                    name: newEmployee.name,
+                    password: newEmployee.password || 'password123',
+                    role: 'EMPLOYEE',
+                    employeeId: newEmployee.employeeId,
+                    position: newEmployee.position,
+                    department: newEmployee.department,
+                    salary: Number(newEmployee.salary)
+                  }
+
+                  const res = await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                  })
+
+                  if (res.ok) {
+                    setShowAddModal(false)
+                    setNewEmployee({ name: '', email: '', employeeId: '', position: 'Kitchen', department: 'Kitchen', salary: 0, password: '' })
+                    await fetchEmployees()
+                  } else {
+                    const err = await res.json()
+                    alert(err.error || 'Failed to create employee')
+                  }
+                } catch (err) {
+                  console.error(err)
+                  alert('Network error')
+                } finally {
+                  setCreating(false)
+                }
+              }}>
+                <div className="grid grid-cols-1 gap-2">
+                  <input required placeholder="Full name" value={newEmployee.name} onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })} className="p-2 border rounded" />
+                  <input required type="email" placeholder="Email" value={newEmployee.email} onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })} className="p-2 border rounded" />
+                  <input required placeholder="Employee ID" value={newEmployee.employeeId} onChange={(e) => setNewEmployee({ ...newEmployee, employeeId: e.target.value })} className="p-2 border rounded" />
+                  <select value={newEmployee.position} onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })} className="p-2 border rounded">
+                    <option>Kitchen</option>
+                    <option>Service</option>
+                    <option>Management</option>
+                    <option>Cleaning</option>
+                    <option>Security</option>
+                  </select>
+                  <input type="number" placeholder="Salary" value={newEmployee.salary} onChange={(e) => setNewEmployee({ ...newEmployee, salary: Number(e.target.value) })} className="p-2 border rounded" />
+                  <input placeholder="Password (optional)" value={newEmployee.password} onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })} className="p-2 border rounded" />
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 border rounded">Cancel</button>
+                  <button type="submit" disabled={creating} className="px-4 py-2 bg-blue-600 text-white rounded">{creating ? 'Creating...' : 'Create'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
     </div>
   )
 }

@@ -66,7 +66,9 @@ export const sessionStorage = {
   
   wasSessionActive: () => {
     if (typeof window !== 'undefined') {
-      const lastSession = localStorage.getItem('royal-food-session')
+  const lastSession: string | null = localStorage.getItem('royal-food-session')
+  // expose for quick debugging
+  ;(window as any).__royal_food_last_session = lastSession
       if (!lastSession) return false
       
       // Check if session was active within last 30 days

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { sessionStorage as customSessionStorage } from '@/lib/session-utils';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -28,12 +29,23 @@ export default function SignInPage() {
       if (result?.error) {
         setError('Invalid credentials. Please try again.');
       } else {
-        // Get the updated session to check user role
-        const session = await getSession();
+        // Mark session active locally so other tabs know
+        customSessionStorage.setSessionActive()
+
+        // Poll getSession briefly to ensure NextAuth has restored the JWT/session
+        let attempts = 0
+        let session = await getSession()
+        while (!session && attempts < 10) {
+          // wait 150ms between attempts
+          await new Promise((r) => setTimeout(r, 150))
+          session = await getSession()
+          attempts += 1
+        }
+
         if (session?.user?.role === 'ADMIN') {
-          router.push('/admin/users');
+          router.push('/admin/users')
         } else {
-          router.push('/dashboard');
+          router.push('/dashboard')
         }
       }
     } catch (err) {

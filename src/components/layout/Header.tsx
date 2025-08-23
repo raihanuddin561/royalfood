@@ -27,6 +27,13 @@ export default function Header() {
   }, [])
 
   const handleSignOut = async () => {
+    // Clear the local session marker so other tabs don't assume an active session
+    try {
+      customSessionStorage.clearSessionActive()
+    } catch (e) {
+      // ignore
+    }
+
     // Use NextAuth signOut with redirect to ensure cookies and session cleared correctly
     await signOut({ callbackUrl: '/auth/signin' })
   }

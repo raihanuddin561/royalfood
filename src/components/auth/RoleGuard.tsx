@@ -29,6 +29,24 @@ export function RoleGuard({
   }
   
   if (!session?.user) {
+    // fallback to any temporary server-provided session (set by ProtectedRoute during rehydrate)
+    const serverSession = typeof window !== 'undefined' ? (window as any).__royal_food_server_session : null
+    if (serverSession?.user) {
+      const userRole = serverSession.user.role as UserRole
+
+      // Check allowed roles
+      if (allowedRoles && !hasRole(userRole, allowedRoles)) {
+        return <>{fallback}</>
+      }
+
+      // Check minimum role
+      if (minimumRole && !hasMinimumRole(userRole, minimumRole)) {
+        return <>{fallback}</>
+      }
+
+      return <>{children}</>
+    }
+
     return <>{fallback}</>
   }
   

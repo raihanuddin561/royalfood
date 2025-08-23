@@ -89,6 +89,18 @@ export default function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const { open, setOpen } = useSidebar()
+  // fallback to temporary server session overlay if client session not yet available
+  const serverSession = typeof window !== 'undefined' ? (window as any).__royal_food_server_session : null
+  const sessionUser = session?.user ?? serverSession?.user ?? null
+  // debug: expose what we saw for quick inspection in browser console
+  if (typeof window !== 'undefined') {
+    try {
+      // keep this low-volume; only prints when console is open and helps diagnose role mismatches
+      console.debug && console.debug('[Sidebar] sessionUser, serverSession', sessionUser, serverSession)
+    } catch (e) {
+      // ignore
+    }
+  }
 
   // Close sidebar on navigation (mobile)
   const handleMenuClick = () => {
@@ -159,8 +171,8 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* User Info */}
-        {session?.user && (
+  {/* User Info */}
+  {sessionUser && (
           <div className="px-4 py-4 border-b border-gray-700 bg-gray-800/50">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
@@ -168,15 +180,15 @@ export default function Sidebar() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">
-                  {session.user.name}
+                  {sessionUser.name}
                 </p>
                 <p className="text-xs text-gray-400 truncate">
-                  {session.user.email}
+                  {sessionUser.email}
                 </p>
               </div>
             </div>
             <div className="mt-3">
-              {getRoleBadge(session.user.role)}
+              {getRoleBadge(sessionUser.role)}
             </div>
           </div>
         )}
@@ -186,8 +198,12 @@ export default function Sidebar() {
         <nav className="flex flex-1 flex-col px-3 py-4 min-h-0">
           <ul role="list" className="flex flex-1 flex-col gap-y-1 overflow-y-auto">
             {navigation.map((item) => {
-              // Check if user has required role for this item
-              const hasAccess = !item.roles || item.roles.includes(session?.user?.role as UserRole)
+              // Check if user has required role for this item (use fallback sessionUser)
+              // Normalize role strings to avoid casing/enum mismatches between server and client
+              const rawRole = (sessionUser?.role ?? serverSession?.user?.role) as string | undefined
+              const normalizedRole = rawRole ? String(rawRole).toUpperCase() : undefined
+              const userRole = normalizedRole as unknown as UserRole | undefined
+              const hasAccess = !item.roles || item.roles.some(r => String(r).toUpperCase() === normalizedRole)
               
               if (!hasAccess) return null
 
@@ -219,33 +235,48 @@ export default function Sidebar() {
           </ul>
 
           {/* Role-specific sections */}
-          <RoleGuard allowedRoles={[UserRole.ADMIN]}>
-            <div className="mt-6 pt-6 border-t border-gray-700">
-              <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                Administration
-              </p>
-              <ul className="space-y-1">
-                <li>
-                  <Link
-                    href="/admin/users"
-                    className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
-                  >
-                    <Users className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-white" />
-                    User Management
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/admin/system"
-                    className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
-                  >
-                    <Settings className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-white" />
-                    System Config
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </RoleGuard>
+          {/* Administration section: render immediately if server/user role shows ADMIN (fast fallback),
+              otherwise rely on RoleGuard to display when client session is available and authorized. */}
+          {(() => {
+            const rawRole = (sessionUser?.role ?? serverSession?.user?.role) as string | undefined
+            const normalizedRole = rawRole ? String(rawRole).toUpperCase() : undefined
+            const isAdmin = normalizedRole === 'ADMIN'
+
+            const adminLinks = (
+              <div className="mt-6 pt-6 border-t border-gray-700">
+                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  Administration
+                </p>
+                <ul className="space-y-1">
+                  <li>
+                    <Link
+                      href="/admin/users"
+                      className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
+                    >
+                      <Users className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-white" />
+                      User Management
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/admin/system"
+                      className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
+                    >
+                      <Settings className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-white" />
+                      System Config
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            )
+
+            if (isAdmin) return adminLinks
+            return (
+              <RoleGuard allowedRoles={[UserRole.ADMIN]}>
+                {adminLinks}
+              </RoleGuard>
+            )
+          })()}
         </nav>
       </aside>
     </>
