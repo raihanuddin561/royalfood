@@ -49,15 +49,39 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   session: {
-    strategy: 'jwt'
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 // 30 days
+      }
+    }
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      // Initial sign in
       if (user) {
         token.role = user.role
         token.isActive = user.isActive
         token.employee = user.employee
       }
+      
+      // Handle session update
+      if (trigger === 'update' && session) {
+        token = { ...token, ...session }
+      }
+      
       return token
     },
     async session({ session, token }) {
@@ -73,5 +97,13 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error'
+  },
+  events: {
+    async signIn(message) {
+      console.log('User signed in:', message.user.email)
+    },
+    async signOut(message) {
+      console.log('User signed out:', message.token?.email)
+    }
   }
 }

@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
+import { useSessionRefresh, sessionStorage } from '@/lib/session-utils';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -10,15 +11,24 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { data: session, status } = useSession();
+  const { session, status } = useSessionRefresh(); // Use enhanced session hook
   const router = useRouter();
 
   useEffect(() => {
     if (status === 'loading') return; // Still loading
 
     if (!session) {
-      router.push('/auth/signin');
-      return;
+      // Clear session storage when no session
+      sessionStorage.clearSessionActive()
+      
+      // Add a small delay to prevent flashing during session restoration
+      const timer = setTimeout(() => {
+        router.push('/auth/signin');
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      // Set session as active when we have a valid session
+      sessionStorage.setSessionActive()
     }
 
     if (requiredRole && session.user.role !== requiredRole) {
@@ -41,14 +51,25 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   if (status === 'loading') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">
+            {sessionStorage.wasSessionActive() ? 'Restoring session...' : 'Loading...'}
+          </p>
+        </div>
       </div>
     );
   }
 
   if (!session) {
-    return null; // Redirecting to signin
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    ); // Show loading while redirecting
   }
 
   return <>{children}</>;

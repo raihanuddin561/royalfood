@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { AdminOnly } from '@/components/auth/RoleGuard'
 import PasswordStrength from '@/components/ui/PasswordStrength'
+import { Notification, useNotification } from '@/components/ui/Notification'
 
 interface User {
   id: string
@@ -39,8 +40,8 @@ export default function UsersManagement() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const { showNotification, notification, clearNotification } = useNotification()
   const [formData, setFormData] = useState<CreateUserForm>({
     email: '',
     name: '',
@@ -64,10 +65,10 @@ export default function UsersManagement() {
         const data = await response.json()
         setUsers(data)
       } else {
-        setError('Failed to fetch users')
+        showNotification('error', 'Failed to fetch users')
       }
     } catch (error) {
-      setError('Error fetching users')
+      showNotification('error', 'Error fetching users')
     } finally {
       setLoading(false)
     }
@@ -75,20 +76,19 @@ export default function UsersManagement() {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
-    setSuccess('')
-
+    
     // Validate form
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match')
+      showNotification('error', 'Passwords do not match')
       return
     }
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters long')
+      showNotification('error', 'Password must be at least 8 characters long')
       return
     }
 
+    setSubmitting(true)
     try {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
@@ -99,8 +99,10 @@ export default function UsersManagement() {
       })
 
       if (response.ok) {
-        setSuccess('User created successfully')
+        const userData = await response.json()
+        showNotification('success', `User "${formData.name}" created successfully!`, 'User Created')
         setShowCreateForm(false)
+        // Reset form
         setFormData({
           email: '',
           name: '',
@@ -112,13 +114,16 @@ export default function UsersManagement() {
           department: '',
           salary: 0
         })
-        fetchUsers()
+        // Refresh user list
+        await fetchUsers()
       } else {
         const errorData = await response.json()
-        setError(errorData.error || 'Failed to create user')
+        showNotification('error', errorData.error || 'Failed to create user', 'Creation Failed')
       }
     } catch (error) {
-      setError('Error creating user')
+      showNotification('error', 'Network error occurred while creating user', 'Connection Error')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -133,13 +138,13 @@ export default function UsersManagement() {
       })
 
       if (response.ok) {
-        setSuccess(`User ${!currentStatus ? 'activated' : 'deactivated'} successfully`)
+        showNotification('success', `User ${!currentStatus ? 'activated' : 'deactivated'} successfully`)
         fetchUsers()
       } else {
-        setError('Failed to update user status')
+        showNotification('error', 'Failed to update user status')
       }
     } catch (error) {
-      setError('Error updating user status')
+      showNotification('error', 'Error updating user status')
     }
   }
 
@@ -163,6 +168,16 @@ export default function UsersManagement() {
   return (
     <AdminOnly>
       <div className="space-y-6">
+        {/* Notification */}
+        {notification && (
+          <Notification
+            type={notification.type}
+            title={notification.title}
+            message={notification.message}
+            onClose={clearNotification}
+          />
+        )}
+        
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
@@ -175,18 +190,6 @@ export default function UsersManagement() {
             Create User
           </button>
         </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-            {success}
-          </div>
-        )}
 
         {/* Create User Modal */}
         {showCreateForm && (
@@ -326,14 +329,23 @@ export default function UsersManagement() {
                 <div className="flex space-x-3 pt-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                    disabled={submitting}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
                   >
-                    Create User
+                    {submitting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Creating...
+                      </>
+                    ) : (
+                      'Create User'
+                    )}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowCreateForm(false)}
-                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                    disabled={submitting}
+                    className="flex-1 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg font-medium transition-colors"
                   >
                     Cancel
                   </button>

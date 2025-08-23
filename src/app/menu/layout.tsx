@@ -12,11 +12,11 @@ export default function MenuLayout({
 }) {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex">
         <Sidebar />
-        <div className="ml-64">
+        <div className="flex-1 flex flex-col min-w-0">
           <Header />
-          <main className="p-6 min-h-screen bg-gray-50">
+          <main className="flex-1 p-6 bg-gray-50 overflow-auto">
             <ErrorBoundary>
               {children}
             </ErrorBoundary>
