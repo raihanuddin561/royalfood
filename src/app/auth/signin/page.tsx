@@ -47,7 +47,6 @@ function SignInForm() {
         email,
         password,
         redirect: false,
-        callbackUrl: callbackUrl,
       });
 
       console.log('SignIn result:', result);
@@ -56,32 +55,13 @@ function SignInForm() {
         console.log('SignIn error:', result.error);
         setError('Invalid credentials. Please try again.');
       } else if (result?.ok) {
-        console.log('SignIn successful, forcing redirect to:', callbackUrl);
+        console.log('SignIn successful, redirecting with window.location.replace');
         
-        // Wait a moment for session to be established
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait for session to be established
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Multiple redirect attempts to ensure it works
-        try {
-          // First try router.replace
-          router.replace(callbackUrl);
-          
-          // Then try router.push as fallback
-          setTimeout(() => {
-            router.push(callbackUrl);
-          }, 100);
-          
-          // Finally use window.location as ultimate fallback
-          setTimeout(() => {
-            console.log('Using window.location fallback to:', callbackUrl);
-            window.location.href = callbackUrl;
-          }, 200);
-          
-        } catch (redirectError) {
-          console.error('Redirect error:', redirectError);
-          // Force redirect even if there's an error
-          window.location.href = callbackUrl;
-        }
+        // Use window.location.replace for immediate redirect
+        window.location.replace(callbackUrl);
       } else {
         console.log('Unexpected result:', result);
         setError('An unexpected error occurred. Please try again.');

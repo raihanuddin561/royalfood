@@ -34,17 +34,16 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(signInUrl)
     }
 
-    // Temporarily disabled - let signin page handle its own redirects
     // If accessing auth pages with valid token, redirect to dashboard
-    // if (request.nextUrl.pathname.startsWith('/auth/signin') && token) {
-    //   console.log('User has valid token, redirecting from signin to dashboard');
-    //   return NextResponse.redirect(new URL('/dashboard', request.url))
-    // }
+    if (request.nextUrl.pathname.startsWith('/auth/signin') && token) {
+      console.log('User has valid token, redirecting from signin to dashboard');
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
 
-    // if (request.nextUrl.pathname.startsWith('/auth/login') && token) {
-    //   console.log('User has valid token, redirecting from login to dashboard');
-    //   return NextResponse.redirect(new URL('/dashboard', request.url))
-    // }
+    if (request.nextUrl.pathname.startsWith('/auth/login') && token) {
+      console.log('User has valid token, redirecting from login to dashboard');
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
 
     // Add security headers
     const response = NextResponse.next()
