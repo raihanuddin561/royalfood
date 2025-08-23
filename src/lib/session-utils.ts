@@ -4,55 +4,44 @@ import { useSession } from 'next-auth/react'
 import { useEffect } from 'react'
 
 /**
- * Hook to improve session persistence by refreshing session data
- * when the browser tab becomes visible again
+ * Enhanced session hook with better persistence handling
  */
 export function useSessionRefresh() {
   const { data: session, status, update } = useSession()
 
   useEffect(() => {
+    // Only try to refresh session if we're authenticated
+    if (status !== 'authenticated') return
+
     const handleVisibilityChange = () => {
       // When tab becomes visible, refresh session to ensure it's still valid
-      if (!document.hidden && status === 'authenticated') {
-        update()
+      if (!document.hidden) {
+        update().catch(console.error)
       }
     }
 
     const handleFocus = () => {
       // When window gains focus, refresh session
-      if (status === 'authenticated') {
-        update()
-      }
+      update().catch(console.error)
     }
 
-    const handleOnline = () => {
-      // When coming back online, refresh session
-      if (status === 'authenticated') {
-        update()
+    const handleStorage = (e: StorageEvent) => {
+      // If session was cleared in another tab, refresh
+      if (e.key === 'royal-food-session' && !e.newValue) {
+        update().catch(console.error)
       }
     }
 
     // Add event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleFocus)
-    window.addEventListener('online', handleOnline)
+    window.addEventListener('storage', handleStorage)
 
     // Cleanup
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleFocus)
-      window.removeEventListener('online', handleOnline)
-    }
-  }, [status, update])
-
-  // Periodically refresh session (every 10 minutes)
-  useEffect(() => {
-    if (status === 'authenticated') {
-      const interval = setInterval(() => {
-        update()
-      }, 10 * 60 * 1000) // 10 minutes
-
-      return () => clearInterval(interval)
+      window.removeEventListener('storage', handleStorage)
     }
   }, [status, update])
 
@@ -60,27 +49,32 @@ export function useSessionRefresh() {
 }
 
 /**
- * Client-side session storage utilities
+ * Simple session persistence indicators
  */
 export const sessionStorage = {
-  // Store session indicator in localStorage for persistence check
   setSessionActive: () => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('royal-food-session', 'active')
+      localStorage.setItem('royal-food-session', Date.now().toString())
     }
   },
   
-  // Remove session indicator
   clearSessionActive: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('royal-food-session')
     }
   },
   
-  // Check if session was previously active
   wasSessionActive: () => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('royal-food-session') === 'active'
+      const lastSession = localStorage.getItem('royal-food-session')
+      if (!lastSession) return false
+      
+      // Check if session was active within last 30 days
+      const lastTime = parseInt(lastSession)
+      const now = Date.now()
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000
+      
+      return (now - lastTime) < thirtyDays
     }
     return false
   }

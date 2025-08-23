@@ -39,7 +39,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
             isActive: user.isActive,
-            employee: null // Set to null since we don't have employee profile yet
+            employee: null
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -55,16 +55,42 @@ export const authOptions: NextAuthOptions = {
   },
   jwt: {
     maxAge: 30 * 24 * 60 * 60, // 30 days
+    secret: process.env.NEXTAUTH_SECRET,
   },
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: process.env.NODE_ENV === 'production' 
+        ? '__Secure-next-auth.session-token' 
+        : 'next-auth.session-token',
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
         secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined,
         maxAge: 30 * 24 * 60 * 60 // 30 days
+      }
+    },
+    callbackUrl: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.callback-url'
+        : 'next-auth.callback-url',
+      options: {
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined,
+      }
+    },
+    csrfToken: {
+      name: process.env.NODE_ENV === 'production'
+        ? '__Host-next-auth.csrf-token'
+        : 'next-auth.csrf-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
       }
     }
   },
@@ -92,6 +118,13 @@ export const authOptions: NextAuthOptions = {
         session.user.employee = token.employee as any
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     }
   },
   pages: {
@@ -104,6 +137,23 @@ export const authOptions: NextAuthOptions = {
     },
     async signOut(message) {
       console.log('User signed out:', message.token?.email)
+    },
+    async session(message) {
+      console.log('Session accessed:', message.session.user.email)
+    }
+  },
+  debug: process.env.NODE_ENV === 'development',
+  logger: {
+    error: (code, metadata) => {
+      console.error('NextAuth Error:', code, metadata)
+    },
+    warn: (code) => {
+      console.warn('NextAuth Warning:', code)
+    },
+    debug: (code, metadata) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('NextAuth Debug:', code, metadata)
+      }
     }
   }
 }
