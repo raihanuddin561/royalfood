@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 import { requireAdmin, type AuthenticatedRequest } from '@/lib/api-protection'
+
+// Force dynamic runtime to prevent build-time evaluation
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 // Validation schema for user creation
 const createUserSchema = z.object({
@@ -19,6 +22,9 @@ const createUserSchema = z.object({
 // GET /api/admin/users - Get all users (Admin only)
 async function getUsersHandler(request: AuthenticatedRequest) {
   try {
+    // Import prisma inside the function to avoid build-time initialization
+    const { prisma } = await import('@/lib/prisma')
+    
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -55,6 +61,9 @@ async function getUsersHandler(request: AuthenticatedRequest) {
 // POST /api/admin/users - Create new user (Admin only)
 async function createUserHandler(request: AuthenticatedRequest) {
   try {
+    // Import prisma inside the function to avoid build-time initialization
+    const { prisma } = await import('@/lib/prisma')
+    
     const body = await request.json()
     
     // Validate input data

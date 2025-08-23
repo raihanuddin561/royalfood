@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+
+// Force dynamic runtime to prevent build-time evaluation
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
@@ -16,6 +19,9 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Import prisma inside the function to avoid build-time initialization
+    const { prisma } = await import('@/lib/prisma')
+    
     const session = await getServerSession(authOptions)
     
     if (!session?.user || session.user.role !== 'ADMIN') {
@@ -89,6 +95,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // Import prisma inside the function to avoid build-time initialization
+    const { prisma } = await import('@/lib/prisma')
+    
     const session = await getServerSession(authOptions)
     
     if (!session?.user || session.user.role !== 'ADMIN') {

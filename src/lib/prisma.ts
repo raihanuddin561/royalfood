@@ -4,20 +4,25 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Function to create Prisma client with proper error handling
-function createPrismaClient() {
-  // During build time, we might not have DATABASE_URL
-  const databaseUrl = process.env.DATABASE_URL
-  const isBuildTime = process.env.NODE_ENV === 'production' && !process.env.VERCEL
+let _prisma: PrismaClient | undefined
 
-  if (!databaseUrl && !isBuildTime) {
+// Build-safe prisma client factory
+function createPrismaClient(): PrismaClient | null {
+  // Skip initialization during build if no DATABASE_URL
+  if (!process.env.DATABASE_URL) {
+    // During build phase or when DATABASE_URL is not available
+    if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
+      console.log('⚠️ Build phase detected, skipping Prisma client initialization')
+      return null
+    }
+    
     const errorMessage = `
 ❌ DATABASE_URL environment variable is not set.
 
 🔍 Debug Info:
 - NODE_ENV: ${process.env.NODE_ENV || 'undefined'}
+- NEXT_PHASE: ${process.env.NEXT_PHASE || 'undefined'}
 - Platform: ${process.env.VERCEL ? 'Vercel' : 'Other'}
-- Build time: ${isBuildTime}
 - Available DATABASE vars: ${Object.keys(process.env).filter(k => k.includes('DATABASE')).join(', ') || 'none'}
 
 📋 Solutions:
@@ -33,39 +38,42 @@ DATABASE_URL="postgresql://user:pass@host:5432/database?sslmode=require"
     throw new Error('DATABASE_URL is not defined. Please check your environment variables.')
   }
 
-  // During build, return a mock client
-  if (!databaseUrl && isBuildTime) {
-    console.log('⚠️ Build time detected, using placeholder Prisma client')
-    // Return a basic PrismaClient that won't actually connect
-    return new PrismaClient({
-      datasources: {
-        db: {
-          url: 'postgresql://build:build@localhost:5432/build'
-        }
-      }
-    })
-  }
-
-  console.log(`✅ DATABASE_URL found, creating Prisma client (NODE_ENV: ${process.env.NODE_ENV})`)
+  console.log(`✅ Creating Prisma client (NODE_ENV: ${process.env.NODE_ENV})`)
   
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   })
 }
 
-// Create client instance
-const createClient = () => {
-  if (globalForPrisma.prisma) {
-    return globalForPrisma.prisma
+// Lazy getter for Prisma client
+function getPrismaClient(): PrismaClient {
+  if (!_prisma) {
+    const client = createPrismaClient()
+    if (client === null) {
+      // Return a mock client during build
+      return {} as PrismaClient
+    }
+    
+    _prisma = globalForPrisma.prisma ?? client
+    if (process.env.NODE_ENV !== 'production') {
+      globalForPrisma.prisma = _prisma
+    }
   }
-  
-  const client = createPrismaClient()
-  
-  if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = client
-  }
-  
-  return client
+  return _prisma
 }
 
-export const prisma = createClient()
+// Export a proxy that only initializes when actually used
+export const prisma = new Proxy({} as PrismaClient, {
+  get(target, prop) {
+    const client = getPrismaClient()
+    const value = client[prop as keyof PrismaClient]
+    
+    if (typeof value === 'function') {
+      return value.bind(client)
+    }
+    return value
+  },
+  has(target, prop) {
+    return prop in getPrismaClient()
+  }
+})
