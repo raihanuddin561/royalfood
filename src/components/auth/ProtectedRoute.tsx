@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -10,16 +10,21 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { data: session, status } = useSession(); // Use standard NextAuth session
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure component is mounted before doing any redirects
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    console.log('ProtectedRoute - Session status:', status);
-    console.log('ProtectedRoute - Session data:', session);
+    if (!mounted) return; // Wait for component to mount
     
-    if (status === 'loading') return; // Still loading
+    if (status === 'loading') return; // Still loading session
 
-    if (!session) {
+    if (status === 'unauthenticated' || !session) {
       console.log('No session found, redirecting to signin');
       router.push('/auth/signin');
       return;
@@ -43,10 +48,11 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
       }
     }
 
-    console.log('ProtectedRoute - Access granted for user:', session.user.email, 'Role:', session.user.role);
-  }, [session, status, router, requiredRole]);
+    console.log('Access granted for user:', session.user.email, 'Role:', session.user.role);
+  }, [mounted, session, status, router, requiredRole]);
 
-  if (status === 'loading') {
+  // Don't render anything until mounted and session is determined
+  if (!mounted || status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -57,7 +63,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     );
   }
 
-  if (!session) {
+  // Show redirecting message if no session
+  if (status === 'unauthenticated' || !session) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">

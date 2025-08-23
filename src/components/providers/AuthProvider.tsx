@@ -20,10 +20,9 @@ export function AuthProvider({
   return (
     <SessionProvider 
       session={session}
-      refetchInterval={5 * 60} // Refetch session every 5 minutes
-      refetchOnWindowFocus={true} // Refetch when window gains focus
+      refetchInterval={300} // Refetch session every 5 minutes for security
+      refetchOnWindowFocus={true} // Refetch when window gains focus to check if session is still valid
       refetchWhenOffline={false} // Don't refetch when offline
-      // Force session to be treated as client-side only
       basePath="/api/auth"
     >
       <AuthContext.Provider value={{}}>
