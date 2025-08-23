@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { SidebarProvider } from "@/components/layout/SidebarContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,10 +32,14 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <AuthProvider session={null}>
-            <div className="w-full min-h-screen flex flex-col sm:flex-row">
-              {/* Sidebar (sm:static for desktop, fixed for mobile) and main content */}
-              {children}
-            </div>
+            <SidebarProvider>
+              <div className="w-full min-h-screen flex flex-col">
+                {/* Main area: let individual routes/layouts control centering and spacing */}
+                <main className="flex-1 w-full">
+                  {children}
+                </main>
+              </div>
+            </SidebarProvider>
           </AuthProvider>
         </ErrorBoundary>
       </body>

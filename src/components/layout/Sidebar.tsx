@@ -23,6 +23,7 @@ import {
 import { UserRole } from '@prisma/client'
 import { RoleGuard } from '@/components/auth/RoleGuard'
 import { useState } from 'react'
+import { useSidebar } from './SidebarContext'
 
 interface NavigationItem {
   name: string
@@ -87,11 +88,11 @@ const navigation: NavigationItem[] = [
 export default function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
-  const [open, setOpen] = useState(false)
+  const { open, setOpen } = useSidebar()
 
   // Close sidebar on navigation (mobile)
   const handleMenuClick = () => {
-    if (window.innerWidth < 640) setOpen(false)
+    if (typeof window !== 'undefined' && window.innerWidth < 640) setOpen(false)
   }
 
   const isCurrentPath = (href: string) => {
@@ -133,7 +134,7 @@ export default function Sidebar() {
     <>
       {/* Sidebar toggle button for mobile only */}
       <button
-        className="fixed top-2 left-2 z-50 block sm:hidden bg-blue-600 text-white rounded-full p-2 shadow-lg"
+        className="fixed top-3 left-3 z-60 block sm:hidden bg-blue-600 text-white rounded-full p-2 shadow-lg"
         onClick={() => setOpen(!open)}
         aria-label="Open sidebar"
       >
@@ -142,12 +143,12 @@ export default function Sidebar() {
       {/* Overlay for mobile sidebar */}
       {open && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-40 z-40 block sm:hidden"
+          className="fixed inset-0 bg-black bg-opacity-40 z-50 block sm:hidden"
           onClick={() => setOpen(false)}
         />
       )}
-      {/* Sidebar: static on desktop, fixed and toggleable on mobile */}
-      <aside className={`sm:block ${open ? 'block' : 'hidden'} sm:static sm:translate-x-0 fixed top-0 left-0 h-screen w-64 bg-gradient-to-b from-gray-900 to-gray-800 flex-shrink-0 border-r border-gray-700 shadow-xl transition-transform duration-300 z-50 ${open ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0`}> 
+  {/* Sidebar: static on desktop, fixed and toggleable on mobile */}
+  <aside className={`fixed top-0 left-0 h-screen w-64 max-w-[100vw] box-border bg-gradient-to-b from-gray-900 to-gray-800 flex-shrink-0 border-r border-gray-700 shadow-xl transition-transform duration-300 z-60 transform ${open ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 sm:static sm:block overflow-hidden`}> 
         {/* Header */}
         <div className="flex h-16 shrink-0 items-center px-4 border-b border-gray-700 bg-gray-800">
           <div className="flex items-center gap-2">
@@ -181,8 +182,9 @@ export default function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="flex flex-1 flex-col px-3 py-4 overflow-y-auto">
-          <ul role="list" className="flex flex-1 flex-col gap-y-1">
+        {/* Use min-h-0 and overflow-y-auto so long content scrolls inside the sidebar rather than overflowing */}
+        <nav className="flex flex-1 flex-col px-3 py-4 min-h-0">
+          <ul role="list" className="flex flex-1 flex-col gap-y-1 overflow-y-auto">
             {navigation.map((item) => {
               // Check if user has required role for this item
               const hasAccess = !item.roles || item.roles.includes(session?.user?.role as UserRole)
