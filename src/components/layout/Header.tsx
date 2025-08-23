@@ -26,38 +26,43 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
+      console.log('Starting logout process...')
+      
       // Clear client-side session storage first
       customSessionStorage.clearSessionActive()
       
-      // Clear any cached data
+      // Clear any cached data aggressively
       if (typeof window !== 'undefined') {
-        // Clear all session-related localStorage
-        Object.keys(localStorage).forEach(key => {
-          if (key.includes('next-auth') || key.includes('session') || key.includes('royal-food')) {
-            localStorage.removeItem(key)
-          }
-        })
+        // Clear ALL localStorage
+        localStorage.clear()
         
-        // Clear browser sessionStorage as well
-        Object.keys(window.sessionStorage).forEach(key => {
-          if (key.includes('next-auth') || key.includes('session') || key.includes('royal-food')) {
-            window.sessionStorage.removeItem(key)
-          }
+        // Clear ALL sessionStorage  
+        sessionStorage.clear()
+        
+        // Clear cookies using document.cookie
+        document.cookie.split(";").forEach((c) => {
+          const eqPos = c.indexOf("=")
+          const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim()
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=.vercel.app"
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
         })
       }
       
       // Call our logout API to clear server-side session
       try {
         await fetch('/api/auth/logout', { method: 'POST' })
+        console.log('Server-side logout completed')
       } catch (err) {
         console.warn('Logout API call failed:', err)
       }
       
-      // Sign out with NextAuth
-      await signOut({ 
-        callbackUrl: '/auth/signin',
-        redirect: true 
-      })
+      console.log('Calling NextAuth signOut...')
+      
+      // Sign out with NextAuth - use window.location to force hard redirect
+      await signOut({ redirect: false })
+      
+      // Force hard navigation to clear any cached session
+      window.location.href = '/auth/signin'
       
     } catch (error) {
       console.error('Logout error:', error)

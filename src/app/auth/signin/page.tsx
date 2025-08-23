@@ -19,24 +19,53 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
+      console.log('🚀 Starting sign in for:', email);
+      
+      // Clear any existing session data first
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+        sessionStorage.clear();
+      }
+
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
+        callbackUrl: '/',
       });
 
+      console.log('🔐 SignIn result:', result);
+
       if (result?.error) {
+        console.log('❌ SignIn error:', result.error);
         setError('Invalid credentials. Please try again.');
-      } else {
-        // Get the updated session to check user role
+      } else if (result?.ok) {
+        console.log('✅ SignIn successful, fetching fresh session...');
+        
+        // Wait a moment for session to be established
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Get fresh session
         const session = await getSession();
+        console.log('📊 Fresh session data:', {
+          user: session?.user,
+          role: session?.user?.role,
+          sessionId: (session as any)?.sessionId
+        });
+        
         if (session?.user?.role === 'ADMIN') {
+          console.log('🔑 Admin user detected, redirecting to /admin/users');
           router.push('/admin/users');
         } else {
+          console.log('👤 Regular user detected, redirecting to /dashboard');
           router.push('/dashboard');
         }
+      } else {
+        console.log('⚠️ Unexpected result:', result);
+        setError('An unexpected error occurred. Please try again.');
       }
     } catch (err) {
+      console.error('💥 Sign in error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
