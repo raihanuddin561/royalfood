@@ -3,6 +3,7 @@
 import { Bell, Search, User, LogOut, Settings, Shield } from 'lucide-react'
 import { useSession, signOut } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
+import { sessionStorage as customSessionStorage } from '@/lib/session-utils'
 
 export default function Header() {
   const { data: session } = useSession()
@@ -23,8 +24,46 @@ export default function Header() {
     }
   }, [])
 
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/auth/signin' })
+  const handleSignOut = async () => {
+    try {
+      // Clear client-side session storage first
+      customSessionStorage.clearSessionActive()
+      
+      // Clear any cached data
+      if (typeof window !== 'undefined') {
+        // Clear all session-related localStorage
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('next-auth') || key.includes('session') || key.includes('royal-food')) {
+            localStorage.removeItem(key)
+          }
+        })
+        
+        // Clear browser sessionStorage as well
+        Object.keys(window.sessionStorage).forEach(key => {
+          if (key.includes('next-auth') || key.includes('session') || key.includes('royal-food')) {
+            window.sessionStorage.removeItem(key)
+          }
+        })
+      }
+      
+      // Call our logout API to clear server-side session
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' })
+      } catch (err) {
+        console.warn('Logout API call failed:', err)
+      }
+      
+      // Sign out with NextAuth
+      await signOut({ 
+        callbackUrl: '/auth/signin',
+        redirect: true 
+      })
+      
+    } catch (error) {
+      console.error('Logout error:', error)
+      // Force redirect even if there's an error
+      window.location.href = '/auth/signin'
+    }
   }
 
   const getRoleColor = (role: string) => {

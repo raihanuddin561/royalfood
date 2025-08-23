@@ -19,27 +19,34 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
+          // Always fetch fresh user data from database
           const user = await prisma.user.findUnique({
             where: { email: credentials.email }
           })
 
           if (!user || !user.isActive) {
+            console.log('User not found or inactive:', credentials.email)
             return null
           }
 
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
           
           if (!isPasswordValid) {
+            console.log('Invalid password for user:', credentials.email)
             return null
           }
 
+          console.log('User authenticated successfully:', credentials.email, 'Role:', user.role)
+
+          // Return fresh user data with unique identifier for session
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             role: user.role,
             isActive: user.isActive,
-            employee: null
+            employee: null,
+            loginTimestamp: Date.now() // Add unique timestamp
           }
         } catch (error) {
           console.error('Auth error:', error)
@@ -101,11 +108,13 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role
         token.isActive = user.isActive
         token.employee = user.employee
+        token.sessionTimestamp = Date.now() // Add timestamp for cache busting
       }
       
       // Handle session update
       if (trigger === 'update' && session) {
         token = { ...token, ...session }
+        token.sessionTimestamp = Date.now() // Update timestamp
       }
       
       return token
@@ -116,6 +125,8 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as UserRole
         session.user.isActive = token.isActive as boolean
         session.user.employee = token.employee as any
+        // Add timestamp to session for cache busting
+        ;(session as any).sessionTimestamp = token.sessionTimestamp as number
       }
       return session
     },
@@ -137,6 +148,7 @@ export const authOptions: NextAuthOptions = {
     },
     async signOut(message) {
       console.log('User signed out:', message.token?.email)
+      // Clear any server-side session data if needed
     },
     async session(message) {
       console.log('Session accessed:', message.session.user.email)
