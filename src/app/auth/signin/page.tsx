@@ -1,18 +1,17 @@
 'use client';
 
-import { useState, Suspense } from 'react';
-import { signIn } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { signIn, getSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
-function SignInForm() {
+export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,16 +22,19 @@ function SignInForm() {
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false, // Handle redirect manually to avoid middleware timing issues
+        redirect: false,
       });
 
       if (result?.error) {
         setError('Invalid credentials. Please try again.');
-      } else if (result?.ok) {
-        // Force immediate redirect to dashboard - bypass middleware
-        window.location.href = '/dashboard';
       } else {
-        setError('Login failed. Please try again.');
+        // Get the updated session to check user role
+        const session = await getSession();
+        if (session?.user?.role === 'ADMIN') {
+          router.push('/admin/users');
+        } else {
+          router.push('/dashboard');
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
@@ -129,17 +131,5 @@ function SignInForm() {
         </form>
       </div>
     </div>
-  );
-}
-
-export default function SignInPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    }>
-      <SignInForm />
-    </Suspense>
   );
 }
