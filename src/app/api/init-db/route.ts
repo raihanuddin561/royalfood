@@ -8,17 +8,35 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🚀 Starting database initialization...')
     
-    // First, try to apply database migrations to create tables
+    // Test basic connection first
+    console.log('🔗 Testing database connection...')
+    await prisma.$connect()
+    console.log('✅ Database connection successful')
+    
+    // Create all tables using raw SQL that matches your Prisma schema
     console.log('📋 Creating database schema...')
     
-    // Since we can't run prisma migrate in serverless, we'll create tables manually
+    // Drop existing tables if they exist (for fresh start)
+    await prisma.$executeRaw`DROP SCHEMA IF EXISTS public CASCADE;`
+    await prisma.$executeRaw`CREATE SCHEMA public;`
+    
+    // Create enums first
     await prisma.$executeRaw`
-      CREATE TABLE IF NOT EXISTS "users" (
+      DO $$ BEGIN
+        CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `
+    
+    // Create users table
+    await prisma.$executeRaw`
+      CREATE TABLE "users" (
         "id" TEXT NOT NULL,
         "email" TEXT NOT NULL,
         "password" TEXT NOT NULL,
         "name" TEXT NOT NULL,
-        "role" TEXT NOT NULL DEFAULT 'EMPLOYEE',
+        "role" "UserRole" NOT NULL DEFAULT 'EMPLOYEE',
         "isActive" BOOLEAN NOT NULL DEFAULT true,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -27,31 +45,17 @@ export async function GET(request: NextRequest) {
     `
     
     await prisma.$executeRaw`
-      CREATE UNIQUE INDEX IF NOT EXISTS "users_email_key" ON "users"("email");
+      CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
     `
     
-    console.log('✅ Basic users table created')
-
-    // Check if admin user already exists
-    const existingAdmin = await prisma.user.findUnique({
-      where: { email: 'admin@royalfood.com' }
-    }).catch(() => null) // Ignore errors if table doesn't exist yet
-
-    if (existingAdmin) {
-      return NextResponse.json({ 
-        message: 'Database already initialized. Admin user exists. Delete this API endpoint for security.',
-        success: false,
-        adminEmail: 'admin@royalfood.com'
-      })
-    }
-
-    // Create admin user
+    console.log('✅ Users table created')
+    
+    // Try to create admin user
     console.log('👤 Creating admin user...')
     const hashedPassword = await bcrypt.hash('11food22', 12)
     
     const adminUser = await prisma.user.create({
       data: {
-        id: 'admin-' + Date.now(),
         email: 'admin@royalfood.com',
         password: hashedPassword,
         name: 'System Administrator',
@@ -63,31 +67,47 @@ export async function GET(request: NextRequest) {
     console.log('✅ Admin user created successfully')
 
     return NextResponse.json({ 
-      message: '🎉 Database initialized successfully! Basic schema and admin user created.',
+      message: '🎉 Database initialized successfully! Schema created and admin user added.',
       success: true,
       adminEmail: 'admin@royalfood.com',
       adminPassword: '11food22',
       userId: adminUser.id,
-      warning: '⚠️ IMPORTANT: Delete this API endpoint now for security! Change admin password after first login.',
+      warning: '⚠️ CRITICAL: Delete this /api/init-db endpoint immediately for security!',
       nextSteps: [
-        '1. Login with admin@royalfood.com / 11food22',
-        '2. Change the admin password immediately',
-        '3. Delete this /api/init-db endpoint',
-        '4. Set up your restaurant data'
-      ]
+        '1. Try logging in with admin@royalfood.com / 11food22',
+        '2. Change the admin password immediately after login',
+        '3. Delete this /api/init-db endpoint from your codebase',
+        '4. Run full Prisma migrations later to create remaining tables'
+      ],
+      note: 'Only basic user table created. You may need to create additional tables for full functionality.'
     })
 
   } catch (error) {
     console.error('❌ Database initialization error:', error)
+    
+    // Provide detailed error information
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const isConnectionError = errorMessage.includes('connect') || errorMessage.includes('timeout')
+    const isPermissionError = errorMessage.includes('permission') || errorMessage.includes('access')
+    
     return NextResponse.json({ 
       message: 'Failed to initialize database',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
       success: false,
       troubleshooting: [
-        'Ensure DATABASE_URL_NEW is set in Vercel environment variables',
-        'Verify Neon database is active and accessible',
-        'Check Vercel function logs for detailed error information'
-      ]
+        isConnectionError ? '🔌 Database connection failed - check DATABASE_URL_NEW in Vercel' : '',
+        isPermissionError ? '🔐 Database permission denied - verify user privileges' : '',
+        '📋 Check Vercel function logs for detailed error information',
+        '🔄 Try visiting /api/check-env to verify environment variables',
+        '💾 Ensure your Neon database is active and not suspended'
+      ].filter(Boolean),
+      environment: {
+        DATABASE_URL_NEW_EXISTS: !!process.env.DATABASE_URL_NEW,
+        NODE_ENV: process.env.NODE_ENV,
+        VERCEL: !!process.env.VERCEL
+      }
     }, { status: 500 })
+  } finally {
+    await prisma.$disconnect()
   }
 }
