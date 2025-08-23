@@ -66,7 +66,7 @@ export function Notification({
 
   return (
     <div className={`
-      fixed top-4 right-4 z-50 max-w-md w-full sm:w-auto mx-4 sm:mx-0
+      fixed top-4 right-4 z-[9999] max-w-md w-full sm:w-auto mx-4 sm:mx-0
       ${settings.bg} ${settings.border} border rounded-lg shadow-lg
       transform transition-all duration-300 ease-in-out
       ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}

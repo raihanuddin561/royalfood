@@ -100,6 +100,7 @@ export default function UsersManagement() {
 
       if (response.ok) {
         const userData = await response.json()
+        console.log('User created successfully:', userData) // Debug log
         showNotification('success', `User "${formData.name}" created successfully!`, 'User Created')
         setShowCreateForm(false)
         // Reset form
@@ -118,6 +119,7 @@ export default function UsersManagement() {
         await fetchUsers()
       } else {
         const errorData = await response.json()
+        console.error('User creation failed:', errorData) // Debug log
         showNotification('error', errorData.error || 'Failed to create user', 'Creation Failed')
       }
     } catch (error) {
@@ -198,8 +200,23 @@ export default function UsersManagement() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Create New User</h2>
                 <button
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => {
+                    setShowCreateForm(false)
+                    // Reset form when closing
+                    setFormData({
+                      email: '',
+                      name: '',
+                      password: '',
+                      confirmPassword: '',
+                      role: 'EMPLOYEE',
+                      employeeId: '',
+                      position: '',
+                      department: '',
+                      salary: 0
+                    })
+                  }}
                   className="text-gray-400 hover:text-gray-600"
+                  disabled={submitting}
                 >
                   ✕
                 </button>
@@ -343,7 +360,21 @@ export default function UsersManagement() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowCreateForm(false)}
+                    onClick={() => {
+                      setShowCreateForm(false)
+                      // Reset form when canceling
+                      setFormData({
+                        email: '',
+                        name: '',
+                        password: '',
+                        confirmPassword: '',
+                        role: 'EMPLOYEE',
+                        employeeId: '',
+                        position: '',
+                        department: '',
+                        salary: 0
+                      })
+                    }}
                     disabled={submitting}
                     className="flex-1 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg font-medium transition-colors"
                   >
