@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash('admin123', 12)
+    const hashedPassword = await bcrypt.hash('11food22', 12)
     
     const adminUser = await prisma.user.create({
       data: {
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
       message: 'Database initialized successfully! Admin user created. IMPORTANT: Delete this API endpoint now for security.',
       success: true,
       adminEmail: 'admin@royalfood.com',
-      adminPassword: 'admin123',
+      adminPassword: '11food22',
       warning: 'Change the admin password immediately after first login!'
     })
 
