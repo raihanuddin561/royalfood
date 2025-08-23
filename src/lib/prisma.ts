@@ -8,16 +8,16 @@ let _prisma: PrismaClient | undefined
 
 // Build-safe prisma client factory
 function createPrismaClient(): PrismaClient | null {
-  // Skip initialization during build if no DATABASE_URL
-  if (!process.env.DATABASE_URL) {
-    // During build phase or when DATABASE_URL is not available
+  // Skip initialization during build if no DATABASE_URL_NEW
+  if (!process.env.DATABASE_URL_NEW) {
+    // During build phase or when DATABASE_URL_NEW is not available
     if (process.env.NEXT_PHASE === 'phase-production-build' || process.env.NODE_ENV === 'production') {
       console.log('⚠️ Build phase detected, skipping Prisma client initialization')
       return null
     }
     
     const errorMessage = `
-❌ DATABASE_URL environment variable is not set.
+❌ DATABASE_URL_NEW environment variable is not set.
 
 🔍 Debug Info:
 - NODE_ENV: ${process.env.NODE_ENV || 'undefined'}
@@ -26,16 +26,16 @@ function createPrismaClient(): PrismaClient | null {
 - Available DATABASE vars: ${Object.keys(process.env).filter(k => k.includes('DATABASE')).join(', ') || 'none'}
 
 📋 Solutions:
-1. For Vercel: Set DATABASE_URL in Environment Variables
+1. For Vercel: Set DATABASE_URL_NEW in Environment Variables
 2. For local: Check your .env file
 3. For other hosts: Verify environment variable is set
 
 🔗 Expected format:
-DATABASE_URL="postgresql://user:pass@host:5432/database?sslmode=require"
+DATABASE_URL_NEW="postgresql://user:pass@host:5432/database?sslmode=require"
     `.trim()
     
     console.error(errorMessage)
-    throw new Error('DATABASE_URL is not defined. Please check your environment variables.')
+    throw new Error('DATABASE_URL_NEW is not defined. Please check your environment variables.')
   }
 
   console.log(`✅ Creating Prisma client (NODE_ENV: ${process.env.NODE_ENV})`)
