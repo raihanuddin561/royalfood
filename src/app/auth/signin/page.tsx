@@ -128,14 +128,6 @@ export default function SignInPage() {
               )}
             </button>
           </div>
-          
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="text-sm font-semibold text-blue-800 mb-2">Demo Account:</h3>
-            <p className="text-xs text-blue-700">
-              Email: admin@royalfood.com<br />
-              Password: 11food22
-            </p>
-          </div>
         </form>
       </div>
     </div>

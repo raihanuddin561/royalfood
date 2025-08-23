@@ -169,16 +169,6 @@ export default function LoginPage() {
             </div>
           </form>
         </div>
-
-        {/* Demo Credentials Info */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</h3>
-          <div className="text-xs text-gray-600 space-y-1">
-            <p><strong>Admin:</strong> admin@royalfood.com / password123</p>
-            <p><strong>Manager:</strong> manager@royalfood.com / password123</p>
-            <p><strong>Employee:</strong> employee@royalfood.com / password123</p>
-          </div>
-        </div>
       </div>
     </div>
   )
