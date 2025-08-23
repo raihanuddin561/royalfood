@@ -20,18 +20,23 @@ function SignInForm() {
     setLoading(true);
 
     try {
-      // Use NextAuth's built-in redirect
-      await signIn('credentials', {
+      const result = await signIn('credentials', {
         email,
         password,
-        callbackUrl,
-        redirect: true, // Let NextAuth handle everything
+        redirect: false, // Handle redirect manually to avoid middleware timing issues
       });
-      
-      // This line should not be reached if redirect works
+
+      if (result?.error) {
+        setError('Invalid credentials. Please try again.');
+      } else if (result?.ok) {
+        // Force immediate redirect to dashboard - bypass middleware
+        window.location.href = '/dashboard';
+      } else {
+        setError('Login failed. Please try again.');
+      }
     } catch (err) {
-      console.error('Sign in error:', err);
       setError('An unexpected error occurred. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
