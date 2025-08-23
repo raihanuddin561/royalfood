@@ -31,7 +31,8 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <AuthProvider session={null}>
-            <div className="w-full min-h-screen flex flex-col md:flex-row">
+            <div className="w-full min-h-screen flex flex-col sm:flex-row">
+              {/* Sidebar (sm:static for desktop, fixed for mobile) and main content */}
               {children}
             </div>
           </AuthProvider>

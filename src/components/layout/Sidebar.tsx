@@ -89,6 +89,11 @@ export default function Sidebar() {
   const { data: session } = useSession()
   const [open, setOpen] = useState(false)
 
+  // Close sidebar on navigation (mobile)
+  const handleMenuClick = () => {
+    if (window.innerWidth < 640) setOpen(false)
+  }
+
   const isCurrentPath = (href: string) => {
     if (href === '/dashboard' && pathname === '/dashboard') return true
     if (href !== '/dashboard' && pathname.startsWith(href)) return true
@@ -126,14 +131,23 @@ export default function Sidebar() {
   // Show sidebar on desktop, toggle on mobile
   return (
     <>
+      {/* Sidebar toggle button for mobile only */}
       <button
-        className="fixed top-2 left-2 z-50 sm:hidden bg-blue-600 text-white rounded-full p-2 shadow-lg"
+        className="fixed top-2 left-2 z-50 block sm:hidden bg-blue-600 text-white rounded-full p-2 shadow-lg"
         onClick={() => setOpen(!open)}
         aria-label="Open sidebar"
       >
         <ChefHat className="h-6 w-6" />
       </button>
-      <aside className={`fixed sm:static top-0 left-0 h-screen w-64 bg-gradient-to-b from-gray-900 to-gray-800 flex-shrink-0 border-r border-gray-700 shadow-xl transition-transform duration-300 z-40 ${open ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0`}> 
+      {/* Overlay for mobile sidebar */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-40 z-40 block sm:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
+      {/* Sidebar: static on desktop, fixed and toggleable on mobile */}
+      <aside className={`sm:block ${open ? 'block' : 'hidden'} sm:static sm:translate-x-0 fixed top-0 left-0 h-screen w-64 bg-gradient-to-b from-gray-900 to-gray-800 flex-shrink-0 border-r border-gray-700 shadow-xl transition-transform duration-300 z-50 ${open ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0`}> 
         {/* Header */}
         <div className="flex h-16 shrink-0 items-center px-4 border-b border-gray-700 bg-gray-800">
           <div className="flex items-center gap-2">
@@ -187,6 +201,7 @@ export default function Sidebar() {
                         : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
                     }`}
                     title={item.description}
+                    onClick={handleMenuClick}
                   >
                     <item.icon className={`h-5 w-5 shrink-0 transition-colors ${
                       isActive ? 'text-blue-400' : 'text-gray-400 group-hover:text-white'
