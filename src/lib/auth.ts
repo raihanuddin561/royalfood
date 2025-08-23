@@ -20,8 +20,7 @@ export const authOptions: NextAuthOptions = {
 
         try {
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email },
-            include: { employeeProfile: true }
+            where: { email: credentials.email }
           })
 
           if (!user || !user.isActive) {
@@ -40,12 +39,7 @@ export const authOptions: NextAuthOptions = {
             name: user.name,
             role: user.role,
             isActive: user.isActive,
-            employee: user.employeeProfile ? {
-              id: user.employeeProfile.id,
-              employeeId: user.employeeProfile.employeeId,
-              position: user.employeeProfile.position,
-              department: user.employeeProfile.department
-            } : null
+            employee: null // Set to null since we don't have employee profile yet
           }
         } catch (error) {
           console.error('Auth error:', error)
