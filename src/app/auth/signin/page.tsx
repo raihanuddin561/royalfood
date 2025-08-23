@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { signIn, getSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { signIn } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 function SignInForm() {
@@ -11,11 +11,8 @@ function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-
-  // Removed useEffect that checks for existing session - let NextAuth handle it
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,49 +20,17 @@ function SignInForm() {
     setLoading(true);
 
     try {
-      console.log('🚀 Starting sign in for:', email);
-      console.log('🎯 Target callback URL:', callbackUrl);
-      
-      // Use redirect=false to handle errors properly
-      const result = await signIn('credentials', {
+      // Use NextAuth's built-in redirect
+      await signIn('credentials', {
         email,
         password,
-        redirect: false,
+        callbackUrl,
+        redirect: true, // Let NextAuth handle everything
       });
-
-      console.log('📋 SignIn result:', result);
-
-      if (result?.error) {
-        console.log('❌ SignIn error:', result.error);
-        setError('Invalid credentials. Please try again.');
-        setLoading(false);
-      } else if (result?.ok) {
-        console.log('✅ SignIn successful!');
-        console.log('⏳ Waiting for session to be established...');
-        
-        // Wait longer for JWT token to be properly set
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Verify session is actually available
-        const session = await getSession();
-        console.log('🔍 Session check:', session ? 'Found' : 'Not found');
-        
-        if (session) {
-          console.log('👤 Session user:', session.user.email, 'Role:', session.user.role);
-          console.log('🔄 Redirecting to:', callbackUrl);
-          window.location.href = callbackUrl;
-        } else {
-          console.log('⚠️ No session found after login, trying page reload');
-          // If no session, try reloading the page which should trigger middleware redirect
-          window.location.reload();
-        }
-      } else {
-        console.log('⚠️ Unexpected result:', result);
-        setError('An unexpected error occurred. Please try again.');
-        setLoading(false);
-      }
+      
+      // This line should not be reached if redirect works
     } catch (err) {
-      console.error('❌ Sign in error:', err);
+      console.error('Sign in error:', err);
       setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
