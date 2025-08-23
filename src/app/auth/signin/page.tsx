@@ -15,17 +15,7 @@ function SignInForm() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkSession = async () => {
-      const session = await getSession();
-      if (session) {
-        console.log('User already logged in, redirecting to:', callbackUrl);
-        window.location.href = callbackUrl;
-      }
-    };
-    checkSession();
-  }, [callbackUrl]);
+  // Removed useEffect that checks for existing session - let NextAuth handle it
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,43 +23,38 @@ function SignInForm() {
     setLoading(true);
 
     try {
-      console.log('Starting sign in for:', email);
-      console.log('Callback URL:', callbackUrl);
+      console.log('🚀 Starting sign in for:', email);
+      console.log('🎯 Target callback URL:', callbackUrl);
       
-      // Clear any existing session data first
-      if (typeof window !== 'undefined') {
-        localStorage.clear();
-        sessionStorage.clear();
-      }
-
-      // Use redirect=false to handle everything manually
+      // Use redirect=false to handle errors properly
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
 
-      console.log('SignIn result:', result);
+      console.log('📋 SignIn result:', result);
 
       if (result?.error) {
-        console.log('SignIn error:', result.error);
+        console.log('❌ SignIn error:', result.error);
         setError('Invalid credentials. Please try again.');
+        setLoading(false);
       } else if (result?.ok) {
-        console.log('SignIn successful, redirecting with window.location.replace');
+        console.log('✅ SignIn successful!');
+        console.log('🔄 Redirecting to:', callbackUrl);
         
-        // Wait for session to be established
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Use window.location.replace for immediate redirect
-        window.location.replace(callbackUrl);
+        // Simple redirect without complex logic
+        setTimeout(() => {
+          window.location.href = callbackUrl;
+        }, 100);
       } else {
-        console.log('Unexpected result:', result);
+        console.log('⚠️ Unexpected result:', result);
         setError('An unexpected error occurred. Please try again.');
+        setLoading(false);
       }
     } catch (err) {
-      console.error('Sign in error:', err);
+      console.error('❌ Sign in error:', err);
       setError('An unexpected error occurred. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
