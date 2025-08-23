@@ -3,9 +3,12 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: NextRequest) {
+  console.log('Middleware called for:', request.nextUrl.pathname);
+  
   // Check if this is an API route or auth route
   if (request.nextUrl.pathname.startsWith('/api/') || 
       request.nextUrl.pathname.startsWith('/auth/')) {
+    console.log('Skipping middleware for API/auth route');
     return NextResponse.next()
   }
 
@@ -16,6 +19,8 @@ export async function middleware(request: NextRequest) {
       secret: process.env.NEXTAUTH_SECRET 
     })
 
+    console.log('Token exists:', !!token, token?.email || 'no email');
+
     // If accessing protected routes without token, redirect to signin
     const protectedPaths = ['/dashboard', '/admin', '/inventory', '/menu', '/orders', '/sales', '/employees', '/expenses', '/reports', '/partnership', '/settings', '/operations']
     const isProtectedPath = protectedPaths.some(path => 
@@ -23,16 +28,23 @@ export async function middleware(request: NextRequest) {
     )
 
     if (isProtectedPath && !token) {
+      console.log('Protected path without token, redirecting to signin');
       const signInUrl = new URL('/auth/signin', request.url)
       signInUrl.searchParams.set('callbackUrl', request.nextUrl.pathname)
       return NextResponse.redirect(signInUrl)
     }
 
+    // Temporarily disabled - let signin page handle its own redirects
     // If accessing auth pages with valid token, redirect to dashboard
-    if ((request.nextUrl.pathname.startsWith('/auth/signin') || 
-         request.nextUrl.pathname.startsWith('/auth/login')) && token) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+    // if (request.nextUrl.pathname.startsWith('/auth/signin') && token) {
+    //   console.log('User has valid token, redirecting from signin to dashboard');
+    //   return NextResponse.redirect(new URL('/dashboard', request.url))
+    // }
+
+    // if (request.nextUrl.pathname.startsWith('/auth/login') && token) {
+    //   console.log('User has valid token, redirecting from login to dashboard');
+    //   return NextResponse.redirect(new URL('/dashboard', request.url))
+    // }
 
     // Add security headers
     const response = NextResponse.next()

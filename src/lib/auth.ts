@@ -152,11 +152,24 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+      console.log('🔄 Redirect callback called:', { url, baseUrl })
+      
+      // If it's a relative URL, make it absolute
+      if (url.startsWith("/")) {
+        const fullUrl = `${baseUrl}${url}`
+        console.log('📍 Redirecting to relative URL:', fullUrl)
+        return fullUrl
+      }
+      
+      // If it's the same origin, allow it
+      if (new URL(url).origin === baseUrl) {
+        console.log('📍 Redirecting to same origin:', url)
+        return url
+      }
+      
+      // Default to dashboard for successful logins
+      console.log('📍 Default redirect to dashboard')
+      return `${baseUrl}/dashboard`
     }
   },
   pages: {

@@ -34,7 +34,7 @@ export function loadEnvironment() {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || (
       process.env.NODE_ENV === 'production' 
-        ? 'https://royal-food-rs.vercel.app' 
+        ? 'https://royalfoodbd.vercel.app' 
         : 'http://localhost:3000'
     ),
     NODE_ENV: process.env.NODE_ENV || 'development'
