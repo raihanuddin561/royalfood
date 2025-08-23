@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { signIn, getSession } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 export default function SignInPage() {
@@ -12,20 +12,6 @@ export default function SignInPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkSession = async () => {
-      const session = await getSession();
-      if (session) {
-        console.log('User already logged in, redirecting to:', callbackUrl);
-        window.location.href = callbackUrl;
-      }
-    };
-    checkSession();
-  }, [callbackUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +20,6 @@ export default function SignInPage() {
 
     try {
       console.log('Starting sign in for:', email);
-      console.log('Callback URL:', callbackUrl);
       
       // Clear any existing session data first
       if (typeof window !== 'undefined') {
@@ -42,12 +27,11 @@ export default function SignInPage() {
         sessionStorage.clear();
       }
 
-      // Use redirect=false to handle everything manually
+      // Use redirect=false to handle errors properly
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
-        callbackUrl: callbackUrl,
       });
 
       console.log('SignIn result:', result);
@@ -56,32 +40,9 @@ export default function SignInPage() {
         console.log('SignIn error:', result.error);
         setError('Invalid credentials. Please try again.');
       } else if (result?.ok) {
-        console.log('SignIn successful, forcing redirect to:', callbackUrl);
-        
-        // Wait a moment for session to be established
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Multiple redirect attempts to ensure it works
-        try {
-          // First try router.replace
-          router.replace(callbackUrl);
-          
-          // Then try router.push as fallback
-          setTimeout(() => {
-            router.push(callbackUrl);
-          }, 100);
-          
-          // Finally use window.location as ultimate fallback
-          setTimeout(() => {
-            console.log('Using window.location fallback to:', callbackUrl);
-            window.location.href = callbackUrl;
-          }, 200);
-          
-        } catch (redirectError) {
-          console.error('Redirect error:', redirectError);
-          // Force redirect even if there's an error
-          window.location.href = callbackUrl;
-        }
+        console.log('SignIn successful, redirecting to dashboard');
+        // Force a hard redirect to ensure proper navigation
+        window.location.href = '/dashboard';
       } else {
         console.log('Unexpected result:', result);
         setError('An unexpected error occurred. Please try again.');
