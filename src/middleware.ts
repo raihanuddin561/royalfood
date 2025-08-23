@@ -19,7 +19,19 @@ export async function middleware(request: NextRequest) {
       secret: process.env.NEXTAUTH_SECRET 
     })
 
-    console.log('Token exists:', !!token, token?.email || 'no email');
+    console.log('🔍 Middleware token check:');
+    console.log('  - Token exists:', !!token);
+    console.log('  - User email:', token?.email || 'no email');
+    console.log('  - User role:', token?.role || 'no role');
+    console.log('  - Token sub:', token?.sub || 'no sub');
+    
+    // Debug: Log all cookies
+    const cookies = request.headers.get('cookie') || '';
+    console.log('  - Cookies present:', cookies.includes('next-auth'));
+    
+    if (token) {
+      console.log('  - Full token:', JSON.stringify(token, null, 2));
+    }
 
     // If accessing protected routes without token, redirect to signin
     const protectedPaths = ['/dashboard', '/admin', '/inventory', '/menu', '/orders', '/sales', '/employees', '/expenses', '/reports', '/partnership', '/settings', '/operations']

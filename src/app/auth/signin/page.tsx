@@ -41,12 +41,24 @@ function SignInForm() {
         setLoading(false);
       } else if (result?.ok) {
         console.log('✅ SignIn successful!');
-        console.log('🔄 Redirecting to:', callbackUrl);
+        console.log('⏳ Waiting for session to be established...');
         
-        // Simple redirect without complex logic
-        setTimeout(() => {
+        // Wait longer for JWT token to be properly set
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Verify session is actually available
+        const session = await getSession();
+        console.log('🔍 Session check:', session ? 'Found' : 'Not found');
+        
+        if (session) {
+          console.log('👤 Session user:', session.user.email, 'Role:', session.user.role);
+          console.log('🔄 Redirecting to:', callbackUrl);
           window.location.href = callbackUrl;
-        }, 100);
+        } else {
+          console.log('⚠️ No session found after login, trying page reload');
+          // If no session, try reloading the page which should trigger middleware redirect
+          window.location.reload();
+        }
       } else {
         console.log('⚠️ Unexpected result:', result);
         setError('An unexpected error occurred. Please try again.');
