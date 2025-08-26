@@ -8,8 +8,13 @@ import path from 'path'
 export async function POST(req: NextRequest) {
   const secret = process.env.MIGRATE_RUNNER_SECRET
   const header = req.headers.get('x-migrate-secret')
-  if (!secret || header !== secret) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  // Helpful diagnostics: if secret is not configured, return 500 so you know to set it in Vercel
+  if (!secret) {
+    return NextResponse.json({ success: false, error: 'MIGRATE_RUNNER_SECRET is not configured on the server' }, { status: 500 })
+  }
+
+  if (header !== secret) {
+    return NextResponse.json({ success: false, error: 'Unauthorized - invalid migrate secret' }, { status: 401 })
   }
 
   const runnerPath = path.join(process.cwd(), 'scripts', 'apply_migrations_safe.js')
