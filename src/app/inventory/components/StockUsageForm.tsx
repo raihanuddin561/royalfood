@@ -36,6 +36,9 @@ export default function StockUsageForm({
     notes: ''
   })
 
+  const today = new Date().toISOString().split('T')[0]
+  const [usageDate, setUsageDate] = useState(today)
+
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -98,7 +101,8 @@ export default function StockUsageForm({
         orderId: orderId,
         userId: 'system', // You'll need to get actual user ID
         usageType: formData.usageType,
-        notes: formData.notes
+  notes: formData.notes,
+  usageDate: usageDate
       })
 
       if (result.success) {
@@ -263,6 +267,18 @@ export default function StockUsageForm({
               onChange={(e) => handleInputChange('notes', e.target.value)}
               placeholder="Additional notes about this usage"
               rows={3}
+              className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Usage Date
+            </label>
+            <input
+              type="date"
+              value={usageDate}
+              onChange={(e) => setUsageDate(e.target.value)}
               className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
           </div>

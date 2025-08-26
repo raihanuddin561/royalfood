@@ -22,10 +22,10 @@ Vercel's Neon integration always shows `neondb` in the connection string, even w
 ### Step 3: Correct DATABASE_URL Format
 ```bash
 # Wrong (what Vercel shows):
-postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 
 # Correct (what you should use):
-postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 
 ## 🧪 How to Test Which Database Name is Correct

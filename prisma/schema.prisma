@@ -186,6 +186,8 @@ model Item {
   specification String?  // e.g., "Ribeye Cut", "Basmati Premium", "Organic"
   brand         String?  // e.g., "Tilda", "Uncle Ben's", "Local Farm"
   grade         String?  // e.g., "Grade A", "Premium", "Standard"
+  expiryDate    DateTime? // Optional expiry date for perishable items
+  receivedDate  DateTime? // Optional date when item was received
   unit          String   // kg, piece, liter, etc.
   packSize      String?  // e.g., "25kg bag", "1kg pack", "500g"
   costPrice     Float

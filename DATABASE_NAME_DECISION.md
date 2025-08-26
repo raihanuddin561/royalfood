@@ -16,10 +16,10 @@ Use `royal_food_db` in your DATABASE_URL:
 
 ```bash
 # CORRECT (use your created database):
-DATABASE_URL=postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+DATABASE_URL=postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 
 # WRONG (default that may not exist):
-DATABASE_URL=postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL=postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 
 ## 🧪 How to Test Which Database Name Works
@@ -65,7 +65,7 @@ SELECT datname FROM pg_database;
 ### 1. Update Your CONNECTION_URL
 In Vercel Environment Variables, set:
 ```bash
-DATABASE_URL=postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+DATABASE_URL=postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 
 ### 2. Deploy and Test

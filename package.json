@@ -12,6 +12,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && next build"
+  ,"db:migrate:run": "node ./scripts/run_migrations.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",

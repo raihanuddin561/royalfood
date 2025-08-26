@@ -4,7 +4,7 @@
 
 ### 1. DATABASE_URL (Use the pooled connection - FINAL CORRECT URL)
 ```
-postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 
 ### 2. NEXTAUTH_URL
@@ -26,7 +26,7 @@ production
 ## ⚠️ Security Recommendations
 
 1. **Generate NEXTAUTH_SECRET**: Don't use example values
-2. **Keep .env.production in Git**: It's OK since these are your actual production values
+2. **Do NOT commit `.env.production` to Git.** Keep production secrets in your hosting provider's environment settings or a secrets manager.
 3. **Database Credentials**: These are secure Neon-generated credentials
 
 ## ✅ Ready to Deploy

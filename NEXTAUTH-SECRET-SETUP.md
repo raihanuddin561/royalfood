@@ -7,7 +7,7 @@ Your deployment is failing because `NEXTAUTH_SECRET` is not set in Vercel enviro
 ## 🔑 Generated Secret
 **Your secure NextAuth secret:**
 ```
-c68c3f8e6781433c378f260e186ac34bba7a4732d9c82670faf1ed754874cedc
+<REDACTED_NEXTAUTH_SECRET>
 ```
 
 ## ⚡ Quick Fix Steps
@@ -20,7 +20,7 @@ c68c3f8e6781433c378f260e186ac34bba7a4732d9c82670faf1ed754874cedc
 5. Click **Add New** button
 6. Set:
    - **Name**: `NEXTAUTH_SECRET`
-   - **Value**: `c68c3f8e6781433c378f260e186ac34bba7a4732d9c82670faf1ed754874cedc`
+   - **Value**: `<REDACTED_NEXTAUTH_SECRET>`
    - **Environment**: Select **Production**, **Preview**, and **Development**
 7. Click **Save**
 
@@ -36,11 +36,11 @@ Make sure these are ALL set in Vercel:
 
 ```bash
 # Database
-DATABASE_URL=postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+DATABASE_URL=postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 
 # NextAuth
 NEXTAUTH_URL=https://royal-food-rs.vercel.app  
-NEXTAUTH_SECRET=c68c3f8e6781433c378f260e186ac34bba7a4732d9c82670faf1ed754874cedc
+NEXTAUTH_SECRET=<REDACTED_NEXTAUTH_SECRET>
 
 # Environment
 NODE_ENV=production

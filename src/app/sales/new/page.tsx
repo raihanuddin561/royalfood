@@ -18,6 +18,7 @@ export default function QuickSalePage() {
   const [totalAmount, setTotalAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'CARD' | 'DIGITAL_WALLET' | 'BANK_TRANSFER'>('CASH')
   const [notes, setNotes] = useState('')
+  const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [loading, setLoading] = useState(false)
   const [notification, setNotification] = useState<{
     type: 'success' | 'error'
@@ -43,6 +44,7 @@ export default function QuickSalePage() {
       formData.append('totalAmount', totalAmount)
       formData.append('paymentMethod', paymentMethod)
       formData.append('notes', notes)
+  formData.append('saleDate', saleDate)
 
       const result = await createQuickSale(formData)
 
@@ -184,7 +186,7 @@ export default function QuickSalePage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Date:</span>
-                  <span>{new Date().toLocaleDateString()}</span>
+                  <span>{new Date(saleDate).toLocaleDateString()}</span>
                 </div>
               </div>
             </div>
@@ -216,6 +218,17 @@ export default function QuickSalePage() {
           </div>
         </form>
       </div>
+
+        {/* Date input */}
+        <div className="p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Sale Date</label>
+          <input
+            type="date"
+            value={saleDate}
+            onChange={(e) => setSaleDate(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+        </div>
 
       {/* Information Panel */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

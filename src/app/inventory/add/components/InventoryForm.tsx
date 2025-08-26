@@ -40,6 +40,8 @@ function SubmitButton() {
 
 export default function InventoryForm({ categories, suppliers }: InventoryFormProps) {
   const [selectedUnit, setSelectedUnit] = useState('')
+  const today = new Date().toISOString().split('T')[0]
+  const [receivedDate, setReceivedDate] = useState(today)
   const { showNotification, notification, clearNotification } = useNotification()
   const router = useRouter()
 
@@ -47,6 +49,9 @@ export default function InventoryForm({ categories, suppliers }: InventoryFormPr
     // Add the selected unit to form data
     if (selectedUnit) {
       formData.set('unit', selectedUnit)
+    }
+    if (receivedDate) {
+      formData.set('receivedDate', receivedDate)
     }
     
     const result = await createInventoryItem(formData)
@@ -227,6 +232,33 @@ export default function InventoryForm({ categories, suppliers }: InventoryFormPr
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Received Date
+              </label>
+              <input
+                name="receivedDate"
+                type="date"
+                value={receivedDate}
+                onChange={(e) => setReceivedDate(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Grade/Quality
+              </label>
+              <input
+                name="grade"
+                type="text"
+                placeholder="e.g., Grade A, Premium"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
+              />
             </div>
           </div>
 

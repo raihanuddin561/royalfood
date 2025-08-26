@@ -19,12 +19,12 @@ Try connecting with both database names and see which works:
 
 **With neondb:**
 ```
-postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require
+postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 
 **With royal_food_db:**
 ```
-postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 
 ## 🛠️ How to Create the Correct Database
@@ -49,7 +49,7 @@ CREATE DATABASE royal_food_db;
 I've updated your `.env.production` to use `royal_food_db`. For Vercel, use:
 
 ```bash
-DATABASE_URL=postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+DATABASE_URL=postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 
 ## 🧪 Testing

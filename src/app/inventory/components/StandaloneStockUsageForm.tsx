@@ -32,6 +32,7 @@ export default function StandaloneStockUsageForm() {
   const [usageType, setUsageType] = useState<'RECIPE' | 'WASTAGE' | 'OTHER'>('RECIPE')
   const [selectedMenuItemId, setSelectedMenuItemId] = useState('')
   const [description, setDescription] = useState('')
+  const [usageDate, setUsageDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   // Fetch inventory items and menu items
   useEffect(() => {
@@ -84,7 +85,8 @@ export default function StandaloneStockUsageForm() {
         quantity: parseFloat(quantity),
         usageType,
         menuItemId: usageType === 'RECIPE' ? selectedMenuItemId : undefined,
-        description: description.trim() || undefined
+  description: description.trim() || undefined,
+  usageDate: usageDate || undefined
       })
 
       if (result.success) {
@@ -124,6 +126,16 @@ export default function StandaloneStockUsageForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Usage Date */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Usage Date</label>
+        <input
+          type="date"
+          value={usageDate}
+          onChange={(e) => setUsageDate(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
       {/* Usage Type Selection */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-3">Usage Type</label>

@@ -214,6 +214,8 @@ export async function createQuickSale(formData: FormData) {
     const totalAmount = parseFloat(formData.get('totalAmount') as string)
     const paymentMethod = formData.get('paymentMethod') as string
     const notes = formData.get('notes') as string
+  const saleDateStr = formData.get('saleDate') as string | null
+  const saleDate = saleDateStr ? new Date(saleDateStr) : new Date()
 
     // Validation
     if (!totalAmount || totalAmount <= 0) {
@@ -247,7 +249,7 @@ export async function createQuickSale(formData: FormData) {
       data: {
         saleNumber: generateSaleNumber(),
         userId: adminUser.id,
-        saleDate: new Date(),
+  saleDate: saleDate,
         totalAmount,
         discountAmount: 0,
         finalAmount: totalAmount,

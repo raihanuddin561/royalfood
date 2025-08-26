@@ -17,7 +17,7 @@ This error means Vercel cannot find the `DATABASE_URL` environment variable.
 ```bash
 If missing or wrong, add/edit with this exact value:
 ```bash
-DATABASE_URL=postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+DATABASE_URL=postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 NEXTAUTH_URL=https://royal-food-rs.vercel.app
 NEXTAUTH_SECRET=your-32-character-secret
@@ -43,7 +43,7 @@ NODE_ENV=production
 
 ### From Your .env.production File:
 ```bash
-postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 
 ### From Neon Console:

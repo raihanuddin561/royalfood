@@ -21,7 +21,7 @@ Set these in your Vercel dashboard under Settings → Environment Variables:
 ### Required Variables:
 ```bash
 # Database Connection
-DATABASE_URL="postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require"
+DATABASE_URL="postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require"
 
 # Authentication
 NEXTAUTH_URL="https://royal-food-rs.vercel.app"

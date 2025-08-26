@@ -77,7 +77,7 @@ export async function createInventoryItem(formData: FormData) {
       }
     }
 
-    // Create the item
+  // Create the item
     const newItem = await prisma.item.create({
       data: {
         name: name.trim(),
@@ -118,7 +118,8 @@ export async function createInventoryItem(formData: FormData) {
           previousStock: 0,
           newStock: initialStock,
           reason: 'Initial stock entry',
-          reference: `Initial-${newItem.sku}`
+          reference: `Initial-${newItem.sku}`,
+          createdAt: formData.get('receivedDate') ? new Date(formData.get('receivedDate') as string) : undefined
         }
       })
     }
@@ -484,7 +485,8 @@ export async function updateInventoryItem(itemId: string, updateData: {
         currentStock: updateData.currentStock,
         categoryId: updateData.categoryId,
         supplierId: updateData.supplierId,
-        // Note: expiryDate, location, barcode are not in current schema
+  expiryDate: updateData.expiryDate || null,
+  // Note: location, barcode are not in current schema
         updatedAt: new Date()
       }
     })

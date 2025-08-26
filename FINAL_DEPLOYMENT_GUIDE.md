@@ -6,7 +6,7 @@ Copy these **exact values** to Vercel Dashboard → royal-food-rs → Settings �
 
 ### 1. DATABASE_URL
 ```
-postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require
+postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require
 ```
 
 ### 2. NEXTAUTH_URL
@@ -36,7 +36,7 @@ Then use the output (example: `a1b2c3d4e5f67890...`)
 5. **Add Each Variable**: 
    - Click "Add New"
    - Name: `DATABASE_URL`
-   - Value: `postgresql://neondb_owner:npg_DQgjylRpM28N@ep-broad-moon-ad0ctzai-pooler.c-2.us-east-1.aws.neon.tech/royal_food_db?sslmode=require`
+  - Value: `postgresql://<REDACTED_DB_USER>:<REDACTED_DB_PASS>@<REDACTED_DB_HOST>/<REDACTED_DB_NAME>?sslmode=require`
    - Environments: Production, Preview, Development
    - Save
    - Repeat for all 4 variables

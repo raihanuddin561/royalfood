@@ -22,6 +22,7 @@ export interface StockUsageData {
   menuItemId?: string
   orderId?: string
   description?: string
+  usageDate?: Date | string
 }
 
 // Recipe Management
@@ -144,7 +145,8 @@ export async function recordStockUsage(data: StockUsageData) {
         totalCost: totalCost,
         menuItemId: data.menuItemId,
         orderId: data.orderId,
-        reason: data.usageType,
+  reason: data.usageType,
+  usageDate: data.usageDate ? new Date(data.usageDate) : undefined,
         userId: adminUser.id
       },
       include: {
