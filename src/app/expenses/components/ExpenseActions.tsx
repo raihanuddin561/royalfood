@@ -1,7 +1,8 @@
-'use client'
+ 'use client'
 
 import { useState } from 'react'
 import { Edit, Trash2, X, DollarSign, Calendar, FileText, Building, Tag, Receipt } from 'lucide-react'
+import { BaseModal, ConfirmModal, Button } from '@/components/ui/Modal'
 import { ExpenseStatus, ExpenseType } from '@prisma/client'
 
 interface Expense {
@@ -177,206 +178,160 @@ export default function ExpenseActions({ expense, categories, onUpdate }: Expens
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Edit Expense</h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdate} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    <Tag className="inline h-4 w-4 mr-1" />
-                    Category
-                  </label>
-                  <select
-                    value={formData.expenseCategoryId}
-                    onChange={(e) => setFormData({ ...formData, expenseCategoryId: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                    required
-                  >
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name} ({category.type})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    <Calendar className="inline h-4 w-4 mr-1" />
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.expenseDate}
-                    onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                    required
-                  />
-                </div>
+        <BaseModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          title="Edit Expense"
+          description="Update the details for this expense"
+          size="lg"
+        >
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  <Tag className="inline h-4 w-4 mr-1" />
+                  Category
+                </label>
+                <select
+                  value={formData.expenseCategoryId}
+                  onChange={(e) => setFormData({ ...formData, expenseCategoryId: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  required
+                >
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name} ({category.type})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  <FileText className="inline h-4 w-4 mr-1" />
-                  Description
+                  <Calendar className="inline h-4 w-4 mr-1" />
+                  Date
                 </label>
                 <input
-                  type="text"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  type="date"
+                  value={formData.expenseDate}
+                  onChange={(e) => setFormData({ ...formData, expenseDate: e.target.value })}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
                   required
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    <DollarSign className="inline h-4 w-4 mr-1" />
-                    Amount
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                    required
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                <FileText className="inline h-4 w-4 mr-1" />
+                Description
+              </label>
+              <input
+                type="text"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                required
+              />
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Tax Amount</label>
-                  <input
-                    type="number"
-                    value={formData.taxAmount}
-                    onChange={(e) => setFormData({ ...formData, taxAmount: parseFloat(e.target.value) })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as ExpenseStatus })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  >
-                    <option value="PENDING">Pending</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="PAID">Paid</option>
-                    <option value="REJECTED">Rejected</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    <Building className="inline h-4 w-4 mr-1" />
-                    Supplier
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.supplierInfo}
-                    onChange={(e) => setFormData({ ...formData, supplierInfo: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                    placeholder="Supplier name or info"
-                  />
-                </div>
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Notes</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  rows={3}
+                <label className="block text-sm font-medium text-gray-700">
+                  <DollarSign className="inline h-4 w-4 mr-1" />
+                  Amount
+                </label>
+                <input
+                  type="number"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
-                  placeholder="Additional notes or details..."
+                  required
+                  min="0"
+                  step="0.01"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? 'Updating...' : 'Update Expense'}
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Tax Amount</label>
+                <input
+                  type="number"
+                  value={formData.taxAmount}
+                  onChange={(e) => setFormData({ ...formData, taxAmount: parseFloat(e.target.value) })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  min="0"
+                  step="0.01"
+                />
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Confirm Delete</h3>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
             </div>
 
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">
-                Are you sure you want to delete this expense?
-              </p>
-              <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                <p className="text-sm font-medium text-gray-900">{expense.description}</p>
-                <p className="text-sm text-gray-600">{formatCurrency(expense.amount)}</p>
-                <p className="text-xs text-gray-500">{new Date(expense.expenseDate).toLocaleDateString()}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Status</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as ExpenseStatus })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                >
+                  <option value="PENDING">Pending</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="PAID">Paid</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
               </div>
-              <p className="text-xs text-red-600 mt-2">
-                This action cannot be undone and will affect financial reports.
-              </p>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  <Building className="inline h-4 w-4 mr-1" />
+                  Supplier
+                </label>
+                <input
+                  type="text"
+                  value={formData.supplierInfo}
+                  onChange={(e) => setFormData({ ...formData, supplierInfo: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="Supplier name or info"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={3}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2"
+                placeholder="Additional notes or details..."
+              />
             </div>
 
             <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-              >
+              <Button variant="secondary" onClick={() => setShowEditModal(false)}>
                 Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
-              >
-                {loading ? 'Deleting...' : 'Delete Expense'}
-              </button>
+              </Button>
+              <Button variant="primary" type="submit" loading={loading}>
+                {loading ? 'Updating...' : 'Update Expense'}
+              </Button>
             </div>
-          </div>
-        </div>
+          </form>
+        </BaseModal>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Confirm Delete"
+        description={
+          `Are you sure you want to delete this expense? This action cannot be undone and will affect financial reports.`
+        }
+        confirmLabel="Delete Expense"
+        cancelLabel="Cancel"
+        loading={loading}
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </>
   )
 }

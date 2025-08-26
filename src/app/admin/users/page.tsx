@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { AdminOnly } from '@/components/auth/RoleGuard'
 import PasswordStrength from '@/components/ui/PasswordStrength'
 import { Notification, useNotification } from '@/components/ui/Notification'
+import { BaseModal, Button } from '@/components/ui/Modal'
 
 interface User {
   id: string
@@ -195,34 +196,28 @@ export default function UsersManagement() {
 
         {/* Create User Modal */}
         {showCreateForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Create New User</h2>
-                <button
-                  onClick={() => {
-                    setShowCreateForm(false)
-                    // Reset form when closing
-                    setFormData({
-                      email: '',
-                      name: '',
-                      password: '',
-                      confirmPassword: '',
-                      role: 'EMPLOYEE',
-                      employeeId: '',
-                      position: '',
-                      department: '',
-                      salary: 0
-                    })
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                  disabled={submitting}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <form onSubmit={handleCreateUser} className="space-y-4">
+          <BaseModal
+            isOpen={showCreateForm}
+            onClose={() => {
+              setShowCreateForm(false)
+              // Reset form when closing
+              setFormData({
+                email: '',
+                name: '',
+                password: '',
+                confirmPassword: '',
+                role: 'EMPLOYEE',
+                employeeId: '',
+                position: '',
+                department: '',
+                salary: 0
+              })
+            }}
+            title="Create New User"
+            description="Create a new system user with role and optional employee profile"
+            size="md"
+          >
+            <form onSubmit={handleCreateUser} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email
@@ -344,22 +339,13 @@ export default function UsersManagement() {
                 </div>
 
                 <div className="flex space-x-3 pt-4">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center"
-                  >
-                    {submitting ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Creating...
-                      </>
-                    ) : (
-                      'Create User'
-                    )}
-                  </button>
-                  <button
+                  <Button type="submit" variant="primary" size="md" loading={submitting} className="flex-1">
+                    Create User
+                  </Button>
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="md"
                     onClick={() => {
                       setShowCreateForm(false)
                       // Reset form when canceling
@@ -376,14 +362,13 @@ export default function UsersManagement() {
                       })
                     }}
                     disabled={submitting}
-                    className="flex-1 bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                    className="flex-1"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </div>
-          </div>
+          </BaseModal>
         )}
 
         {/* Users List */}

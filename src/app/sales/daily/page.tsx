@@ -162,22 +162,38 @@ export default function DailySalesPerItem() {
     setShowConfirmModal(false)
 
     try {
-      const result = await createDailySale({
-        items: saleItems.map(item => ({
-          itemId: item.itemId,
-          quantity: item.quantity,
-          sellingPrice: item.sellingPrice
-        })),
-        paymentMethod,
-        discountAmount,
-        notes
-      })
-
-      if (result.success) {
-        setNotification({
-          type: 'success',
-          message: result.message
+      // Retry transient failures with exponential backoff (3 attempts)
+      let attempts = 0
+      let lastResult: any = null
+      const maxAttempts = 3
+      while (attempts < maxAttempts) {
+        attempts++
+        lastResult = await createDailySale({
+          items: saleItems.map(item => ({
+            itemId: item.itemId,
+            quantity: item.quantity,
+            sellingPrice: item.sellingPrice
+          })),
+          paymentMethod,
+          discountAmount,
+          notes
         })
+
+        if (lastResult.success) break
+
+        // If error is transient, wait and retry
+        if (lastResult.errorCode === 'TRANSIENT' && attempts < maxAttempts) {
+          const backoff = 300 * Math.pow(3, attempts - 1) // 300, 900, 2700
+          await new Promise(res => setTimeout(res, backoff))
+          continue
+        } else {
+          break
+        }
+      }
+
+      const result = lastResult
+      if (result?.success) {
+        setNotification({ type: 'success', message: result.message })
         // Reset form
         setSaleItems([])
         setDiscountAmount(0)
@@ -187,17 +203,15 @@ export default function DailySalesPerItem() {
         if (itemsResult.success) {
           setAvailableItems(itemsResult.data)
         }
+      } else if (result) {
+        // Show detailed message when available
+        const message = result.message || result.error || 'Failed to record sale'
+        setNotification({ type: 'error', message })
       } else {
-        setNotification({
-          type: 'error',
-          message: result.message
-        })
+        setNotification({ type: 'error', message: 'Failed to record sale. Unknown error.' })
       }
     } catch (error) {
-      setNotification({
-        type: 'error',
-        message: 'Failed to record sale. Please try again.'
-      })
+      setNotification({ type: 'error', message: 'Failed to record sale. Please try again.' })
     } finally {
       setLoading(false)
     }

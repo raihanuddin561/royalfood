@@ -33,6 +33,7 @@ export async function createDailySale(data: CreateDailySaleData) {
     if (!data.items || data.items.length === 0) {
       return {
         success: false,
+        errorCode: 'VALIDATION',
         message: 'At least one item is required for the sale'
       }
     }
@@ -40,6 +41,7 @@ export async function createDailySale(data: CreateDailySaleData) {
     if (!data.paymentMethod) {
       return {
         success: false,
+        errorCode: 'VALIDATION',
         message: 'Payment method is required'
       }
     }
@@ -56,6 +58,7 @@ export async function createDailySale(data: CreateDailySaleData) {
     if (items.length !== itemIds.length) {
       return {
         success: false,
+        errorCode: 'NOT_FOUND',
         message: 'One or more items not found or inactive'
       }
     }
@@ -68,6 +71,7 @@ export async function createDailySale(data: CreateDailySaleData) {
       if (item.currentStock < saleItem.quantity) {
         return {
           success: false,
+          errorCode: 'INSUFFICIENT_STOCK',
           message: `Insufficient stock for ${item.name}. Available: ${item.currentStock}, Required: ${saleItem.quantity}`
         }
       }
@@ -75,6 +79,7 @@ export async function createDailySale(data: CreateDailySaleData) {
       if (saleItem.quantity <= 0) {
         return {
           success: false,
+          errorCode: 'VALIDATION',
           message: `Invalid quantity for ${item.name}. Quantity must be greater than 0`
         }
       }
@@ -88,6 +93,7 @@ export async function createDailySale(data: CreateDailySaleData) {
     if (!adminUser) {
       return {
         success: false,
+        errorCode: 'NO_ADMIN',
         message: 'No admin user found. Please contact system administrator.'
       }
     }
@@ -201,9 +207,13 @@ export async function createDailySale(data: CreateDailySaleData) {
     }
   } catch (error) {
     console.error('Create daily sale error:', error)
+    const msg = error instanceof Error ? error.message : 'Failed to record sale'
+    const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+    const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset') || lower.includes('too many')
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to record sale'
+      errorCode: transient ? 'TRANSIENT' : 'UNKNOWN',
+      message: msg
     }
   }
 }
@@ -221,6 +231,7 @@ export async function createQuickSale(formData: FormData) {
     if (!totalAmount || totalAmount <= 0) {
       return {
         success: false,
+        errorCode: 'VALIDATION',
         message: 'Total amount must be greater than 0'
       }
     }
@@ -228,6 +239,7 @@ export async function createQuickSale(formData: FormData) {
     if (!paymentMethod) {
       return {
         success: false,
+        errorCode: 'VALIDATION',
         message: 'Payment method is required'
       }
     }
@@ -240,6 +252,7 @@ export async function createQuickSale(formData: FormData) {
     if (!adminUser) {
       return {
         success: false,
+        errorCode: 'NO_ADMIN',
         message: 'No admin user found'
       }
     }
@@ -274,9 +287,13 @@ export async function createQuickSale(formData: FormData) {
     }
   } catch (error) {
     console.error('Create quick sale error:', error)
+    const msg = error instanceof Error ? error.message : 'Failed to record quick sale'
+    const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+    const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset') || lower.includes('too many')
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to record quick sale'
+      errorCode: transient ? 'TRANSIENT' : 'UNKNOWN',
+      message: msg
     }
   }
 }
@@ -949,7 +966,7 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
     const { startDate, endDate } = getDateRange(period)
 
     // Get sales data with detailed breakdown
-    const salesData = await prisma.$queryRaw`
+  const salesData = await prisma.$queryRaw`
       SELECT 
         DATE(s.sale_date) as date,
         COUNT(s.id)::INT as total_sales,
@@ -969,7 +986,7 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
         SUM(s.discount_amount)::FLOAT as total_discounts
       FROM sales s
       WHERE s.sale_date >= ${startDate}
-        AND s.sale_date < ${endDate}
+        AND s.sale_date <= ${endDate}
         AND s.status = 'COMPLETED'
       GROUP BY DATE(s.sale_date)
       ORDER BY DATE(s.sale_date) DESC
@@ -985,7 +1002,7 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
     }>
 
     // Get expense data for the same period
-    const expenseData = await prisma.$queryRaw`
+  const expenseData = await prisma.$queryRaw`
       SELECT 
         DATE(e.expense_date) as date,
         SUM(e.amount)::FLOAT as total_expenses,
@@ -1005,7 +1022,7 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
       FROM expenses e
       JOIN expense_categories ec ON e.expense_category_id = ec.id
       WHERE e.expense_date >= ${startDate}
-        AND e.expense_date < ${endDate}
+        AND e.expense_date <= ${endDate}
         AND e.status IN ('APPROVED', 'PAID')
       GROUP BY DATE(e.expense_date)
       ORDER BY DATE(e.expense_date) DESC
@@ -1018,27 +1035,20 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
       other_expenses: number
     }>
 
-    // Calculate cost of goods sold from item sales
+    // Calculate cost of goods sold (COGS) from inventory logs (stock-outs related to sales).
+    // This captures cost for any stock reduction caused by sales, including quick sales.
     const cogsData = await prisma.$queryRaw`
-      SELECT 
-        DATE(s.sale_date) as date,
-        SUM(
-          CASE 
-            WHEN o.id IS NOT NULL THEN 
-              (SELECT SUM(oi.quantity * i.cost_price)
-               FROM order_items oi 
-               JOIN items i ON oi.item_id = i.id 
-               WHERE oi.order_id = o.id)
-            ELSE 0 
-          END
-        )::FLOAT as total_cogs
-      FROM sales s
-      LEFT JOIN orders o ON s.order_id = o.id
-      WHERE s.sale_date >= ${startDate}
-        AND s.sale_date < ${endDate}
-        AND s.status = 'COMPLETED'
-      GROUP BY DATE(s.sale_date)
-      ORDER BY DATE(s.sale_date) DESC
+      SELECT
+        DATE(il.created_at) as date,
+        SUM(ABS(il.quantity) * i.cost_price)::FLOAT as total_cogs
+      FROM inventory_logs il
+      JOIN items i ON il.item_id = i.id
+      WHERE il.created_at >= ${startDate}
+        AND il.created_at <= ${endDate}
+        AND il.type = 'STOCK_OUT'
+        AND il.reason ILIKE '%Sale%'
+      GROUP BY DATE(il.created_at)
+      ORDER BY DATE(il.created_at) DESC
     ` as Array<{
       date: Date
       total_cogs: number
@@ -1120,6 +1130,9 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
 // Balance Sheet Generator
 export async function generateBalanceSheet(asOfDate: Date = new Date()) {
   try {
+  // Treat asOfDate as end-of-day to include the full date
+  const asOfEnd = new Date(asOfDate)
+  asOfEnd.setHours(23, 59, 59, 999)
     // Assets - Current Assets
     const inventoryValue = await prisma.$queryRaw`
       SELECT SUM(current_stock * cost_price)::FLOAT as total_value
@@ -1131,7 +1144,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
       SELECT 
         SUM(CASE WHEN payment_method = 'CASH' THEN final_amount ELSE 0 END)::FLOAT as cash_balance
       FROM sales
-      WHERE sale_date <= ${asOfDate}
+      WHERE sale_date <= ${asOfEnd}
         AND status = 'COMPLETED'
     ` as Array<{ cash_balance: number }>
 
@@ -1139,7 +1152,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
     const accountsPayable = await prisma.$queryRaw`
       SELECT SUM(amount)::FLOAT as total_payable
       FROM expenses
-      WHERE expense_date <= ${asOfDate}
+      WHERE expense_date <= ${asOfEnd}
         AND status IN ('PENDING', 'APPROVED')
     ` as Array<{ total_payable: number }>
 
@@ -1147,7 +1160,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
     const payrollLiabilities = await prisma.$queryRaw`
       SELECT SUM(total_amount)::FLOAT as total_payroll_due
       FROM payrolls
-      WHERE period <= ${asOfDate}
+      WHERE period <= ${asOfEnd}
         AND status IN ('PENDING', 'APPROVED')
     ` as Array<{ total_payroll_due: number }>
 
@@ -1155,14 +1168,14 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
     const totalRevenue = await prisma.$queryRaw`
       SELECT SUM(final_amount)::FLOAT as total_revenue
       FROM sales
-      WHERE sale_date <= ${asOfDate}
+      WHERE sale_date <= ${asOfEnd}
         AND status = 'COMPLETED'
     ` as Array<{ total_revenue: number }>
 
     const totalExpenses = await prisma.$queryRaw`
       SELECT SUM(amount)::FLOAT as total_expenses
       FROM expenses
-      WHERE expense_date <= ${asOfDate}
+      WHERE expense_date <= ${asOfEnd}
         AND status IN ('APPROVED', 'PAID')
     ` as Array<{ total_expenses: number }>
 

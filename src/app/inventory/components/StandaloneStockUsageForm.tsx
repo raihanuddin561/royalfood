@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Package, AlertTriangle, ChefHat, Check } from 'lucide-react'
-import { recordStockUsage } from '@/app/actions/restaurant-operations'
+import { Package, AlertTriangle, ChefHat, Check, Plus, Trash } from 'lucide-react'
+import { recordStockUsage, recordMultipleStockUsage } from '@/app/actions/restaurant-operations'
 
 interface InventoryItem {
   id: string
@@ -33,6 +33,13 @@ export default function StandaloneStockUsageForm() {
   const [selectedMenuItemId, setSelectedMenuItemId] = useState('')
   const [description, setDescription] = useState('')
   const [usageDate, setUsageDate] = useState(() => new Date().toISOString().slice(0, 10))
+  // Mode: MENU = food item-wise (existing), ITEM = inventory item-wise (new)
+  const [mode, setMode] = useState<'MENU' | 'ITEM'>('MENU')
+
+  // For ITEM mode: dynamic list of ingredient entries
+  const [entries, setEntries] = useState<Array<{ itemId: string; quantity: string }>>([
+    { itemId: '', quantity: '' }
+  ])
 
   // Fetch inventory items and menu items
   useEffect(() => {
@@ -67,44 +74,80 @@ export default function StandaloneStockUsageForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!selectedItemId || !quantity || isNaN(parseFloat(quantity))) {
-      alert('Please select an item and enter a valid quantity')
-      return
-    }
+    if (mode === 'MENU') {
+      if (!selectedItemId || !quantity || isNaN(parseFloat(quantity))) {
+        alert('Please select an item and enter a valid quantity')
+        return
+      }
 
-    if (usageType === 'RECIPE' && !selectedMenuItemId) {
-      alert('Please select a menu item for recipe usage')
-      return
+      if (usageType === 'RECIPE' && !selectedMenuItemId) {
+        alert('Please select a menu item for recipe usage')
+        return
+      }
+    } else {
+      // ITEM mode validations: at least one valid entry
+      const validEntries = entries.filter(en => en.itemId && en.quantity && !isNaN(parseFloat(en.quantity)))
+      if (validEntries.length === 0) {
+        alert('Please add at least one inventory item with valid quantity')
+        return
+      }
     }
 
     setLoading(true)
     
     try {
-      const result = await recordStockUsage({
-        itemId: selectedItemId,
-        quantity: parseFloat(quantity),
-        usageType,
-        menuItemId: usageType === 'RECIPE' ? selectedMenuItemId : undefined,
-  description: description.trim() || undefined,
-  usageDate: usageDate || undefined
-      })
+      if (mode === 'MENU') {
+        const result = await recordStockUsage({
+          itemId: selectedItemId,
+          quantity: parseFloat(quantity),
+          usageType,
+          menuItemId: usageType === 'RECIPE' ? selectedMenuItemId : undefined,
+          description: description.trim() || undefined,
+          usageDate: usageDate || undefined
+        })
 
-      if (result.success) {
-        setSuccess(true)
-        // Reset form
-        setSelectedItemId('')
-        setQuantity('')
-        setUsageType('RECIPE')
-        setSelectedMenuItemId('')
-        setDescription('')
-        
-        // Hide success message after 3 seconds
-        setTimeout(() => setSuccess(false), 3000)
-        
-        // Refresh page to show updated data
-        window.location.reload()
+        if (result.success) {
+          setSuccess(true)
+          // Reset form
+          setSelectedItemId('')
+          setQuantity('')
+          setUsageType('RECIPE')
+          setSelectedMenuItemId('')
+          setDescription('')
+          // Hide success message after 3 seconds
+          setTimeout(() => setSuccess(false), 3000)
+          window.location.reload()
+        } else {
+          alert(result.error || 'Failed to record stock usage')
+        }
       } else {
-        alert(result.error || 'Failed to record stock usage')
+        // ITEM mode: call server-side batch recorder for atomic update
+        try {
+          const payload = {
+            entries: entries
+              .filter(en => en.itemId && en.quantity && !isNaN(parseFloat(en.quantity)))
+              .map(en => ({ itemId: en.itemId, quantity: Number(en.quantity) })),
+            usageType,
+            description: description.trim() || undefined,
+            usageDate: usageDate || undefined
+          }
+
+          const res = await recordMultipleStockUsage(payload)
+          if (res.success) {
+            setSuccess(true)
+            setEntries([{ itemId: '', quantity: '' }])
+            setDescription('')
+            setTimeout(() => setSuccess(false), 3000)
+            window.location.reload()
+          } else {
+            const msg = res.error || 'Failed to record batch stock usage'
+            const details = res.details ? JSON.stringify(res.details) : ''
+            alert(msg + (details ? '\n' + details : ''))
+          }
+        } catch (err) {
+          console.error('Batch usage error:', err)
+          alert('Failed to record batch stock usage')
+        }
       }
     } catch (error) {
       console.error('Error recording stock usage:', error)
@@ -180,26 +223,93 @@ export default function StandaloneStockUsageForm() {
           </button>
         </div>
       </div>
-
-      {/* Item Selection */}
+      {/* Mode Toggle: MENU (existing) vs ITEM (inventory item-wise) */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Select Item *
-        </label>
-        <select
-          value={selectedItemId}
-          onChange={(e) => setSelectedItemId(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-        >
-          <option value="">Choose an item...</option>
-          {items.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name} ({item.quantity} {item.unit} available - ${item.costPrice.toFixed(2)}/{item.unit})
-            </option>
-          ))}
-        </select>
+        <label className="block text-sm font-medium text-gray-700 mb-3">Entry Mode</label>
+        <div className="flex space-x-3">
+          <button
+            type="button"
+            onClick={() => setMode('MENU')}
+            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg border transition-colors ${
+              mode === 'MENU' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Menu-item wise
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('ITEM')}
+            className={`flex-1 flex items-center justify-center px-4 py-3 rounded-lg border transition-colors ${
+              mode === 'ITEM' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Inventory-item wise
+          </button>
+        </div>
       </div>
+
+      {/* Item Selection (MENU mode) or Entries (ITEM mode) */}
+      {mode === 'MENU' ? (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Select Item *</label>
+          <select
+            value={selectedItemId}
+            onChange={(e) => setSelectedItemId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          >
+            <option value="">Choose an item...</option>
+            {items.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name} ({item.quantity} {item.unit} available - ${item.costPrice.toFixed(2)}/{item.unit})
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Inventory Entries *</label>
+          <div className="space-y-3">
+            {entries.map((en, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                <div className="col-span-6">
+                  <select
+                    value={en.itemId}
+                    onChange={(e) => setEntries(prev => prev.map((p, i) => i === idx ? { ...p, itemId: e.target.value } : p))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  >
+                    <option value="">Select item...</option>
+                    {items.map(item => (
+                      <option key={item.id} value={item.id}>{item.name} ({item.quantity} {item.unit})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-4">
+                  <input
+                    type="number"
+                    value={en.quantity}
+                    onChange={(e) => setEntries(prev => prev.map((p, i) => i === idx ? { ...p, quantity: e.target.value } : p))}
+                    placeholder="Quantity"
+                    step="0.01"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                </div>
+                <div className="col-span-2 flex space-x-2">
+                  <button type="button" onClick={() => setEntries(prev => prev.filter((_, i) => i !== idx))} className="px-3 py-2 bg-red-100 text-red-700 rounded-md">
+                    <Trash className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <div>
+              <button type="button" onClick={() => setEntries(prev => [...prev, { itemId: '', quantity: '' }])} className="inline-flex items-center px-3 py-2 bg-green-50 text-green-700 rounded-md">
+                <Plus className="w-4 h-4 mr-2" /> Add entry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Quantity Input */}
       <div>

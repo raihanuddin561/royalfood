@@ -133,6 +133,80 @@ export default function ProfitsPage() {
     )
   }
 
+  // Build CSV and trigger download for current datasets
+  const handleExport = () => {
+    try {
+      const lines: string[] = []
+      // Header
+      lines.push(`"Profit Report - ${selectedRange}"`)
+
+      // Daily data
+      lines.push('"Daily Data"')
+      lines.push(['Date', 'Revenue', 'Cost', 'Profit', 'ProfitMargin', 'SalesCount', 'ItemsSold'].join(','))
+      dailyData.forEach(d => {
+        lines.push([
+          `"${d.date}"`,
+          d.revenue.toFixed(2),
+          d.cost.toFixed(2),
+          d.profit.toFixed(2),
+          d.profitMargin.toFixed(2),
+          String(d.salesCount),
+          String(d.itemsSold)
+        ].join(','))
+      })
+
+      // Empty line
+      lines.push('')
+
+      // Item data
+      lines.push('"Item Data"')
+      lines.push(['ItemId', 'ItemName', 'Category', 'Unit', 'QuantitySold', 'Revenue', 'Cost', 'Profit', 'ProfitMargin', 'AvgPrice'].join(','))
+      itemData.forEach(i => {
+        lines.push([
+          `"${i.itemId}"`,
+          `"${i.itemName.replace(/"/g, '""')}"`,
+          `"${(i.category||'').replace(/"/g, '""')}"`,
+          `"${i.unit}"`,
+          String(i.quantitySold),
+          i.revenue.toFixed(2),
+          i.cost.toFixed(2),
+          i.profit.toFixed(2),
+          i.profitMargin.toFixed(2),
+          i.averagePrice.toFixed(2)
+        ].join(','))
+      })
+
+      // Categories
+      lines.push('')
+      lines.push('"Category Data"')
+      lines.push(['CategoryName', 'ItemCount', 'TotalQuantity', 'TotalRevenue', 'TotalCost', 'TotalProfit', 'ProfitMargin'].join(','))
+      categoryData.forEach((c: any) => {
+        lines.push([
+          `"${(c.categoryName||'').replace(/"/g, '""')}"`,
+          String(c.itemCount),
+          String(c.totalQuantity),
+          (c.totalRevenue || 0).toFixed(2),
+          (c.totalCost || 0).toFixed(2),
+          (c.totalProfit || 0).toFixed(2),
+          (c.profitMargin || 0).toFixed(2)
+        ].join(','))
+      })
+
+      const csv = lines.join('\n')
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `profit-report-${selectedRange}-${new Date().toISOString().slice(0,10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setNotification({ type: 'error', message: 'Failed to export report' })
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -158,7 +232,7 @@ export default function ProfitsPage() {
             </select>
             <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
           </div>
-          <Button variant="secondary">
+          <Button variant="secondary" onClick={() => handleExport()}>
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
@@ -293,6 +367,7 @@ export default function ProfitsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatCurrency(day.revenue)}
                       </td>
+                        // Build CSV and trigger download for current datasets
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {formatCurrency(day.cost)}
                       </td>

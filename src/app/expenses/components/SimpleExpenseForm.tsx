@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, DollarSign, Calendar } from 'lucide-react'
+import { BaseModal, Button } from '@/components/ui/Modal'
 
 interface SimpleExpenseFormProps {
   isOpen: boolean
@@ -29,21 +30,8 @@ export default function SimpleExpenseForm({ isOpen, onClose, onSuccess }: Simple
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-xl font-semibold text-gray-900">Add New Expense</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <BaseModal isOpen={isOpen} onClose={onClose} title="Add Quick Expense" description="Quickly add a simple expense" size="md">
+      <form onSubmit={handleSubmit} className="p-0 space-y-4">
           {/* Category */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -136,22 +124,10 @@ export default function SimpleExpenseForm({ isOpen, onClose, onSuccess }: Simple
 
           {/* Buttons */}
           <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Add Expense
-            </button>
+            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+            <Button variant="primary" type="submit">Add Expense</Button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </BaseModal>
   )
 }

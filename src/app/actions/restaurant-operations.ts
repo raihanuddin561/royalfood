@@ -25,6 +25,18 @@ export interface StockUsageData {
   usageDate?: Date | string
 }
 
+export interface MultipleStockUsageEntry {
+  itemId: string
+  quantity: number
+}
+
+export interface MultipleStockUsageData {
+  entries: MultipleStockUsageEntry[]
+  usageType: 'RECIPE' | 'WASTAGE' | 'OTHER'
+  description?: string
+  usageDate?: Date | string
+}
+
 // Recipe Management
 export async function createRecipe(data: RecipeFormData) {
   try {
@@ -55,10 +67,13 @@ export async function createRecipe(data: RecipeFormData) {
     // Calculate and update recipe cost
     await updateRecipeCost(recipe.id)
 
-    return { success: true, recipe }
+  return { success: true, recipe }
   } catch (error) {
     console.error('Error creating recipe:', error)
-    return { success: false, error: 'Failed to create recipe' }
+  const msg = error instanceof Error ? error.message : 'Failed to create recipe'
+  const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+  const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset')
+  return { success: false, errorCode: transient ? 'TRANSIENT' : 'UNKNOWN', message: msg }
   }
 }
 
@@ -75,7 +90,7 @@ export async function updateRecipeCost(recipeId: string) {
       }
     })
 
-    if (!recipe) return { success: false, error: 'Recipe not found' }
+  if (!recipe) return { success: false, errorCode: 'NOT_FOUND', message: 'Recipe not found' }
 
     let totalCost = 0
 
@@ -99,10 +114,13 @@ export async function updateRecipeCost(recipeId: string) {
       data: { totalCost: totalCost }
     })
 
-    return { success: true, totalCost }
+  return { success: true, totalCost }
   } catch (error) {
     console.error('Error updating recipe cost:', error)
-    return { success: false, error: 'Failed to update recipe cost' }
+  const msg = error instanceof Error ? error.message : 'Failed to update recipe cost'
+  const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+  const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset')
+  return { success: false, errorCode: transient ? 'TRANSIENT' : 'UNKNOWN', message: msg }
   }
 }
 
@@ -115,11 +133,11 @@ export async function recordStockUsage(data: StockUsageData) {
     })
 
     if (!item) {
-      return { success: false, error: 'Item not found' }
+      return { success: false, errorCode: 'NOT_FOUND', message: 'Item not found' }
     }
 
     if (item.currentStock < data.quantity) {
-      return { success: false, error: `Insufficient stock. Available: ${item.currentStock} ${item.unit}` }
+      return { success: false, errorCode: 'INSUFFICIENT_STOCK', message: `Insufficient stock. Available: ${item.currentStock} ${item.unit}` }
     }
 
     // Use the item's cost price for calculation
@@ -132,7 +150,7 @@ export async function recordStockUsage(data: StockUsageData) {
     })
 
     if (!adminUser) {
-      return { success: false, error: 'No admin user found. Please run database seeding first.' }
+      return { success: false, errorCode: 'NO_ADMIN', message: 'No admin user found. Please run database seeding first.' }
     }
 
     // Record stock usage
@@ -202,7 +220,107 @@ export async function recordStockUsage(data: StockUsageData) {
 
   } catch (error) {
     console.error('Error recording stock usage:', error)
-    return { success: false, error: 'Failed to record stock usage' }
+    const msg = error instanceof Error ? error.message : 'Failed to record stock usage'
+    const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+    const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset')
+    return { success: false, errorCode: transient ? 'TRANSIENT' : 'UNKNOWN', message: msg }
+  }
+}
+
+// Transactional batch recorder: performs all usage records in a single transaction.
+export async function recordMultipleStockUsage(data: MultipleStockUsageData) {
+  try {
+    if (!data?.entries || !Array.isArray(data.entries) || data.entries.length === 0) {
+      return { success: false, errorCode: 'VALIDATION', message: 'No entries provided' }
+    }
+
+    // Normalize entries and validate numbers
+    const entries = data.entries.map(e => ({ itemId: e.itemId, quantity: Number(e.quantity) }))
+    if (entries.some(e => !e.itemId || isNaN(e.quantity) || e.quantity <= 0)) {
+      return { success: false, errorCode: 'VALIDATION', message: 'Invalid entries provided' }
+    }
+
+    // Use a transaction to ensure atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Load items
+      const itemIds = Array.from(new Set(entries.map(e => e.itemId)))
+      const items = await tx.item.findMany({ where: { id: { in: itemIds } } })
+      const itemMap = new Map(items.map(i => [i.id, i]))
+
+      // Validate existence and stock
+      const notFound = entries.filter(e => !itemMap.has(e.itemId)).map(e => e.itemId)
+      if (notFound.length > 0) {
+        return { success: false, errorCode: 'NOT_FOUND', message: 'Some items were not found', details: { notFound } }
+      }
+
+      const insufficient = [] as Array<{ itemId: string; available: number; requested: number }>
+      for (const e of entries) {
+        const item = itemMap.get(e.itemId) as any
+        if (item.currentStock < e.quantity) {
+          insufficient.push({ itemId: e.itemId, available: item.currentStock, requested: e.quantity })
+        }
+      }
+
+      if (insufficient.length > 0) {
+        return { success: false, errorCode: 'INSUFFICIENT_STOCK', message: 'Insufficient stock for some items', details: { insufficient } }
+      }
+
+      // Get admin user
+      const adminUser = await tx.user.findFirst({ where: { role: 'ADMIN' } })
+      if (!adminUser) {
+        return { success: false, errorCode: 'NO_ADMIN', message: 'No admin user found. Please seed admin user.' }
+      }
+
+      const created: Array<{ itemId: string; usageId: string }> = []
+      for (const e of entries) {
+        const item = itemMap.get(e.itemId) as any
+        const unitPrice = item.costPrice
+        const totalCost = e.quantity * unitPrice
+
+        const stockUsage = await tx.stockUsage.create({
+          data: {
+            itemId: e.itemId,
+            quantity: e.quantity,
+            unit: item.unit,
+            costPerUnit: unitPrice,
+            totalCost,
+            menuItemId: null,
+            orderId: null,
+            reason: data.usageType,
+            usageDate: data.usageDate ? new Date(data.usageDate) : undefined,
+            userId: adminUser.id
+          }
+        })
+
+        await tx.item.update({ where: { id: e.itemId }, data: { currentStock: item.currentStock - e.quantity, updatedAt: new Date() } })
+
+        await tx.inventoryLog.create({
+          data: {
+            itemId: e.itemId,
+            userId: adminUser.id,
+            type: 'STOCK_OUT',
+            quantity: -e.quantity,
+            previousStock: item.currentStock,
+            newStock: item.currentStock - e.quantity,
+            reason: `Stock usage: ${data.usageType}`,
+            reference: `USAGE-${stockUsage.id}`,
+            createdAt: data.usageDate ? new Date(data.usageDate) : undefined
+          }
+        })
+
+        created.push({ itemId: e.itemId, usageId: stockUsage.id })
+      }
+
+      return { success: true, created }
+    })
+
+  return result
+  } catch (error) {
+    console.error('Error recording multiple stock usage:', error)
+  const msg = error instanceof Error ? error.message : 'Failed to record multiple stock usage'
+  const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+  const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset')
+  return { success: false, errorCode: transient ? 'TRANSIENT' : 'UNKNOWN', message: msg }
   }
 }
 

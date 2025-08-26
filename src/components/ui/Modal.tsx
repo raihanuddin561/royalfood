@@ -99,43 +99,60 @@ export function BaseModal({
       dialog.close()
     }
 
+    // Prevent body scroll while modal is open
+    const prevOverflow = document.body.style.overflow
+    if (isOpen) document.body.style.overflow = 'hidden'
+
     const handleClose = () => onClose()
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
+      if (e.key === 'Escape') onClose()
+
+      // Trap tab focus inside the dialog
+      if (e.key === 'Tab') {
+        const focusable = dialog.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+
+        if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        }
       }
     }
 
     dialog.addEventListener('close', handleClose)
     dialog.addEventListener('keydown', handleKeyDown)
-    
+
     return () => {
       dialog.removeEventListener('close', handleClose)
       dialog.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = prevOverflow
     }
   }, [isOpen, onClose])
 
+  // When clicking backdrop, target will be the dialog element itself
   const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
     if (!closeOnBackdrop) return
-    
-    const rect = e.currentTarget.getBoundingClientRect()
-    const clickedInDialog = (
-      e.clientX >= rect.left &&
-      e.clientX <= rect.right &&
-      e.clientY >= rect.top &&
-      e.clientY <= rect.bottom
-    )
-    
-    if (!clickedInDialog) {
-      onClose()
-    }
+    if (e.target === dialogRef.current) onClose()
   }
 
   return (
     <dialog
       ref={dialogRef}
       onClick={handleBackdropClick}
-      className={`backdrop:bg-gray-900 backdrop:bg-opacity-50 bg-transparent p-4 sm:p-0 ${sizeConfig[size]} w-full rounded-2xl shadow-xl`}
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="modal-title"
+  aria-describedby="modal-desc"
+  className={`backdrop:bg-gray-900 backdrop:bg-opacity-50 bg-transparent p-4 sm:p-0 ${sizeConfig[size]} w-full rounded-2xl shadow-xl`}
     >
       <div className="bg-white rounded-2xl max-h-[90vh] overflow-y-auto w-full">
         {/* Header */}
@@ -149,7 +166,7 @@ export function BaseModal({
                 {title}
               </h3>
               {description && (
-                <p className="text-sm text-gray-600 mt-1 break-words leading-relaxed">
+                <p id="modal-desc" className="text-sm text-gray-600 mt-1 break-words leading-relaxed">
                   {description}
                 </p>
               )}
@@ -322,5 +339,53 @@ export function Button({
       )}
       <span className="truncate">{children}</span>
     </button>
+  )
+}
+
+// ConfirmModal - small reusable confirmation dialog
+interface ConfirmModalProps {
+  isOpen: boolean
+  title?: string
+  description?: string
+  confirmLabel?: string
+  cancelLabel?: string
+  loading?: boolean
+  danger?: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}
+
+export function ConfirmModal({
+  isOpen,
+  title = 'Are you sure?',
+  description,
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
+  loading = false,
+  danger = false,
+  onConfirm,
+  onCancel
+}: ConfirmModalProps) {
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onCancel}
+      title={title}
+      description={description}
+      type={danger ? 'delete' : 'warning'}
+      size="sm"
+      closeOnBackdrop={false}
+    >
+      <div className="pt-2">
+        <div className="flex justify-end space-x-2">
+          <Button variant="secondary" onClick={onCancel} className="px-4 py-2" disabled={loading}>
+            {cancelLabel}
+          </Button>
+          <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm} loading={loading}>
+            {confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </BaseModal>
   )
 }

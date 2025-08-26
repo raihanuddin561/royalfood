@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Edit, Trash2, User, Mail, Calendar, DollarSign, X } from 'lucide-react'
+import { BaseModal, ConfirmModal, Button } from '@/components/ui/Modal'
 
 interface Employee {
   id: string
@@ -168,19 +169,8 @@ export default function EmployeeActions({ employee, onUpdate }: EmployeeActionsP
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Edit Employee</h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdate} className="space-y-4">
+        <BaseModal isOpen={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Employee" description="Update employee details" size="md">
+          <form onSubmit={handleUpdate} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
                   <User className="inline h-4 w-4 mr-1" />
@@ -303,67 +293,24 @@ export default function EmployeeActions({ employee, onUpdate }: EmployeeActionsP
               </div>
 
               <div className="flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? 'Updating...' : 'Update Employee'}
-                </button>
+                <Button variant="secondary" onClick={() => setShowEditModal(false)} disabled={loading}>Cancel</Button>
+                <Button variant="primary" type="submit" loading={loading}>{loading ? 'Updating...' : 'Update Employee'}</Button>
               </div>
             </form>
-          </div>
-        </div>
+        </BaseModal>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Confirm Delete</h3>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mb-4">
-              <p className="text-sm text-gray-600">
-                Are you sure you want to deactivate <strong>{employee.name}</strong>?
-              </p>
-              <p className="text-xs text-gray-500 mt-2">
-                This will set the employee as inactive but preserve all records for reporting.
-              </p>
-            </div>
-
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                disabled={loading}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
-              >
-                {loading ? 'Deactivating...' : 'Deactivate Employee'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Deactivate Employee"
+        description={`Are you sure you want to deactivate ${employee.name}? This will preserve records for reporting.`}
+        confirmLabel="Deactivate Employee"
+        cancelLabel="Cancel"
+        loading={loading}
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </>
   )
 }
