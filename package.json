@@ -11,8 +11,9 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && next build"
-  ,"db:migrate:run": "node ./scripts/run_migrations.js"
+    "vercel-build": "prisma generate && next build",
+    "db:migrate:run": "node ./scripts/run_migrations.js",
+    "db:migrate:safe": "node ./scripts/apply_migrations_safe.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",
