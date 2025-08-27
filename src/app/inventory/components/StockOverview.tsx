@@ -113,15 +113,4 @@ export default function StockOverview({ items }: { items: Item[] }) {
   )
 }
 
-// Listen for global filter events so other parts of the UI can trigger filters
-if (typeof window !== 'undefined') {
-  window.addEventListener('stockFilter', (e: Event) => {
-    // custom event with detail { filter: 'low-stock' }
-    const ce = e as CustomEvent
-    const el = document.getElementById('stock-overview')
-    if (!ce?.detail || !el) return
-    // dispatch a DOM event which component will pick up via custom handler
-    const ev = new CustomEvent('applyStockFilter', { detail: ce.detail })
-    window.dispatchEvent(ev)
-  })
-}
+// (no module-level listeners here; component subscribes to events in useEffect)

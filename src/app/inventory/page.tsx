@@ -3,6 +3,7 @@ import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import StockOverview from './components/StockOverview'
+import StockShortcuts from './components/StockShortcuts'
 import { DeleteItemButton } from './components/DeleteItemButton'
 
 // Get comprehensive inventory data from database
@@ -300,31 +301,7 @@ export default async function InventoryPage() {
                 <Activity className="w-4 h-4 mr-2" />
                 Stock Adjustment
               </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  // dispatch event to apply low-stock filter
-                  const ev = new CustomEvent('stockFilter', { detail: { filter: 'low-stock' } })
-                  window.dispatchEvent(ev)
-                  const el = document.getElementById('stock-overview')
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                }}
-                className="inline-flex items-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-lg text-amber-700 bg-white hover:bg-amber-50 transition-colors duration-200"
-              >
-                Low Stock
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const ev = new CustomEvent('stockFilter', { detail: { filter: 'out-of-stock' } })
-                  window.dispatchEvent(ev)
-                  const el = document.getElementById('stock-overview')
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                }}
-                className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-lg text-red-700 bg-white hover:bg-red-50 transition-colors duration-200"
-              >
-                Out of Stock
-              </button>
+              <StockShortcuts />
               <Link
                 href="/inventory/reports"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
