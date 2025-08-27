@@ -94,6 +94,8 @@ export async function createInventoryItem(formData: FormData) {
         grade,
         specification,
         packSize,
+  // Persist receivedDate on the item if provided by the form
+  receivedDate: formData.get('receivedDate') ? new Date(formData.get('receivedDate') as string) : undefined,
         isActive: true
       }
     })
@@ -145,7 +147,19 @@ export async function createInventoryItem(formData: FormData) {
 
 export async function createBulkInventoryItems(formData: FormData) {
   try {
-    const items = []
+    type TempItem = {
+      name: string
+      sku: string
+      categoryId: string
+      unit: string
+      costPrice: number
+      currentStock: number
+      reorderLevel: number
+      isActive: boolean
+      receivedDate?: Date | undefined
+    }
+
+    const items: TempItem[] = []
     const formEntries = Array.from(formData.entries())
     
     // Group form entries by item index
@@ -198,7 +212,9 @@ export async function createBulkInventoryItems(formData: FormData) {
         // No selling price for ingredients/stock items
         currentStock: initialStock,
         reorderLevel,
-        isActive: true
+        isActive: true,
+        // carry receivedDate through if provided in the form (e.g., item_0_receivedDate)
+        receivedDate: itemData.receivedDate ? new Date(itemData.receivedDate) : undefined
       })
     }
 
@@ -240,7 +256,9 @@ export async function createBulkInventoryItems(formData: FormData) {
         previousStock: 0,
         newStock: item.currentStock,
         reason: 'Initial stock entry',
-        reference: `Initial-${item.sku}`
+        reference: `Initial-${item.sku}`,
+        // Set createdAt from the original form data if provided for this SKU
+        createdAt: items.find(i => i.sku === item.sku)?.receivedDate || undefined
       }))
 
     if (inventoryLogs.length > 0) {

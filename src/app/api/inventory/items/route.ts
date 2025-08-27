@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     console.log('Fetching inventory items...')
-    
-    const items = await prisma.item.findMany({
-      where: {
-        isActive: true // Only active items (removed stock > 0 restriction for debugging)
-      },
+
+    const url = new URL(req.url)
+    const includeInactive = url.searchParams.get('includeInactive') === 'true'
+
+    // Build find options conditionally so we can include inactive items for debugging
+    const findOptions: any = {
       include: {
         category: {
           select: {
@@ -19,7 +20,13 @@ export async function GET() {
       orderBy: {
         name: 'asc'
       }
-    })
+    }
+
+    if (!includeInactive) {
+      findOptions.where = { isActive: true }
+    }
+
+    const items = await prisma.item.findMany(findOptions)
 
     console.log('Found items:', items.length)
 

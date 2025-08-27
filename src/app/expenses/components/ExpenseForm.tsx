@@ -24,7 +24,7 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
     expenseCategoryId: '',
     description: '',
     amount: '',
-    expenseDate: new Date().toISOString().split('T')[0],
+  expenseDate: new Date().toISOString().split('T')[0],
     receiptImage: '',
     supplierInfo: '',
     taxAmount: '',
@@ -89,11 +89,11 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
       const result = await createExpense({
         expenseCategoryId: formData.expenseCategoryId,
         description: formData.description,
-        amount: Number(formData.amount),
+        amount: Number(parseFloat(String(formData.amount)) || 0),
         expenseDate: new Date(formData.expenseDate),
         receiptImage: formData.receiptImage || undefined,
         supplierInfo: formData.supplierInfo || undefined,
-        taxAmount: Number(formData.taxAmount) || 0,
+        taxAmount: Number(parseFloat(String(formData.taxAmount)) || 0),
         isRecurring: formData.isRecurring,
         recurringPeriod: formData.isRecurring ? formData.recurringPeriod : undefined,
         nextDueDate: formData.isRecurring && formData.nextDueDate ? new Date(formData.nextDueDate) : undefined,
@@ -256,6 +256,10 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
                     }`}
                   />
                 </div>
+                  <div className="mt-2 flex space-x-2">
+                    <button type="button" onClick={() => handleInputChange('expenseDate', new Date().toISOString().split('T')[0])} className="text-sm text-blue-600 hover:underline">Today</button>
+                    <button type="button" onClick={() => handleInputChange('expenseDate', '')} className="text-sm text-gray-600 hover:underline">Clear</button>
+                  </div>
                 {errors.expenseDate && (
                   <p className="mt-1 text-sm text-red-600">{errors.expenseDate}</p>
                 )}
