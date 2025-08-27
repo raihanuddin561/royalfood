@@ -86,13 +86,10 @@ async function getInventoryData() {
         }
       }),
       
-      // Get recent activity for dashboard
+      // Get recent activity for dashboard (fetch latest logs regardless of timestamp)
+      // Some inventory logs may be backdated (e.g., createdAt set to receivedDate),
+      // so fall back to the latest logs to surface activity to the user.
       prisma.inventoryLog.findMany({
-        where: {
-          createdAt: {
-            gte: new Date(today.getTime() - 24 * 60 * 60 * 1000) // Last 24 hours
-          }
-        },
         take: 10,
         orderBy: {
           createdAt: 'desc'
