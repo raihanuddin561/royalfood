@@ -91,6 +91,47 @@ async function getStockUsageData() {
       })
     ])
 
+    // Data integrity checks
+    const ordersMissingUsage = await prisma.$queryRaw`
+      SELECT o.id, o."orderNumber" as "orderNumber", o."createdAt"
+      FROM orders o
+      WHERE o."createdAt" >= ${startOfWeek}
+        AND NOT EXISTS (SELECT 1 FROM stock_usage su WHERE su."orderId" = o.id)
+      ORDER BY o."createdAt" DESC
+      LIMIT 20
+    `
+
+    const anomalies = await prisma.stockUsage.findMany({
+      where: {
+        createdAt: { gte: startOfWeek },
+        OR: [
+          { quantity: { lte: 0 } },
+          { totalCost: { lte: 0 } }
+        ]
+      },
+      include: {
+        item: { select: { name: true } },
+        menuItem: { select: { name: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    // Find days in the last week that have no stock_usage records
+    const usedDaysRaw: Array<{ day: Date }> = await prisma.$queryRaw`
+      SELECT DATE(su."usageDate") as day
+      FROM stock_usage su
+      WHERE su."usageDate" >= ${startOfWeek}
+      GROUP BY DATE(su."usageDate")
+      ORDER BY DATE(su."usageDate")
+    `
+    const usedDays = new Set(usedDaysRaw.map(d => (new Date(d.day)).toISOString().split('T')[0]))
+    const missingDays: string[] = []
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek.getTime() + i * 24 * 60 * 60 * 1000)
+      const key = d.toISOString().split('T')[0]
+      if (!usedDays.has(key)) missingDays.push(key)
+    }
+
     // Calculate statistics
     const todayStats = {
       totalCost: todayUsage.reduce((sum, usage) => sum + usage.totalCost, 0),
@@ -113,7 +154,12 @@ async function getStockUsageData() {
       recentUsage,
       todayStats,
       weeklyStats,
-      monthlyTotal: totalUsageValue._sum.totalCost || 0
+      monthlyTotal: totalUsageValue._sum.totalCost || 0,
+      integrity: {
+        ordersMissingUsage: ordersMissingUsage || [],
+        anomalies,
+        missingDays
+      }
     }
   } catch (error) {
     console.error('Stock usage data fetch error:', error)
@@ -128,7 +174,7 @@ async function getStockUsageData() {
 }
 
 export default async function StockUsagePage() {
-  const { todayUsage, recentUsage, todayStats, weeklyStats, monthlyTotal } = await getStockUsageData()
+  const { todayUsage, recentUsage, todayStats, weeklyStats, monthlyTotal, integrity } = await getStockUsageData()
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -150,6 +196,16 @@ export default async function StockUsagePage() {
               <h1 className="text-3xl font-bold text-gray-900">Daily Stock Usage & Expenses</h1>
               <p className="mt-2 text-gray-600">Record and track daily stock consumption for cost analysis</p>
             </div>
+          </div>
+        </div>
+        
+        {/* Explanatory note about Quantity */}
+        <div className="mb-6">
+          <div className="bg-white rounded-lg border border-gray-100 p-4 text-sm text-gray-700">
+            <strong className="block text-sm font-medium text-gray-900 mb-1">About "Quantity"</strong>
+            <p className="mb-1">"Quantity" shows the amount of the inventory item consumed (for example, 2.5 kg or 3 pieces).</p>
+            <p className="mb-0">This value is stored on the <code>stock_usage.quantity</code> field (unit in <code>stock_usage.unit</code>), is used to decrement <code>item.currentStock</code>, and to calculate <code>stock_usage.totalCost</code> (quantity × costPerUnit). An inventory log entry (<code>inventory_logs</code>) is also created for audit.</p>
+            <p className="mt-2 text-xs text-gray-500">If you see unexpected stock levels, check the related inventory logs and the recorded usages for mismatched dates or units.</p>
           </div>
         </div>
 
@@ -231,6 +287,67 @@ export default async function StockUsagePage() {
           </div>
         </div>
 
+        {/* Data Integrity Checks */}
+        <div className="bg-white rounded-xl shadow-sm border border-yellow-100 mb-8 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Data Integrity</h2>
+          <p className="text-sm text-gray-600 mb-4">Quick checks for potential gaps or anomalies in stock usage data.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-yellow-50 rounded">
+              <p className="text-sm text-gray-700">Orders without usage (past week)</p>
+              <p className="text-2xl font-bold text-gray-900">{integrity.ordersMissingUsage.length}</p>
+            </div>
+            <div className="p-4 bg-red-50 rounded">
+              <p className="text-sm text-gray-700">Anomalous usage rows (qty ≤ 0 or cost ≤ 0)</p>
+              <p className="text-2xl font-bold text-red-700">{integrity.anomalies.length}</p>
+            </div>
+            <div className="p-4 bg-blue-50 rounded">
+              <p className="text-sm text-gray-700">Days with no usage (past week)</p>
+              <p className="text-2xl font-bold text-blue-700">{integrity.missingDays.length}</p>
+            </div>
+          </div>
+
+          {/* Sample lists */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <h4 className="text-sm font-medium text-gray-800 mb-2">Recent orders missing usage</h4>
+              {integrity.ordersMissingUsage.length === 0 ? (
+                <p className="text-xs text-gray-500">None</p>
+              ) : (
+                <ul className="text-sm text-gray-700 space-y-1">
+                  {integrity.ordersMissingUsage.slice(0,6).map((o: any) => (
+                    <li key={o.id}>{o.orderNumber} • {new Date(o.createdAt).toLocaleString()}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-gray-800 mb-2">Anomalous usage rows</h4>
+              {integrity.anomalies.length === 0 ? (
+                <p className="text-xs text-gray-500">None</p>
+              ) : (
+                <ul className="text-sm text-gray-700 space-y-1">
+                  {integrity.anomalies.slice(0,6).map((a: any) => (
+                    <li key={a.id}>{a.item?.name || a.itemId} • Qty: {a.quantity} • Cost: {a.totalCost} • {a.menuItem?.name || '—'}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-gray-800 mb-2">Missing days</h4>
+              {integrity.missingDays.length === 0 ? (
+                <p className="text-xs text-gray-500">None</p>
+              ) : (
+                <ul className="text-sm text-gray-700 space-y-1">
+                  {integrity.missingDays.map((d: string) => (<li key={d}>{d}</li>))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Stock Usage Form */}
@@ -280,7 +397,7 @@ export default async function StockUsagePage() {
                         <div>
                           <p className="text-sm font-medium text-gray-900">{usage.item.name}</p>
                           <p className="text-xs text-gray-500">
-                            {usage.quantity} {usage.item.unit} • {usage.usageType}
+                            Quantity: {usage.quantity} {usage.item.unit} • {usage.usageType}
                             {usage.menuItem && ` • ${usage.menuItem.name}`}
                           </p>
                         </div>
@@ -332,7 +449,7 @@ export default async function StockUsagePage() {
                       <div>
                         <p className="text-sm font-medium text-gray-900">{usage.item.name}</p>
                         <p className="text-xs text-gray-500">
-                          {usage.quantity} {usage.item.unit} • {usage.usageType}
+                          Quantity: {usage.quantity} {usage.item.unit} • {usage.usageType}
                           {usage.menuItem && ` • ${usage.menuItem.name}`}
                         </p>
                         {usage.description && (

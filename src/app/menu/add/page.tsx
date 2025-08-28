@@ -38,6 +38,7 @@ export default function AddMenuItemPage() {
 
   const [selectedIngredients, setSelectedIngredients] = useState<Ingredient[]>([])
   const [showIngredientSelector, setShowIngredientSelector] = useState(false)
+  const [noIngredients, setNoIngredients] = useState(false)
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
@@ -120,7 +121,7 @@ export default function AddMenuItemPage() {
     setLoading(true)
 
     try {
-      const response = await fetch('/api/menu-items', {
+    const response = await fetch('/api/menu-items', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -129,7 +130,7 @@ export default function AddMenuItemPage() {
           ...formData,
           price: parseFloat(formData.price),
           prepTime: parseInt(formData.prepTime),
-          ingredients: selectedIngredients
+      ingredients: noIngredients ? [] : selectedIngredients
         })
       })
 
@@ -301,12 +302,19 @@ export default function AddMenuItemPage() {
 
             <div className="mt-6">
               {/* Add Ingredient Button */}
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-sm font-medium text-gray-700">Ingredients</h4>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <h4 className="text-sm font-medium text-gray-700 mr-4">Ingredients</h4>
+                  <label className="flex items-center text-sm">
+                    <input type="checkbox" className="mr-2" checked={noIngredients} onChange={(e) => { setNoIngredients(e.target.checked); if (e.target.checked) setSelectedIngredients([]) }} />
+                    <span className="text-sm text-gray-700">Save without ingredients (no recipe)</span>
+                  </label>
+                </div>
                 <button
                   type="button"
                   onClick={() => setShowIngredientSelector(true)}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  disabled={noIngredients}
+                  className={`inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md ${noIngredients ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'text-blue-700 bg-blue-100 hover:bg-blue-200'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Ingredient

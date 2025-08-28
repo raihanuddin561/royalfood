@@ -265,6 +265,49 @@ export default function StandaloneStockUsageForm() {
               </option>
             ))}
           </select>
+
+          {/* Quantity Input (only for MENU mode) */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Quantity Used *</label>
+            <div className="flex space-x-2 items-center">
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="Enter quantity"
+                step="0.01"
+                min="0.01"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              {selectedItem && (
+                <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-600">
+                  {selectedItem.unit}
+                </div>
+              )}
+              {selectedItem && (
+                <button
+                  type="button"
+                  onClick={() => setQuantity(String(selectedItem.quantity))}
+                  className="px-3 py-2 bg-indigo-50 text-indigo-700 rounded-md text-sm border border-indigo-100"
+                >
+                  Use all
+                </button>
+              )}
+            </div>
+
+            <p className="mt-2 text-sm text-gray-600">
+              Quantity Used = physical amount to remove from inventory. The system will subtract this
+              from the selected item's current stock and record cost (cost per unit × quantity).
+            </p>
+
+            {selectedItem && quantity && (
+              <p className="mt-2 text-sm text-gray-600">
+                Available: {selectedItem.quantity} {selectedItem.unit} • 
+                Estimated Cost: <span className="font-semibold">${estimatedCost.toFixed(2)}</span>
+              </p>
+            )}
+          </div>
         </div>
       ) : (
         <div>
@@ -293,6 +336,15 @@ export default function StandaloneStockUsageForm() {
                     step="0.01"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
+                  {/* Inline availability warning */}
+                  {en.itemId && en.quantity && (() => {
+                    const it = items.find(i => i.id === en.itemId)
+                    const q = parseFloat(en.quantity || '0')
+                    if (it && !isNaN(q) && q > it.currentStock) {
+                      return <p className="mt-1 text-xs text-red-600">Insufficient stock: available {it.currentStock} {it.unit}</p>
+                    }
+                    return null
+                  })()}
                 </div>
                 <div className="col-span-2 flex space-x-2">
                   <button type="button" onClick={() => setEntries(prev => prev.filter((_, i) => i !== idx))} className="px-3 py-2 bg-red-100 text-red-700 rounded-md">
@@ -308,38 +360,24 @@ export default function StandaloneStockUsageForm() {
               </button>
             </div>
           </div>
+
+          {/* Batch summary for ITEM mode */}
+          <div className="mt-4 bg-yellow-50 border border-yellow-100 rounded-md p-3">
+            <p className="text-sm text-yellow-800 font-medium">Batch summary</p>
+            <p className="text-sm text-gray-700 mt-2">
+              In Inventory-item wise mode, enter a list of inventory items and their individual quantities above. The system will deduct
+              each entry's quantity from that item's stock. The single "Quantity Used" field is hidden in this mode because quantities
+              are provided per-entry.
+            </p>
+            <p className="text-sm text-gray-700 mt-2">
+              Entries: <span className="font-semibold">{entries.length}</span> • Estimated Total Cost: <span className="font-semibold">${items && entries ? (entries.reduce((sum, en) => {
+                const it = items.find(i => i.id === en.itemId)
+                return sum + (it ? (parseFloat(en.quantity || '0') * it.costPrice) : 0)
+              }, 0)).toFixed(2) : '0.00'}</span>
+            </p>
+          </div>
         </div>
       )}
-
-      {/* Quantity Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Quantity Used *
-        </label>
-        <div className="flex space-x-2">
-          <input
-            type="number"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            placeholder="Enter quantity"
-            step="0.01"
-            min="0.01"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          {selectedItem && (
-            <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-600">
-              {selectedItem.unit}
-            </div>
-          )}
-        </div>
-        {selectedItem && quantity && (
-          <p className="mt-2 text-sm text-gray-600">
-            Available: {selectedItem.quantity} {selectedItem.unit} • 
-            Estimated Cost: <span className="font-semibold">${estimatedCost.toFixed(2)}</span>
-          </p>
-        )}
-      </div>
 
       {/* Menu Item Selection (for Recipe usage) */}
       {usageType === 'RECIPE' && (

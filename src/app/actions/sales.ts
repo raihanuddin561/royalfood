@@ -298,6 +298,162 @@ export async function createQuickSale(formData: FormData) {
   }
 }
 
+// Create aggregate daily sale using provided stock usages and a total revenue amount
+interface StockUsage {
+  itemId: string
+  quantity: number
+}
+
+interface CreateAggregateSaleData {
+  stockUsages: StockUsage[]
+  totalAmount: number
+  paymentMethod: 'CASH' | 'CARD' | 'DIGITAL_WALLET' | 'BANK_TRANSFER'
+  notes?: string
+  saleDate?: Date
+}
+
+export async function createAggregateSale(data: CreateAggregateSaleData) {
+  try {
+    // Validation
+    if (!data.stockUsages || data.stockUsages.length === 0) {
+      return {
+        success: false,
+        errorCode: 'VALIDATION',
+        message: 'At least one stock usage is required for aggregate sale'
+      }
+    }
+
+    if (!data.totalAmount || data.totalAmount <= 0) {
+      return {
+        success: false,
+        errorCode: 'VALIDATION',
+        message: 'Total amount must be greater than 0'
+      }
+    }
+
+    if (!data.paymentMethod) {
+      return {
+        success: false,
+        errorCode: 'VALIDATION',
+        message: 'Payment method is required'
+      }
+    }
+
+    // Fetch items
+    const itemIds = data.stockUsages.map(s => s.itemId)
+    const items = await prisma.item.findMany({
+      where: { id: { in: itemIds }, isActive: true }
+    })
+
+    if (items.length !== itemIds.length) {
+      return {
+        success: false,
+        errorCode: 'NOT_FOUND',
+        message: 'One or more items not found or inactive'
+      }
+    }
+
+    // Validate stock availability
+    for (const usage of data.stockUsages) {
+      const item = items.find(i => i.id === usage.itemId)!
+      if (usage.quantity <= 0) {
+        return { success: false, errorCode: 'VALIDATION', message: `Invalid quantity for ${item.name}` }
+      }
+      if (item.currentStock < usage.quantity) {
+        return {
+          success: false,
+          errorCode: 'INSUFFICIENT_STOCK',
+          message: `Insufficient stock for ${item.name}. Available: ${item.currentStock}, Required: ${usage.quantity}`
+        }
+      }
+    }
+
+    // Admin user
+    const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
+    if (!adminUser) {
+      return { success: false, errorCode: 'NO_ADMIN', message: 'No admin user found' }
+    }
+
+    // Calculate total cost
+    let totalCostPrice = 0
+    for (const usage of data.stockUsages) {
+      const item = items.find(i => i.id === usage.itemId)!
+      totalCostPrice += item.costPrice * usage.quantity
+    }
+
+    // Create sale and apply stock changes in transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.create({
+        data: {
+          saleNumber: generateSaleNumber(),
+          userId: adminUser.id,
+          saleDate: data.saleDate || new Date(),
+          totalAmount: data.totalAmount,
+          discountAmount: 0,
+          finalAmount: data.totalAmount,
+          paymentMethod: data.paymentMethod,
+          status: 'COMPLETED',
+          notes: data.notes || 'Aggregate daily sale entry'
+        }
+      })
+
+      const inventoryLogs: Promise<any>[] = []
+      const stockUpdates: Promise<any>[] = []
+
+      for (const usage of data.stockUsages) {
+        const item = items.find(i => i.id === usage.itemId)!
+
+        stockUpdates.push(tx.item.update({
+          where: { id: usage.itemId },
+          data: { currentStock: { decrement: usage.quantity }, updatedAt: new Date() }
+        }))
+
+        inventoryLogs.push(tx.inventoryLog.create({
+          data: {
+            itemId: usage.itemId,
+            userId: adminUser.id,
+            type: 'STOCK_OUT',
+            quantity: -Math.abs(usage.quantity),
+            previousStock: item.currentStock,
+            newStock: item.currentStock - usage.quantity,
+            reason: `Aggregate Sale - ${sale.saleNumber}`,
+            reference: sale.id
+          }
+        }))
+      }
+
+      await Promise.all([...stockUpdates, ...inventoryLogs])
+
+      const grossProfit = data.totalAmount - totalCostPrice
+
+      return { sale, totalCostPrice, grossProfit }
+    })
+
+    // Revalidate
+    revalidatePath('/sales')
+    revalidatePath('/sales/daily')
+    revalidatePath('/inventory')
+    revalidatePath('/dashboard')
+
+    return {
+      success: true,
+      message: `Aggregate sale recorded. Revenue: ${data.totalAmount.toFixed(2)} BDT, Cost: ${result.totalCostPrice.toFixed(2)} BDT, Profit: ${result.grossProfit.toFixed(2)} BDT`,
+      data: {
+        saleId: result.sale.id,
+        saleNumber: result.sale.saleNumber,
+        finalAmount: data.totalAmount,
+        grossProfit: result.grossProfit
+      }
+    }
+  } catch (error) {
+    console.error('Create aggregate sale error:', error)
+    const msg = error instanceof Error ? error.message : 'Failed to record aggregate sale'
+    const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+    const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset') || lower.includes('too many')
+    return { success: false, errorCode: transient ? 'TRANSIENT' : 'UNKNOWN', message: msg }
+  }
+}
+
 // Get daily sales data with item breakdown
 export async function getDailySalesData(date?: Date) {
   try {

@@ -1,8 +1,11 @@
 'use client'
 
 import { Users, Plus, Clock, DollarSign } from 'lucide-react'
+import { Check, RefreshCw } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import EmployeeActions from './components/EmployeeActions'
+import AddEmployeeModal from './components/AddEmployeeModal'
+import EditAttendanceModal from './components/EditAttendanceModal'
 import { BaseModal, Button } from '@/components/ui/Modal'
 
 interface Employee {
@@ -36,6 +39,14 @@ export default function EmployeesPage() {
   const [departmentFilter, setDepartmentFilter] = useState('All')
 
   const departments = ['All', 'Kitchen', 'Service', 'Management', 'Cleaning', 'Security']
+
+  // Salary recording state/hooks (must be top-level to preserve hooks order)
+  const [salaryStatus, setSalaryStatus] = useState<{ recorded: boolean; date?: string; totalAmount?: number } | null>(null)
+  const [recording, setRecording] = useState(false)
+  const [showSalaryModal, setShowSalaryModal] = useState(false)
+  const [salaryOptions, setSalaryOptions] = useState({ respectAttendance: false, useHoursProration: false, standardHoursPerDay: 8 })
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false)
+  const [attendanceEmployee, setAttendanceEmployee] = useState<{ id: string; name: string } | null>(null)
 
   const fetchEmployees = async () => {
     try {
@@ -84,6 +95,31 @@ export default function EmployeesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <Check className="h-6 w-6 text-yellow-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-gray-600">Salary Recorded Today</p>
+              <p className="text-2xl font-bold">{salaryStatus?.recorded ? 'Yes' : 'No'}</p>
+              <p className="text-sm text-gray-500">{salaryStatus?.date || ''} {salaryStatus?.totalAmount ? `· $${salaryStatus.totalAmount.toFixed(2)}` : ''}</p>
+            </div>
+            <div className="flex flex-col items-end">
+              <button onClick={async () => {
+                // check status
+                try {
+                  const res = await fetch('/api/record-salary-expenses')
+                  const json = await res.json()
+                  setSalaryStatus({ recorded: json.result?.alreadyRecorded || false, date: new Date().toISOString().split('T')[0], totalAmount: json.result?.totalAmount })
+                } catch (err) {
+                  console.error(err)
+                }
+              }} className="text-sm text-blue-600 hover:underline">Check</button>
+              <button onClick={() => setShowSalaryModal(true)} className="mt-2 bg-blue-600 text-white px-3 py-1 rounded text-sm">Record</button>
+            </div>
+          </div>
+        </div>
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -210,6 +246,17 @@ export default function EmployeesPage() {
                     {employee.hourlyRate && (
                       <div className="text-xs text-gray-500">${employee.hourlyRate}/hour</div>
                     )}
+
+                  {/* Edit Attendance Modal */}
+                  {attendanceEmployee && (
+                    <EditAttendanceModal
+                      isOpen={attendanceModalOpen}
+                      onClose={() => setAttendanceModalOpen(false)}
+                      employeeId={attendanceEmployee.id}
+                      employeeName={attendanceEmployee.name}
+                      onSaved={async () => { await fetchEmployees() }}
+                    />
+                  )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -221,7 +268,10 @@ export default function EmployeesPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <EmployeeActions employee={employee} onUpdate={fetchEmployees} />
+                    <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => { setAttendanceEmployee({ id: employee.id, name: employee.name }); setAttendanceModalOpen(true) }} className="text-sm text-blue-600 hover:underline">Edit Hours</button>
+                      <EmployeeActions employee={employee} onUpdate={fetchEmployees} />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -243,72 +293,8 @@ export default function EmployeesPage() {
         </div>
       )}
 
-        {/* Add Employee Modal */}
-        {showAddModal && (
-          <BaseModal
-            isOpen={showAddModal}
-            onClose={() => setShowAddModal(false)}
-            title="Add Employee"
-            description="Create a new employee account and assign department/role"
-            size="md"
-          >
-            <form onSubmit={async (e) => {
-              e.preventDefault()
-              setCreating(true)
-              try {
-                const payload = {
-                  email: newEmployee.email,
-                  name: newEmployee.name,
-                  password: newEmployee.password || 'password123',
-                  role: 'EMPLOYEE',
-                  employeeId: newEmployee.employeeId,
-                  position: newEmployee.position,
-                  department: newEmployee.department,
-                  salary: Number(newEmployee.salary)
-                }
-
-                const res = await fetch('/api/admin/users', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(payload)
-                })
-
-                if (res.ok) {
-                  setShowAddModal(false)
-                  setNewEmployee({ name: '', email: '', employeeId: '', position: 'Kitchen', department: 'Kitchen', salary: 0, password: '' })
-                  await fetchEmployees()
-                } else {
-                  const err = await res.json()
-                  alert(err.error || 'Failed to create employee')
-                }
-              } catch (err) {
-                console.error(err)
-                alert('Network error')
-              } finally {
-                setCreating(false)
-              }
-            }}>
-              <div className="grid grid-cols-1 gap-2">
-                <input required placeholder="Full name" value={newEmployee.name} onChange={(e) => setNewEmployee({ ...newEmployee, name: e.target.value })} className="p-2 border rounded" />
-                <input required type="email" placeholder="Email" value={newEmployee.email} onChange={(e) => setNewEmployee({ ...newEmployee, email: e.target.value })} className="p-2 border rounded" />
-                <input required placeholder="Employee ID" value={newEmployee.employeeId} onChange={(e) => setNewEmployee({ ...newEmployee, employeeId: e.target.value })} className="p-2 border rounded" />
-                <select value={newEmployee.position} onChange={(e) => setNewEmployee({ ...newEmployee, position: e.target.value })} className="p-2 border rounded">
-                  <option>Kitchen</option>
-                  <option>Service</option>
-                  <option>Management</option>
-                  <option>Cleaning</option>
-                  <option>Security</option>
-                </select>
-                <input type="number" placeholder="Salary" value={newEmployee.salary} onChange={(e) => setNewEmployee({ ...newEmployee, salary: Number(e.target.value) })} className="p-2 border rounded" />
-                <input placeholder="Password (optional)" value={newEmployee.password} onChange={(e) => setNewEmployee({ ...newEmployee, password: e.target.value })} className="p-2 border rounded" />
-              </div>
-              <div className="flex justify-end gap-2 mt-4">
-                <Button variant="secondary" onClick={() => setShowAddModal(false)} disabled={creating}>Cancel</Button>
-                <Button variant="primary" type="submit" loading={creating}>{creating ? 'Creating...' : 'Create'}</Button>
-              </div>
-            </form>
-          </BaseModal>
-        )}
+  {/* Add Employee Modal (separate component to avoid input interruptions) */}
+  <AddEmployeeModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onCreated={fetchEmployees} />
     </div>
   )
 }

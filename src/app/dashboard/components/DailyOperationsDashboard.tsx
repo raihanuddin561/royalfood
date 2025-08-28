@@ -37,9 +37,9 @@ interface DailySummary {
 export default function DailyOperationsDashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null)
-  const [weeklyData, setWeeklyData] = useState<any>(null)
+  const [periodData, setPeriodData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [viewType, setViewType] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [viewType, setViewType] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily')
 
   useEffect(() => {
     loadDashboardData()
@@ -50,8 +50,10 @@ export default function DailyOperationsDashboard() {
     try {
       if (viewType === 'daily') {
         const result = await getDailyCosts(new Date(selectedDate))
-        if (result.success) {
+        if (result.success && result.dailySummary) {
           setDailySummary(result.dailySummary)
+        } else {
+          setDailySummary(null)
         }
       } else {
         const date = new Date(selectedDate)
@@ -64,14 +66,17 @@ export default function DailyOperationsDashboard() {
           startDate.setDate(date.getDate() - date.getDay() + 1)
           endDate = new Date(startDate)
           endDate.setDate(startDate.getDate() + 6)
-        } else { // monthly
+        } else if (viewType === 'monthly') {
           startDate = new Date(date.getFullYear(), date.getMonth(), 1)
           endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+        } else { // yearly
+          startDate = new Date(date.getFullYear(), 0, 1)
+          endDate = new Date(date.getFullYear(), 11, 31)
         }
 
         const result = await getPeriodSummary(startDate, endDate)
         if (result.success) {
-          setWeeklyData(result.summary)
+          setPeriodData(result.summary)
         }
       }
     } catch (error) {
@@ -105,12 +110,13 @@ export default function DailyOperationsDashboard() {
             <label className="block text-sm font-medium text-gray-700 mb-1">View</label>
             <select
               value={viewType}
-              onChange={(e) => setViewType(e.target.value as 'daily' | 'weekly' | 'monthly')}
+              onChange={(e) => setViewType(e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly')}
               className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             >
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
             </select>
           </div>
           <div>
@@ -239,7 +245,7 @@ export default function DailyOperationsDashboard() {
                       {usage.type === 'WASTAGE' && <AlertTriangle className="w-4 h-4 text-red-600 mr-2" />}
                       {usage.type === 'OTHER' && <Package className="w-4 h-4 text-gray-600 mr-2" />}
                       <div>
-                        <span className="text-sm font-medium text-gray-700 capitalize">{usage.type.toLowerCase()}</span>
+                        <span className="text-sm font-medium text-gray-700 capitalize">{usage.type ? usage.type.toLowerCase() : 'unknown'}</span>
                         <p className="text-xs text-gray-500">{usage.count} transactions</p>
                       </div>
                     </div>
@@ -255,14 +261,14 @@ export default function DailyOperationsDashboard() {
         </>
       )}
 
-      {(viewType === 'weekly' || viewType === 'monthly') && weeklyData && (
+      {(viewType !== 'daily') && periodData && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
           <div className="px-6 py-4 border-b border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900">
-              {viewType === 'weekly' ? 'Weekly' : 'Monthly'} Summary
+              {viewType === 'weekly' ? 'Weekly' : viewType === 'monthly' ? 'Monthly' : 'Yearly'} Summary
             </h3>
             <p className="text-sm text-gray-500">
-              {weeklyData.period.start} to {weeklyData.period.end}
+              {periodData.period.start} to {periodData.period.end}
             </p>
           </div>
           <div className="p-6">
@@ -270,21 +276,21 @@ export default function DailyOperationsDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="text-center">
                 <p className="text-sm text-gray-600">Total Sales</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(weeklyData.totals.sales)}</p>
+                <p className="text-2xl font-bold text-green-600">{formatCurrency(periodData.totals.sales)}</p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-600">Total Costs</p>
-                <p className="text-2xl font-bold text-red-600">{formatCurrency(weeklyData.totals.costs)}</p>
+                <p className="text-2xl font-bold text-red-600">{formatCurrency(periodData.totals.costs)}</p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-600">Net Profit</p>
-                <p className={`text-2xl font-bold ${weeklyData.totals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(weeklyData.totals.profit)}
+                <p className={`text-2xl font-bold ${periodData.totals.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(periodData.totals.profit)}
                 </p>
               </div>
               <div className="text-center">
                 <p className="text-sm text-gray-600">Profit Margin</p>
-                <p className="text-2xl font-bold text-blue-600">{formatPercentage(weeklyData.totals.profitMargin)}</p>
+                <p className="text-2xl font-bold text-blue-600">{formatPercentage(periodData.totals.profitMargin)}</p>
               </div>
             </div>
 
@@ -303,7 +309,7 @@ export default function DailyOperationsDashboard() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {weeklyData.dailyBreakdown.map((day: any, index: number) => (
+                  {periodData.dailyBreakdown.map((day: any, index: number) => (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(day.date).toLocaleDateString()}

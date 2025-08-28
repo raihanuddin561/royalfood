@@ -44,6 +44,7 @@ const navigation: NavigationItem[] = [
     description: 'System administration' 
   },
   { name: 'Inventory', href: '/inventory', icon: Package, description: 'Stock management' },
+  { name: 'Purchases', href: '/admin/purchases', icon: ShoppingCart, roles: [UserRole.ADMIN, UserRole.MANAGER], description: 'Purchase orders' },
   { name: 'Stock Usage', href: '/inventory/usage', icon: Activity, description: 'Track ingredient usage' },
   { name: 'Orders', href: '/orders', icon: ShoppingCart, description: 'Customer orders' },
   { name: 'Menu', href: '/menu', icon: ChefHat, description: 'Menu management' },
@@ -53,6 +54,12 @@ const navigation: NavigationItem[] = [
     icon: Users, 
     roles: [UserRole.ADMIN, UserRole.MANAGER],
     description: 'Staff management' 
+  },
+  { 
+    name: 'Attendance',
+    href: '/attendance',
+    icon: Clock,
+    description: 'Employee attendance' 
   },
   { name: 'Sales', href: '/sales', icon: DollarSign, description: 'Sales tracking' },
   { 
@@ -160,7 +167,7 @@ export default function Sidebar() {
         />
       )}
   {/* Sidebar: static on desktop, fixed and toggleable on mobile */}
-  <aside className={`fixed top-0 left-0 h-screen w-64 max-w-[100vw] box-border bg-gradient-to-b from-gray-900 to-gray-800 flex-shrink-0 border-r border-gray-700 shadow-xl transition-transform duration-300 z-60 transform ${open ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 sm:static sm:block overflow-hidden`}> 
+  <aside className={`fixed top-0 left-0 h-screen w-64 max-w-[100vw] box-border bg-gradient-to-b from-gray-900 to-gray-800 flex-shrink-0 border-r border-gray-700 shadow-xl transition-transform duration-300 z-60 transform ${open ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 sm:static sm:block overflow-y-auto`}> 
         {/* Header */}
         <div className="flex h-16 shrink-0 items-center px-4 border-b border-gray-700 bg-gray-800">
           <div className="flex items-center gap-2">
@@ -195,8 +202,8 @@ export default function Sidebar() {
 
         {/* Navigation */}
         {/* Use min-h-0 and overflow-y-auto so long content scrolls inside the sidebar rather than overflowing */}
-        <nav className="flex flex-1 flex-col px-3 py-4 min-h-0">
-          <ul role="list" className="flex flex-1 flex-col gap-y-1 overflow-y-auto">
+        <nav className="flex flex-1 flex-col px-3 py-4 min-h-0 overflow-hidden">
+          <ul role="list" className="flex flex-1 flex-col gap-y-1 overflow-y-auto min-h-0 pr-2">
             {navigation.map((item) => {
               // Check if user has required role for this item (use fallback sessionUser)
               // Normalize role strings to avoid casing/enum mismatches between server and client

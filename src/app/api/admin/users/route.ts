@@ -17,6 +17,9 @@ const createUserSchema = z.object({
   position: z.string().min(1, 'Position is required'),
   department: z.string().min(1, 'Department is required'),
   salary: z.number().min(0, 'Salary must be positive')
+  ,payMode: z.enum(['DAILY', 'HOURLY']).optional(),
+  hourlyRate: z.number().optional(),
+  standardHoursPerDay: z.number().optional()
 })
 
 // GET /api/admin/users - Get all users (Admin only)
@@ -70,12 +73,12 @@ async function createUserHandler(request: AuthenticatedRequest) {
     const validationResult = createUserSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Validation failed', details: validationResult.error.errors },
+        { error: 'Validation failed', details: validationResult.error.issues },
         { status: 400 }
       )
     }
 
-    const { email, name, password, role, employeeId, position, department, salary } = validationResult.data
+  const { email, name, password, role, employeeId, position, department, salary, payMode, hourlyRate, standardHoursPerDay } = validationResult.data
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -118,16 +121,17 @@ async function createUserHandler(request: AuthenticatedRequest) {
       })
 
       // Create employee profile
-      await tx.employee.create({
-        data: {
-          userId: user.id,
-          employeeId,
-          position,
-          department,
-          salary,
-          hireDate: new Date()
-        }
-      })
+      // Note: avoid writing fields that may not exist in the current DB schema
+      const employeeData: any = {
+        userId: user.id,
+        employeeId,
+        position,
+        department,
+        salary,
+        hireDate: new Date()
+      }
+
+      await tx.employee.create({ data: employeeData })
 
       return user
     })

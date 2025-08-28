@@ -192,15 +192,10 @@ export default async function MenuPage() {
                   >
                     <Edit className="h-4 w-4" />
                   </Link>
-                  <button 
-                    className="p-1 text-gray-400 hover:text-red-600"
-                    title="Delete Item"
-                    onClick={() => {
-                      if (confirm(`Are you sure you want to delete "${item.name}"?`)) {
-                        // TODO: Implement delete functionality
-                        alert('Delete functionality will be implemented')
-                      }
-                    }}
+                  <button
+                    className="p-1 text-gray-400"
+                    title="Delete Item (not implemented)"
+                    aria-disabled="true"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

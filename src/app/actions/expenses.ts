@@ -273,7 +273,10 @@ export async function getExpenseCategories() {
 }
 
 // Daily Salary Expense Recording (Best Practice for Restaurant Management)
-export async function recordDailySalaryExpenses(date: Date) {
+export async function recordDailySalaryExpenses(
+  date: Date,
+  options?: { respectAttendance?: boolean; useHoursProration?: boolean; standardHoursPerDay?: number }
+) {
   try {
     const startOfDay = new Date(date)
     startOfDay.setHours(0, 0, 0, 0)
@@ -281,29 +284,8 @@ export async function recordDailySalaryExpenses(date: Date) {
     const endOfDay = new Date(date)
     endOfDay.setHours(23, 59, 59, 999)
 
-    // Check if salary expenses already recorded for this date
-    const existingSalaryExpenses = await prisma.expense.findFirst({
-      where: {
-        expenseDate: {
-          gte: startOfDay,
-          lte: endOfDay
-        },
-        expenseCategory: {
-          type: 'PAYROLL'
-        },
-        description: {
-          contains: 'Daily salary allocation'
-        }
-      }
-    })
-
-    if (existingSalaryExpenses) {
-      return { 
-        success: true, 
-        message: 'Daily salary expenses already recorded',
-        alreadyRecorded: true
-      }
-    }
+  // Note: we no longer bail out if payroll expenses exist for the date.
+  // Instead we will create or update payroll & linked expense records per employee.
 
     // Get all active employees
     const activeEmployees = await prisma.employee.findMany({
@@ -314,6 +296,31 @@ export async function recordDailySalaryExpenses(date: Date) {
         user: true
       }
     })
+
+    const respectAttendance = options?.respectAttendance ?? false
+    const useHoursProration = options?.useHoursProration ?? false
+    const standardHoursPerDay = options?.standardHoursPerDay ?? 8
+
+    // If attendance should be respected or hours proration requested,
+    // load attendance records for the day for active employees.
+    let attendanceMap: Record<string, { totalHours?: number } | undefined> = {}
+    if (respectAttendance || useHoursProration) {
+      const employeeIds = activeEmployees.map(e => e.id)
+      const attendances = await prisma.attendance.findMany({
+        where: {
+          employeeId: { in: employeeIds },
+          date: {
+            gte: startOfDay,
+            lte: endOfDay
+          }
+        }
+      })
+
+      attendanceMap = attendances.reduce((acc, a) => {
+        acc[a.employeeId] = { totalHours: a.totalHours || 0 }
+        return acc
+      }, {} as Record<string, { totalHours?: number }>)
+    }
 
     if (activeEmployees.length === 0) {
       return { 
@@ -343,37 +350,86 @@ export async function recordDailySalaryExpenses(date: Date) {
     // Calculate daily salary allocation (monthly salary / 30 days)
     // This is the restaurant industry standard for daily costing
     let totalDailySalaryExpense = 0
-    const salaryExpenses = []
+    const payrollRecords: Array<{
+      employeeId: string
+      employeeName: string
+      position: string
+      dailySalary: number
+    }> = []
 
     for (const employee of activeEmployees) {
-      const dailySalary = Math.round((employee.salary / 30) * 100) / 100 // Round to 2 decimal places
+      // If respecting attendance and the employee has no attendance record for the day, skip
+      const attendance = attendanceMap[employee.id]
+      if (respectAttendance && !attendance) continue
+
+      // Base daily salary (monthly / 30)
+      const baseDaily = Math.round((employee.salary / 30) * 100) / 100
+
+      let dailySalary = baseDaily
+
+      // If proration by hours is requested and we have attendance.totalHours, prorate accordingly
+      if (useHoursProration && attendance && typeof attendance.totalHours === 'number') {
+        // If employee has an explicit hourlyRate, prefer that calculation
+        if (employee.hourlyRate && employee.hourlyRate > 0) {
+          dailySalary = Math.round((attendance.totalHours * employee.hourlyRate) * 100) / 100
+        } else {
+          // Prorate the base daily salary by hours / standardHoursPerDay
+          const factor = Math.min(1, attendance.totalHours / standardHoursPerDay)
+          dailySalary = Math.round((baseDaily * factor) * 100) / 100
+        }
+      }
+
       totalDailySalaryExpense += dailySalary
 
-      salaryExpenses.push({
-        expenseCategoryId: payrollCategory.id,
-        description: `Daily salary allocation - ${employee.user.name} (${employee.position})`,
-        amount: dailySalary,
-        expenseDate: date,
-        status: 'APPROVED' as ExpenseStatus
-      })
+      payrollRecords.push({ employeeId: employee.id, employeeName: employee.user.name, position: employee.position, dailySalary })
     }
 
-    // Create the expense records in a single transaction
+    // Create or update payroll + expense records inside a transaction and link them
+    const createdOrUpdated: Array<{ payrollId: string; expenseId: string | null; employee: string; amount: number }> = []
+
     await prisma.$transaction(async (tx) => {
-      await tx.expense.createMany({
-        data: salaryExpenses
-      })
+      for (const rec of payrollRecords) {
+        // Skip zero/negative salaries
+        if (!rec.dailySalary || rec.dailySalary <= 0) continue
+
+        // Try to find existing payroll for this employee and period
+        const existingPayroll = await tx.payroll.findFirst({ where: { employeeId: rec.employeeId, period: startOfDay } })
+
+        if (existingPayroll) {
+          // Update payroll amounts if different
+          const needsUpdate = existingPayroll.totalAmount !== rec.dailySalary || existingPayroll.basicSalary !== rec.dailySalary
+          let payrollId = existingPayroll.id
+          if (needsUpdate) {
+            await tx.payroll.update({ where: { id: payrollId }, data: { basicSalary: rec.dailySalary, totalAmount: rec.dailySalary, updatedAt: new Date() } })
+          }
+
+          // Try to find linked expense
+          const linkedExpense = await tx.expense.findFirst({ where: { payrollId: payrollId } })
+          if (linkedExpense) {
+            if (linkedExpense.amount !== rec.dailySalary) {
+              await tx.expense.update({ where: { id: linkedExpense.id }, data: { amount: rec.dailySalary, updatedAt: new Date(), description: `Daily salary allocation - ${rec.employeeName} (${rec.position})` } })
+            }
+            createdOrUpdated.push({ payrollId, expenseId: linkedExpense.id, employee: `${rec.employeeName} (${rec.position})`, amount: rec.dailySalary })
+          } else {
+            // create expense linked to existing payroll
+            const expense = await tx.expense.create({ data: { expenseCategoryId: payrollCategory.id, description: `Daily salary allocation - ${rec.employeeName} (${rec.position})`, amount: rec.dailySalary, expenseDate: date, payrollId: payrollId, employeeId: rec.employeeId, status: 'APPROVED' as ExpenseStatus } })
+            createdOrUpdated.push({ payrollId, expenseId: expense.id, employee: `${rec.employeeName} (${rec.position})`, amount: rec.dailySalary })
+          }
+        } else {
+          // Create new payroll and expense
+          const payroll = await tx.payroll.create({ data: { employeeId: rec.employeeId, period: startOfDay, basicSalary: rec.dailySalary, overtime: 0, bonuses: 0, deductions: 0, totalAmount: rec.dailySalary, status: 'PENDING' } })
+          const expense = await tx.expense.create({ data: { expenseCategoryId: payrollCategory.id, description: `Daily salary allocation - ${rec.employeeName} (${rec.position})`, amount: rec.dailySalary, expenseDate: date, payrollId: payroll.id, employeeId: rec.employeeId, status: 'APPROVED' as ExpenseStatus } })
+          createdOrUpdated.push({ payrollId: payroll.id, expenseId: expense.id, employee: `${rec.employeeName} (${rec.position})`, amount: rec.dailySalary })
+        }
+      }
     })
 
-    return { 
-      success: true, 
-      message: `Daily salary expenses recorded: ${activeEmployees.length} employees, $${totalDailySalaryExpense.toFixed(2)} total`,
+    return {
+      success: true,
+      message: `Daily salary expenses processed: ${createdOrUpdated.length} items, $${totalDailySalaryExpense.toFixed(2)} total`,
       totalAmount: totalDailySalaryExpense,
-      employeeCount: activeEmployees.length,
-      breakdown: salaryExpenses.map(exp => ({
-        employee: exp.description,
-        amount: exp.amount
-      }))
+      employeeCount: createdOrUpdated.length,
+      breakdown: createdOrUpdated.map(c => ({ employee: c.employee, payrollId: c.payrollId, expenseId: c.expenseId, amount: c.amount }))
     }
   } catch (error) {
     console.error('Error recording daily salary expenses:', error)

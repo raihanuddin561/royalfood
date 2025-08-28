@@ -43,6 +43,11 @@ enum UserRole {
   CUSTOMER
 }
 
+enum PayMode {
+  DAILY
+  HOURLY
+}
+
 // Partnership Management
 model Partner {
   id          String  @id @default(cuid())
@@ -85,6 +90,8 @@ model Employee {
   position    String
   department  String
   salary      Float
+  payMode     PayMode  @default(DAILY)
+  standardHoursPerDay Int @default(8)
   hourlyRate  Float?
   hireDate    DateTime
   isActive    Boolean  @default(true)
@@ -308,6 +315,8 @@ model PurchaseItem {
   purchaseId   String
   itemId       String
   quantity     Float
+  receivedQuantity Float  @default(0)
+  lastReceivedAt DateTime?
   unitPrice    Float
   totalPrice   Float
   createdAt    DateTime @default(now())
@@ -321,6 +330,7 @@ model PurchaseItem {
 
 enum PurchaseStatus {
   PENDING
+  PARTIALLY_RECEIVED
   RECEIVED
   CANCELLED
 }
