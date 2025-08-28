@@ -41,7 +41,11 @@ CREATE TABLE IF NOT EXISTS "profit_shares" (
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS "profit_shares_partnerId_idx" ON "profit_shares"("partnerId");
-DO $$ BEGIN ALTER TABLE "profit_shares" ADD CONSTRAINT IF NOT EXISTS "profit_shares_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "partners"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'profit_shares_partnerId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "profit_shares" ADD CONSTRAINT "profit_shares_partnerId_fkey" FOREIGN KEY ("partnerId") REFERENCES "partners"("id") ON DELETE CASCADE ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Employees, attendance, payroll
 CREATE TABLE IF NOT EXISTS "employees" (
@@ -59,7 +63,11 @@ CREATE TABLE IF NOT EXISTS "employees" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "employees_userId_key" ON "employees"("userId");
 CREATE UNIQUE INDEX IF NOT EXISTS "employees_employeeId_key" ON "employees"("employeeId");
-DO $$ BEGIN ALTER TABLE "employees" ADD CONSTRAINT IF NOT EXISTS "employees_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_userId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "employees" ADD CONSTRAINT "employees_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 CREATE TABLE IF NOT EXISTS "attendance" (
   "id" TEXT PRIMARY KEY,
@@ -72,7 +80,11 @@ CREATE TABLE IF NOT EXISTS "attendance" (
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS "attendance_employeeId_idx" ON "attendance"("employeeId");
-DO $$ BEGIN ALTER TABLE "attendance" ADD CONSTRAINT IF NOT EXISTS "attendance_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "employees"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'attendance_employeeId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "attendance" ADD CONSTRAINT "attendance_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "employees"("id") ON DELETE CASCADE ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 CREATE TABLE IF NOT EXISTS "payrolls" (
   "id" TEXT PRIMARY KEY,
@@ -88,7 +100,11 @@ CREATE TABLE IF NOT EXISTS "payrolls" (
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS "payrolls_employeeId_idx" ON "payrolls"("employeeId");
-DO $$ BEGIN ALTER TABLE "payrolls" ADD CONSTRAINT IF NOT EXISTS "payrolls_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "employees"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'payrolls_employeeId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "payrolls" ADD CONSTRAINT "payrolls_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "employees"("id") ON DELETE CASCADE ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Categories, suppliers, items
 CREATE TABLE IF NOT EXISTS "categories" (
@@ -138,8 +154,14 @@ CREATE TABLE IF NOT EXISTS "items" (
 CREATE UNIQUE INDEX IF NOT EXISTS "items_sku_key" ON "items"("sku");
 CREATE INDEX IF NOT EXISTS "items_categoryId_idx" ON "items"("categoryId");
 CREATE INDEX IF NOT EXISTS "items_supplierId_idx" ON "items"("supplierId");
-DO $$ BEGIN ALTER TABLE "items" ADD CONSTRAINT IF NOT EXISTS "items_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "items" ADD CONSTRAINT IF NOT EXISTS "items_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'items_categoryId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "items" ADD CONSTRAINT "items_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'items_supplierId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "items" ADD CONSTRAINT "items_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Inventory logs
 CREATE TABLE IF NOT EXISTS "inventory_logs" (
@@ -156,8 +178,14 @@ CREATE TABLE IF NOT EXISTS "inventory_logs" (
 );
 CREATE INDEX IF NOT EXISTS "inventory_logs_itemId_idx" ON "inventory_logs"("itemId");
 CREATE INDEX IF NOT EXISTS "inventory_logs_userId_idx" ON "inventory_logs"("userId");
-DO $$ BEGIN ALTER TABLE "inventory_logs" ADD CONSTRAINT IF NOT EXISTS "inventory_logs_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "inventory_logs" ADD CONSTRAINT IF NOT EXISTS "inventory_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_logs_itemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "inventory_logs" ADD CONSTRAINT "inventory_logs_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE CASCADE ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_logs_userId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "inventory_logs" ADD CONSTRAINT "inventory_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Stock usage
 CREATE TABLE IF NOT EXISTS "stock_usage" (
@@ -178,10 +206,20 @@ CREATE INDEX IF NOT EXISTS "stock_usage_itemId_idx" ON "stock_usage"("itemId");
 CREATE INDEX IF NOT EXISTS "stock_usage_menuItemId_idx" ON "stock_usage"("menuItemId");
 CREATE INDEX IF NOT EXISTS "stock_usage_orderId_idx" ON "stock_usage"("orderId");
 CREATE INDEX IF NOT EXISTS "stock_usage_userId_idx" ON "stock_usage"("userId");
-DO $$ BEGIN ALTER TABLE "stock_usage" ADD CONSTRAINT IF NOT EXISTS "stock_usage_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "stock_usage" ADD CONSTRAINT IF NOT EXISTS "stock_usage_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "stock_usage" ADD CONSTRAINT IF NOT EXISTS "stock_usage_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "stock_usage" ADD CONSTRAINT IF NOT EXISTS "stock_usage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stock_usage_itemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "stock_usage" ADD CONSTRAINT "stock_usage_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stock_usage_menuItemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "stock_usage" ADD CONSTRAINT "stock_usage_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stock_usage_orderId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "stock_usage" ADD CONSTRAINT "stock_usage_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'stock_usage_userId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "stock_usage" ADD CONSTRAINT "stock_usage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Menu items and recipe items
 CREATE TABLE IF NOT EXISTS "menu_items" (
@@ -200,7 +238,11 @@ CREATE TABLE IF NOT EXISTS "menu_items" (
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS "menu_items_categoryId_idx" ON "menu_items"("categoryId");
-DO $$ BEGIN ALTER TABLE "menu_items" ADD CONSTRAINT IF NOT EXISTS "menu_items_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'menu_items_categoryId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "menu_items" ADD CONSTRAINT "menu_items_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 CREATE TABLE IF NOT EXISTS "recipe_items" (
   "id" TEXT PRIMARY KEY,
@@ -215,8 +257,14 @@ CREATE TABLE IF NOT EXISTS "recipe_items" (
 );
 CREATE INDEX IF NOT EXISTS "recipe_items_menuItemId_idx" ON "recipe_items"("menuItemId");
 CREATE INDEX IF NOT EXISTS "recipe_items_itemId_idx" ON "recipe_items"("itemId");
-DO $$ BEGIN ALTER TABLE "recipe_items" ADD CONSTRAINT IF NOT EXISTS "recipe_items_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "recipe_items" ADD CONSTRAINT IF NOT EXISTS "recipe_items_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'recipe_items_menuItemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "recipe_items" ADD CONSTRAINT "recipe_items_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE CASCADE ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'recipe_items_itemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "recipe_items" ADD CONSTRAINT "recipe_items_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Purchases & items
 CREATE TABLE IF NOT EXISTS "purchases" (
@@ -231,7 +279,11 @@ CREATE TABLE IF NOT EXISTS "purchases" (
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "purchases_purchaseNumber_key" ON "purchases"("purchaseNumber");
-DO $$ BEGIN ALTER TABLE "purchases" ADD CONSTRAINT IF NOT EXISTS "purchases_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'purchases_supplierId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "purchases" ADD CONSTRAINT "purchases_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 CREATE TABLE IF NOT EXISTS "purchase_items" (
   "id" TEXT PRIMARY KEY,
@@ -244,8 +296,14 @@ CREATE TABLE IF NOT EXISTS "purchase_items" (
 );
 CREATE INDEX IF NOT EXISTS "purchase_items_purchaseId_idx" ON "purchase_items"("purchaseId");
 CREATE INDEX IF NOT EXISTS "purchase_items_itemId_idx" ON "purchase_items"("itemId");
-DO $$ BEGIN ALTER TABLE "purchase_items" ADD CONSTRAINT IF NOT EXISTS "purchase_items_purchaseId_fkey" FOREIGN KEY ("purchaseId") REFERENCES "purchases"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "purchase_items" ADD CONSTRAINT IF NOT EXISTS "purchase_items_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'purchase_items_purchaseId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "purchase_items" ADD CONSTRAINT "purchase_items_purchaseId_fkey" FOREIGN KEY ("purchaseId") REFERENCES "purchases"("id") ON DELETE CASCADE ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'purchase_items_itemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "purchase_items" ADD CONSTRAINT "purchase_items_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Orders & order_items
 CREATE TABLE IF NOT EXISTS "orders" (
@@ -266,7 +324,11 @@ CREATE TABLE IF NOT EXISTS "orders" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "orders_orderNumber_key" ON "orders"("orderNumber");
 CREATE INDEX IF NOT EXISTS "orders_userId_idx" ON "orders"("userId");
-DO $$ BEGIN ALTER TABLE "orders" ADD CONSTRAINT IF NOT EXISTS "orders_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'orders_userId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "orders" ADD CONSTRAINT "orders_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 CREATE TABLE IF NOT EXISTS "order_items" (
   "id" TEXT PRIMARY KEY,
@@ -282,9 +344,17 @@ CREATE TABLE IF NOT EXISTS "order_items" (
 CREATE INDEX IF NOT EXISTS "order_items_orderId_idx" ON "order_items"("orderId");
 CREATE INDEX IF NOT EXISTS "order_items_menuItemId_idx" ON "order_items"("menuItemId");
 CREATE INDEX IF NOT EXISTS "order_items_itemId_idx" ON "order_items"("itemId");
-DO $$ BEGIN ALTER TABLE "order_items" ADD CONSTRAINT IF NOT EXISTS "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "order_items" ADD CONSTRAINT IF NOT EXISTS "order_items_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "order_items" ADD CONSTRAINT IF NOT EXISTS "order_items_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'order_items_orderId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "order_items" ADD CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE CASCADE ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'order_items_menuItemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "order_items" ADD CONSTRAINT "order_items_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'order_items_itemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "order_items" ADD CONSTRAINT "order_items_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "items"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Sales & menu_item_sales
 CREATE TABLE IF NOT EXISTS "sales" (
@@ -306,8 +376,14 @@ CREATE TABLE IF NOT EXISTS "sales" (
 CREATE UNIQUE INDEX IF NOT EXISTS "sales_saleNumber_key" ON "sales"("saleNumber");
 CREATE UNIQUE INDEX IF NOT EXISTS "sales_orderId_key" ON "sales"("orderId");
 CREATE INDEX IF NOT EXISTS "sales_userId_idx" ON "sales"("userId");
-DO $$ BEGIN ALTER TABLE "sales" ADD CONSTRAINT IF NOT EXISTS "sales_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "sales" ADD CONSTRAINT IF NOT EXISTS "sales_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_userId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "sales" ADD CONSTRAINT "sales_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_orderId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "sales" ADD CONSTRAINT "sales_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 CREATE TABLE IF NOT EXISTS "menu_item_sales" (
   "id" TEXT PRIMARY KEY,
@@ -325,8 +401,14 @@ CREATE TABLE IF NOT EXISTS "menu_item_sales" (
 );
 CREATE INDEX IF NOT EXISTS "menu_item_sales_saleId_idx" ON "menu_item_sales"("saleId");
 CREATE INDEX IF NOT EXISTS "menu_item_sales_menuItemId_idx" ON "menu_item_sales"("menuItemId");
-DO $$ BEGIN ALTER TABLE "menu_item_sales" ADD CONSTRAINT IF NOT EXISTS "menu_item_sales_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "sales"("id") ON DELETE CASCADE ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "menu_item_sales" ADD CONSTRAINT IF NOT EXISTS "menu_item_sales_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'menu_item_sales_saleId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "menu_item_sales" ADD CONSTRAINT "menu_item_sales_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "sales"("id") ON DELETE CASCADE ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'menu_item_sales_menuItemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "menu_item_sales" ADD CONSTRAINT "menu_item_sales_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Expenses
 CREATE TABLE IF NOT EXISTS "expense_categories" (
@@ -361,10 +443,20 @@ CREATE TABLE IF NOT EXISTS "expenses" (
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS "expenses_expenseCategoryId_idx" ON "expenses"("expenseCategoryId");
-DO $$ BEGIN ALTER TABLE "expenses" ADD CONSTRAINT IF NOT EXISTS "expenses_expenseCategoryId_fkey" FOREIGN KEY ("expenseCategoryId") REFERENCES "expense_categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "expenses" ADD CONSTRAINT IF NOT EXISTS "expenses_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "employees"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "expenses" ADD CONSTRAINT IF NOT EXISTS "expenses_purchaseId_fkey" FOREIGN KEY ("purchaseId") REFERENCES "purchases"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
-DO $$ BEGIN ALTER TABLE "expenses" ADD CONSTRAINT IF NOT EXISTS "expenses_payrollId_fkey" FOREIGN KEY ("payrollId") REFERENCES "payrolls"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_expenseCategoryId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "expenses" ADD CONSTRAINT "expenses_expenseCategoryId_fkey" FOREIGN KEY ("expenseCategoryId") REFERENCES "expense_categories"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_employeeId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "expenses" ADD CONSTRAINT "expenses_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "employees"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_purchaseId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "expenses" ADD CONSTRAINT "expenses_purchaseId_fkey" FOREIGN KEY ("purchaseId") REFERENCES "purchases"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'expenses_payrollId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "expenses" ADD CONSTRAINT "expenses_payrollId_fkey" FOREIGN KEY ("payrollId") REFERENCES "payrolls"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Financial reports
 CREATE TABLE IF NOT EXISTS "financial_reports" (
