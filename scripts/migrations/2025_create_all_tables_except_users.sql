@@ -1,8 +1,4 @@
--- Create all application tables except the users table (idempotent)
--- Safe to run multiple times. This will not modify or touch the existing "users" table.
 BEGIN;
-
--- ENUMS (safe)
 CREATE TYPE IF NOT EXISTS "UserRole" AS ENUM ('ADMIN','MANAGER','EMPLOYEE','CUSTOMER');
 CREATE TYPE IF NOT EXISTS "PayrollStatus" AS ENUM ('PENDING','APPROVED','PAID');
 CREATE TYPE IF NOT EXISTS "InventoryLogType" AS ENUM ('STOCK_IN','STOCK_OUT','ADJUSTMENT','WASTE','TRANSFER');
@@ -16,7 +12,7 @@ CREATE TYPE IF NOT EXISTS "ExpenseStatus" AS ENUM ('PENDING','APPROVED','REJECTE
 CREATE TYPE IF NOT EXISTS "RecurringPeriod" AS ENUM ('DAILY','WEEKLY','MONTHLY','QUARTERLY','YEARLY');
 CREATE TYPE IF NOT EXISTS "ReportType" AS ENUM ('DAILY','WEEKLY','MONTHLY','QUARTERLY','YEARLY','CUSTOM');
 
--- Partners & Profit Shares
+ 
 CREATE TABLE IF NOT EXISTS "partners" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT NOT NULL,
@@ -47,7 +43,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Employees, attendance, payroll
+ 
 CREATE TABLE IF NOT EXISTS "employees" (
   "id" TEXT PRIMARY KEY,
   "userId" TEXT NOT NULL,
@@ -106,7 +102,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Categories, suppliers, items
+ 
 CREATE TABLE IF NOT EXISTS "categories" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT NOT NULL,
@@ -163,7 +159,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Inventory logs
+ 
 CREATE TABLE IF NOT EXISTS "inventory_logs" (
   "id" TEXT PRIMARY KEY,
   "itemId" TEXT NOT NULL,
@@ -187,7 +183,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Stock usage
+ 
 CREATE TABLE IF NOT EXISTS "stock_usage" (
   "id" TEXT PRIMARY KEY,
   "itemId" TEXT NOT NULL,
@@ -221,7 +217,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Menu items and recipe items
+ 
 CREATE TABLE IF NOT EXISTS "menu_items" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT NOT NULL,
@@ -266,7 +262,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Purchases & items
+ 
 CREATE TABLE IF NOT EXISTS "purchases" (
   "id" TEXT PRIMARY KEY,
   "supplierId" TEXT NOT NULL,
@@ -305,7 +301,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Orders & order_items
+ 
 CREATE TABLE IF NOT EXISTS "orders" (
   "id" TEXT PRIMARY KEY,
   "orderNumber" TEXT NOT NULL,
@@ -356,7 +352,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Sales & menu_item_sales
+ 
 CREATE TABLE IF NOT EXISTS "sales" (
   "id" TEXT PRIMARY KEY,
   "orderId" TEXT,
@@ -410,7 +406,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Expenses
+ 
 CREATE TABLE IF NOT EXISTS "expense_categories" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT NOT NULL,
@@ -458,7 +454,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Financial reports
+ 
 CREATE TABLE IF NOT EXISTS "financial_reports" (
   "id" TEXT PRIMARY KEY,
   "reportType" "ReportType" NOT NULL,
@@ -477,7 +473,7 @@ CREATE TABLE IF NOT EXISTS "financial_reports" (
   "generatedAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Security logs
+ 
 CREATE TABLE IF NOT EXISTS "security_logs" (
   "id" TEXT PRIMARY KEY,
   "userId" TEXT,
@@ -495,7 +491,7 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Migration tracking (lightweight)
+ 
 CREATE TABLE IF NOT EXISTS "applied_migrations" (
   "filename" TEXT PRIMARY KEY,
   "checksum" TEXT NOT NULL,
@@ -503,5 +499,3 @@ CREATE TABLE IF NOT EXISTS "applied_migrations" (
 );
 
 COMMIT;
-
--- End of migration
