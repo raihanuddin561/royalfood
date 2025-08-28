@@ -489,7 +489,11 @@ CREATE TABLE IF NOT EXISTS "security_logs" (
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS "security_logs_userId_idx" ON "security_logs"("userId");
-DO $$ BEGIN ALTER TABLE "security_logs" ADD CONSTRAINT IF NOT EXISTS "security_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE; EXCEPTION WHEN undefined_table THEN null; END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'security_logs_userId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "security_logs" ADD CONSTRAINT "security_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
+EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Migration tracking (lightweight)
 CREATE TABLE IF NOT EXISTS "applied_migrations" (

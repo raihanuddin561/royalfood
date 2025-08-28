@@ -37,11 +37,15 @@ CREATE INDEX IF NOT EXISTS "sales_userId_idx" ON "sales"("userId");
 
 -- Foreign keys (if referenced tables exist)
 DO $$ BEGIN
-  ALTER TABLE "sales" ADD CONSTRAINT IF NOT EXISTS "sales_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_userId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "sales" ADD CONSTRAINT "sales_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
 DO $$ BEGIN
-  ALTER TABLE "sales" ADD CONSTRAINT IF NOT EXISTS "sales_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_orderId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "sales" ADD CONSTRAINT "sales_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders"("id") ON DELETE SET NULL ON UPDATE CASCADE;$cmd$;
+  END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
 -- Menu item sales
@@ -65,11 +69,15 @@ CREATE INDEX IF NOT EXISTS "menu_item_sales_saleId_idx" ON "menu_item_sales"("sa
 CREATE INDEX IF NOT EXISTS "menu_item_sales_menuItemId_idx" ON "menu_item_sales"("menuItemId");
 
 DO $$ BEGIN
-  ALTER TABLE "menu_item_sales" ADD CONSTRAINT IF NOT EXISTS "menu_item_sales_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "sales"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'menu_item_sales_saleId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "menu_item_sales" ADD CONSTRAINT "menu_item_sales_saleId_fkey" FOREIGN KEY ("saleId") REFERENCES "sales"("id") ON DELETE CASCADE ON UPDATE CASCADE;$cmd$;
+  END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
 DO $$ BEGIN
-  ALTER TABLE "menu_item_sales" ADD CONSTRAINT IF NOT EXISTS "menu_item_sales_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'menu_item_sales_menuItemId_fkey') THEN
+    EXECUTE $cmd$ALTER TABLE "menu_item_sales" ADD CONSTRAINT "menu_item_sales_menuItemId_fkey" FOREIGN KEY ("menuItemId") REFERENCES "menu_items"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
+  END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
 COMMIT;
