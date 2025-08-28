@@ -2,14 +2,9 @@
 -- Safe to run multiple times; uses IF NOT EXISTS and exact Prisma-mapped column names
 BEGIN;
 
--- Ensure enums exist (duplicate_object will be ignored)
-DO $$ BEGIN
-  CREATE TYPE IF NOT EXISTS "PaymentMethod" AS ENUM ('CASH', 'CARD', 'DIGITAL_WALLET', 'BANK_TRANSFER');
-EXCEPTION WHEN duplicate_object THEN null; END $$;
-
-DO $$ BEGIN
-  CREATE TYPE IF NOT EXISTS "SaleStatus" AS ENUM ('COMPLETED', 'REFUNDED', 'CANCELLED');
-EXCEPTION WHEN duplicate_object THEN null; END $$;
+-- Ensure enums exist
+CREATE TYPE IF NOT EXISTS "PaymentMethod" AS ENUM ('CASH', 'CARD', 'DIGITAL_WALLET', 'BANK_TRANSFER');
+CREATE TYPE IF NOT EXISTS "SaleStatus" AS ENUM ('COMPLETED', 'REFUNDED', 'CANCELLED');
 
 -- Sales table
 CREATE TABLE IF NOT EXISTS "sales" (
