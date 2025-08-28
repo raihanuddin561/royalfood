@@ -1,6 +1,7 @@
 import { Plus, Package, AlertTriangle, Search, Edit, Trash2, TrendingDown, TrendingUp, DollarSign, Activity, BarChart3 } from 'lucide-react'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import StockOverview from './components/StockOverview'
 import StockShortcuts from './components/StockShortcuts'

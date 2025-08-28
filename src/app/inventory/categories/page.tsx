@@ -1,6 +1,7 @@
 import { Plus, Edit, Trash2, ArrowLeft, Save, Tag, Package, Calendar } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 import { createCategory, updateCategory, toggleCategoryStatus, deleteCategory } from '@/app/actions/categories'
 import Link from 'next/link'
 import { CategoryForm } from './components/CategoryForm'

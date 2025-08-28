@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 
 // Get dashboard data from database
 async function getDashboardData() {

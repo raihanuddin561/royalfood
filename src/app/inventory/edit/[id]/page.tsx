@@ -1,5 +1,6 @@
 import { Package, ArrowLeft, Save } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { EditInventoryForm } from './components/EditInventoryForm'

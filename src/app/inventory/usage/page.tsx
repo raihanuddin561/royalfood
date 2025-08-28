@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft, Activity, Package, AlertTriangle, DollarSign } from 'lucide-react'
 import StandaloneStockUsageForm from '../components/StandaloneStockUsageForm'
 import { prisma } from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 
 // Get recent stock usage data for display

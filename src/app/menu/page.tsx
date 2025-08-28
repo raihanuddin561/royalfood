@@ -1,6 +1,7 @@
 import { Plus, Search, Filter, Edit, Trash2, Eye, Clock } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 
 // Get menu data from database

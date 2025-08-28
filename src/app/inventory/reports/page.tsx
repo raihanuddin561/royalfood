@@ -1,6 +1,7 @@
 import { BarChart3, TrendingUp, TrendingDown, DollarSign, Package, AlertTriangle, FileText, Download, Calendar, ArrowLeft } from 'lucide-react'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 
 // Get comprehensive financial data for balance sheet

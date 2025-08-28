@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 import ReceiveForm from './ReceiveForm'
 
 type Props = { params: { id: string } }
@@ -16,7 +17,6 @@ export default async function Page({ params }: Props) {
       <h1 className="text-2xl font-semibold mb-4">Receive Purchase: {purchase.purchaseNumber}</h1>
       <p className="text-sm text-gray-600 mb-4">Supplier: {purchase.supplier?.name}</p>
       <div className="bg-white shadow rounded p-4">
-        {/* @ts-expect-error Server component passing data to client */}
         <ReceiveForm purchase={purchase} />
       </div>
     </div>

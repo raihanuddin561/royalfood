@@ -1,6 +1,7 @@
 import { Plus, DollarSign, TrendingUp, Calendar, Search, Filter, Eye, Download, Receipt } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { prisma } from '@/lib/prisma';
+export const dynamic = 'force-dynamic'
 import Link from 'next/link';
 
 // Get sales data from database
