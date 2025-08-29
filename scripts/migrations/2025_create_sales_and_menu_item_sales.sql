@@ -3,8 +3,18 @@
 BEGIN;
 
 -- Ensure enums exist
-CREATE TYPE IF NOT EXISTS "PaymentMethod" AS ENUM ('CASH', 'CARD', 'DIGITAL_WALLET', 'BANK_TRANSFER');
-CREATE TYPE IF NOT EXISTS "SaleStatus" AS ENUM ('COMPLETED', 'REFUNDED', 'CANCELLED');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE lower(typname) = lower('PaymentMethod')) THEN
+    EXECUTE 'CREATE TYPE "PaymentMethod" AS ENUM (''CASH'',''CARD'',''DIGITAL_WALLET'',''BANK_TRANSFER'')';
+  END IF;
+END$$;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE lower(typname) = lower('SaleStatus')) THEN
+    EXECUTE 'CREATE TYPE "SaleStatus" AS ENUM (''COMPLETED'',''REFUNDED'',''CANCELLED'')';
+  END IF;
+END$$;
 
 -- Sales table
 CREATE TABLE IF NOT EXISTS "sales" (
