@@ -6,7 +6,8 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url)
     const dateParam = url.searchParams.get('date')
-    const respectAttendance = url.searchParams.get('respectAttendance') === 'true'
+  // Default to respecting attendance (only record salaries for employees with attendance)
+  const respectAttendance = url.searchParams.get('respectAttendance') === 'false' ? false : true
     const useHoursProration = url.searchParams.get('useHoursProration') === 'true'
     const standardHoursPerDay = Number(url.searchParams.get('standardHoursPerDay') || '8')
 
@@ -34,9 +35,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { respectAttendance, useHoursProration, standardHoursPerDay } = body
-    const opts: any = {}
-    if (respectAttendance !== undefined) opts.respectAttendance = Boolean(respectAttendance)
+  const { respectAttendance, useHoursProration, standardHoursPerDay } = body
+  const opts: any = {}
+  // If caller omits respectAttendance, default to true (require attendance)
+  if (respectAttendance === undefined) opts.respectAttendance = true
+  else opts.respectAttendance = Boolean(respectAttendance)
     if (useHoursProration !== undefined) opts.useHoursProration = Boolean(useHoursProration)
     if (standardHoursPerDay !== undefined) opts.standardHoursPerDay = Number(standardHoursPerDay)
 

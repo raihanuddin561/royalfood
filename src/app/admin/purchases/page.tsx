@@ -7,7 +7,12 @@ export default async function PurchasesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-4">Purchases</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold">Purchases</h1>
+        <div>
+          <Link href={`/admin/purchases/new`} className="btn btn-primary">Create Purchase</Link>
+        </div>
+      </div>
       <div className="bg-white shadow rounded p-4">
         <table className="w-full table-auto">
           <thead>

@@ -106,7 +106,7 @@ export default function DailyOperationsDashboard() {
         if (endDate) e = new Date(endDate)
 
         // If either is missing, compute sensible defaults based on selectedDate and viewType
-        if (!s || !e) {
+  if (!s || !e) {
           const date = new Date(selectedDate)
           if (viewType === 'weekly') {
             const day = date.getDay()
@@ -134,7 +134,10 @@ export default function DailyOperationsDashboard() {
           e.setHours(23, 59, 59, 999)
         }
 
-        const result = await getPeriodSummary(s, e)
+  // Send date-only strings (YYYY-MM-DD) so server can parse them without timezone shifts
+  const startStr = new Date(s).toISOString().slice(0, 10)
+  const endStr = new Date(e).toISOString().slice(0, 10)
+  const result = await getPeriodSummary(startStr, endStr)
         if (result.success) {
           setPeriodData(result.summary)
         } else {

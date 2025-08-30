@@ -1,8 +1,5 @@
--- Create Sales and Menu Item Sales tables (idempotent)
--- Safe to run multiple times; uses IF NOT EXISTS and exact Prisma-mapped column names
 BEGIN;
 
--- Ensure enums exist
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE lower(typname) = lower('PaymentMethod')) THEN
@@ -16,7 +13,6 @@ BEGIN
   END IF;
 END$$;
 
--- Sales table
 CREATE TABLE IF NOT EXISTS "sales" (
   "id" TEXT NOT NULL,
   "orderId" TEXT,
@@ -35,12 +31,10 @@ CREATE TABLE IF NOT EXISTS "sales" (
   CONSTRAINT "sales_pkey" PRIMARY KEY ("id")
 );
 
--- Unique constraints and indexes
 CREATE UNIQUE INDEX IF NOT EXISTS "sales_saleNumber_key" ON "sales"("saleNumber");
 CREATE UNIQUE INDEX IF NOT EXISTS "sales_orderId_key" ON "sales"("orderId");
 CREATE INDEX IF NOT EXISTS "sales_userId_idx" ON "sales"("userId");
 
--- Foreign keys (if referenced tables exist)
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'sales_userId_fkey') THEN
     EXECUTE $cmd$ALTER TABLE "sales" ADD CONSTRAINT "sales_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;
@@ -53,7 +47,6 @@ DO $$ BEGIN
   END IF;
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
--- Menu item sales
 CREATE TABLE IF NOT EXISTS "menu_item_sales" (
   "id" TEXT NOT NULL,
   "menuItemId" TEXT NOT NULL,
@@ -86,5 +79,3 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_table THEN null; END $$;
 
 COMMIT;
-
--- End of migration

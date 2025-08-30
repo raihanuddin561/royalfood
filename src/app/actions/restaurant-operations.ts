@@ -327,9 +327,10 @@ export async function recordMultipleStockUsage(data: MultipleStockUsageData) {
 // Daily Cost Tracking
 export async function getDailyCosts(date: Date) {
   try {
-    // Automatically record daily salary expenses for accurate costing
-    const { recordDailySalaryExpenses } = await import('./expenses')
-    await recordDailySalaryExpenses(date)
+  // Automatically record daily salary expenses for accurate costing
+  // Only record salaries when attendance exists for the day (respect attendance)
+  const { recordDailySalaryExpenses } = await import('./expenses')
+  await recordDailySalaryExpenses(date, { respectAttendance: true })
 
     const startOfDay = new Date(date)
     startOfDay.setHours(0, 0, 0, 0)
@@ -467,16 +468,57 @@ export async function getDailyCosts(date: Date) {
 }
 
 // Weekly/Monthly/Yearly Summary
-export async function getPeriodSummary(startDate: Date, endDate: Date) {
+export async function getPeriodSummary(startDate: Date | string, endDate: Date | string) {
   try {
-    const summary = await prisma.$queryRaw`
+    // Robust date parsing: handle 'YYYY-MM-DD' strings (no timezone) explicitly
+    const parseDateOnly = (v: any) => {
+      if (typeof v !== 'string') return null
+      const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+      if (!m) return null
+      const y = Number(m[1])
+      const mo = Number(m[2]) - 1
+      const d = Number(m[3])
+      return new Date(y, mo, d)
+    }
+
+    let s: Date | null = null
+    let e: Date | null = null
+
+    if (startDate instanceof Date) s = new Date(startDate)
+    else if (typeof startDate === 'string') s = parseDateOnly(startDate) || new Date(startDate)
+
+    if (endDate instanceof Date) e = new Date(endDate)
+    else if (typeof endDate === 'string') e = parseDateOnly(endDate) || new Date(endDate)
+
+    // Fallback to today if parsing fails (defensive)
+    if (!s) s = new Date()
+    if (!e) e = new Date()
+
+    // Normalize to full-day bounds (local time)
+    s.setHours(0, 0, 0, 0)
+    e.setHours(23, 59, 59, 999)
+
+    // defensive: if start is after end, swap them
+    if (s.getTime() > e.getTime()) {
+      const tmp = s
+      s = e
+      e = tmp
+    }
+
+    startDate = s
+    endDate = e
+
+    // log range for server-side diagnosis (visible in Vercel logs)
+    console.log('getPeriodSummary range:', typeof startDate, startDate.toISOString(), typeof endDate, endDate.toISOString())
+
+  const summary = await prisma.$queryRaw`
       SELECT 
         DATE(s."saleDate") as date,
         COALESCE(SUM(s."totalAmount"), 0)::FLOAT as daily_sales,
         COALESCE(stock_costs.total_cost, 0)::FLOAT as stock_costs,
         COALESCE(employee_costs.total_cost, 0)::FLOAT as employee_costs,
         COALESCE(operational_costs.total_cost, 0)::FLOAT as operational_costs
-      FROM generate_series(${startDate}, ${endDate}, '1 day'::interval) as dates(date)
+  FROM generate_series(date_trunc('day', ${startDate}::timestamp), date_trunc('day', ${endDate}::timestamp), '1 day'::interval) as dates(date)
       LEFT JOIN sales s ON DATE(s."saleDate") = dates.date
       LEFT JOIN (
         SELECT 
@@ -519,6 +561,14 @@ export async function getPeriodSummary(startDate: Date, endDate: Date) {
       employee_costs: number
       operational_costs: number
     }>
+
+    // Log summary size + sample for debugging
+    try {
+      console.log('getPeriodSummary returned rows:', summary.length)
+      console.log('getPeriodSummary sample:', JSON.stringify(summary.slice(0, 3)))
+    } catch (e) {
+      // ignore logging errors
+    }
 
     const periodData = summary.map(day => {
       const totalCosts = day.stock_costs + day.employee_costs + day.operational_costs

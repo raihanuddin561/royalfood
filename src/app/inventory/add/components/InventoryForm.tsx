@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { createInventoryItem } from '@/app/actions/inventory'
 import { CustomUnitSelector } from '../../components/CustomUnitSelector'
 import { useNotification, Notification } from '@/components/ui/Notification'
+import { ConfirmModal } from '@/components/ui/Modal'
 
 interface Category {
   id: string
@@ -65,6 +66,23 @@ export default function InventoryForm({ categories, suppliers }: InventoryFormPr
     } else {
       showNotification('error', result.message, 'Error Creating Item')
     }
+  }
+
+  // Confirmation modal state
+  const [showConfirm, setShowConfirm] = useState(false)
+  const confirmAndSubmit = (formData: FormData) => {
+    // store formdata in closure - since it's already available, we can call directly after confirm
+    setShowConfirm(true)
+    // when confirmed we'll call handleSubmit; use doConfirm below
+  }
+
+  const doConfirm = async () => {
+    setShowConfirm(false)
+    // find the form element and construct FormData to pass
+    const form = document.querySelector('form[action]') as HTMLFormElement | null
+    if (!form) return
+    const fd = new FormData(form)
+    await handleSubmit(fd)
   }
 
   return (
@@ -290,10 +308,19 @@ export default function InventoryForm({ categories, suppliers }: InventoryFormPr
         </div>
 
         <div className="flex space-x-4 pt-6 border-t border-gray-200">
-          <SubmitButton />
+          <button type="button" onClick={() => {
+            const form = document.querySelector('form[action]') as HTMLFormElement | null
+            if (!form) return
+            const fd = new FormData(form)
+            confirmAndSubmit(fd)
+          }} className="flex-1 inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 transition-colors duration-200">
+            <Save className="w-5 h-5 mr-2" />
+            Create Inventory Item
+          </button>
         </div>
-      </form>
-    </div>
+        </form>
+      </div>
+  <ConfirmModal isOpen={showConfirm} title="Confirm create item" description="Create this inventory item and initial stock?" onConfirm={doConfirm} onCancel={() => setShowConfirm(false)} />
 
     {/* Notification */}
     {notification && (

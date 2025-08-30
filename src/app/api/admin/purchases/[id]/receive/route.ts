@@ -75,7 +75,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         // Weighted average cost: (prevStock*prevCost + receivedQty*unitPrice) / (prevStock + receivedQty)
         const newCost = (prevStock * prevCost + receivedQty * unitPrice) / (newStock || 1)
 
-        await tx.item.update({ where: { id: pi.itemId }, data: { currentStock: newStock, costPrice: newCost, updatedAt: new Date() } })
+  await tx.item.update({ where: { id: pi.itemId }, data: { currentStock: { increment: receivedQty }, costPrice: newCost, updatedAt: new Date() } })
 
         // Update purchase item: increase receivedQuantity, set lastReceivedAt, update unitPrice if provided, recompute totalPrice based on ordered quantity and latest unitPrice
         const newReceivedQuantity = prevReceived + receivedQty

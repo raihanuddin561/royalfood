@@ -293,7 +293,7 @@ model MenuItemSale {
 // Purchase Management
 model Purchase {
   id             String   @id @default(cuid())
-  supplierId     String
+  supplierId     String?
   purchaseNumber String   @unique
   purchaseDate   DateTime
   totalAmount    Float
@@ -303,7 +303,7 @@ model Purchase {
   updatedAt      DateTime @updatedAt
 
   // Relations
-  supplier      Supplier       @relation(fields: [supplierId], references: [id])
+  supplier      Supplier?      @relation(fields: [supplierId], references: [id])
   purchaseItems PurchaseItem[]
   expenses      Expense[]      // Related expense records
 
