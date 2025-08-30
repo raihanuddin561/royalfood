@@ -1124,28 +1124,28 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
     // Get sales data with detailed breakdown
   const salesData = await prisma.$queryRaw`
       SELECT 
-        DATE(s.sale_date) as date,
+        DATE(s."saleDate") as date,
         COUNT(s.id)::INT as total_sales,
-        SUM(s.final_amount)::FLOAT as total_revenue,
+        SUM(s."finalAmount")::FLOAT as total_revenue,
         SUM(
-          CASE WHEN s.payment_method = 'CASH' THEN s.final_amount ELSE 0 END
+          CASE WHEN s."paymentMethod" = 'CASH' THEN s."finalAmount" ELSE 0 END
         )::FLOAT as cash_sales,
         SUM(
-          CASE WHEN s.payment_method = 'CARD' THEN s.final_amount ELSE 0 END
+          CASE WHEN s."paymentMethod" = 'CARD' THEN s."finalAmount" ELSE 0 END
         )::FLOAT as card_sales,
         SUM(
-          CASE WHEN s.payment_method = 'DIGITAL_WALLET' THEN s.final_amount ELSE 0 END
+          CASE WHEN s."paymentMethod" = 'DIGITAL_WALLET' THEN s."finalAmount" ELSE 0 END
         )::FLOAT as digital_wallet_sales,
         SUM(
-          CASE WHEN s.payment_method = 'BANK_TRANSFER' THEN s.final_amount ELSE 0 END
+          CASE WHEN s."paymentMethod" = 'BANK_TRANSFER' THEN s."finalAmount" ELSE 0 END
         )::FLOAT as bank_transfer_sales,
-        SUM(s.discount_amount)::FLOAT as total_discounts
+        SUM(s."discountAmount")::FLOAT as total_discounts
       FROM sales s
-      WHERE s.sale_date >= ${startDate}
-        AND s.sale_date <= ${endDate}
+      WHERE s."saleDate" >= ${startDate}
+        AND s."saleDate" <= ${endDate}
         AND s.status = 'COMPLETED'
-      GROUP BY DATE(s.sale_date)
-      ORDER BY DATE(s.sale_date) DESC
+      GROUP BY DATE(s."saleDate")
+      ORDER BY DATE(s."saleDate") DESC
     ` as Array<{
       date: Date
       total_sales: number
@@ -1160,7 +1160,7 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
     // Get expense data for the same period
   const expenseData = await prisma.$queryRaw`
       SELECT 
-        DATE(e.expense_date) as date,
+  DATE(e."expenseDate") as date,
         SUM(e.amount)::FLOAT as total_expenses,
         SUM(
           CASE WHEN ec.type = 'STOCK' THEN e.amount ELSE 0 END
@@ -1176,12 +1176,12 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
                THEN e.amount ELSE 0 END
         )::FLOAT as other_expenses
       FROM expenses e
-      JOIN expense_categories ec ON e.expense_category_id = ec.id
-      WHERE e.expense_date >= ${startDate}
-        AND e.expense_date <= ${endDate}
+      JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
+      WHERE e."expenseDate" >= ${startDate}
+        AND e."expenseDate" <= ${endDate}
         AND e.status IN ('APPROVED', 'PAID')
-      GROUP BY DATE(e.expense_date)
-      ORDER BY DATE(e.expense_date) DESC
+      GROUP BY DATE(e."expenseDate")
+      ORDER BY DATE(e."expenseDate") DESC
     ` as Array<{
       date: Date
       total_expenses: number
@@ -1195,16 +1195,16 @@ export async function getComprehensiveProfitAnalysis(period: string = 'today') {
     // This captures cost for any stock reduction caused by sales, including quick sales.
     const cogsData = await prisma.$queryRaw`
       SELECT
-        DATE(il.created_at) as date,
-        SUM(ABS(il.quantity) * i.cost_price)::FLOAT as total_cogs
+        DATE(il."createdAt") as date,
+        SUM(ABS(il.quantity) * i."costPrice")::FLOAT as total_cogs
       FROM inventory_logs il
-      JOIN items i ON il.item_id = i.id
-      WHERE il.created_at >= ${startDate}
-        AND il.created_at <= ${endDate}
+      JOIN items i ON il."itemId" = i.id
+      WHERE il."createdAt" >= ${startDate}
+        AND il."createdAt" <= ${endDate}
         AND il.type = 'STOCK_OUT'
         AND il.reason ILIKE '%Sale%'
-      GROUP BY DATE(il.created_at)
-      ORDER BY DATE(il.created_at) DESC
+      GROUP BY DATE(il."createdAt")
+      ORDER BY DATE(il."createdAt") DESC
     ` as Array<{
       date: Date
       total_cogs: number
@@ -1298,9 +1298,9 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
 
     const cashFromSales = await prisma.$queryRaw`
       SELECT 
-        SUM(CASE WHEN payment_method = 'CASH' THEN final_amount ELSE 0 END)::FLOAT as cash_balance
+        SUM(CASE WHEN "paymentMethod" = 'CASH' THEN "finalAmount" ELSE 0 END)::FLOAT as cash_balance
       FROM sales
-      WHERE sale_date <= ${asOfEnd}
+      WHERE "saleDate" <= ${asOfEnd}
         AND status = 'COMPLETED'
     ` as Array<{ cash_balance: number }>
 
@@ -1308,7 +1308,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
     const accountsPayable = await prisma.$queryRaw`
       SELECT SUM(amount)::FLOAT as total_payable
       FROM expenses
-      WHERE expense_date <= ${asOfEnd}
+  WHERE "expenseDate" <= ${asOfEnd}
         AND status IN ('PENDING', 'APPROVED')
     ` as Array<{ total_payable: number }>
 
@@ -1322,16 +1322,16 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
 
     // Revenue and Expenses for Equity calculation
     const totalRevenue = await prisma.$queryRaw`
-      SELECT SUM(final_amount)::FLOAT as total_revenue
+      SELECT SUM("finalAmount")::FLOAT as total_revenue
       FROM sales
-      WHERE sale_date <= ${asOfEnd}
+      WHERE "saleDate" <= ${asOfEnd}
         AND status = 'COMPLETED'
     ` as Array<{ total_revenue: number }>
 
     const totalExpenses = await prisma.$queryRaw`
       SELECT SUM(amount)::FLOAT as total_expenses
       FROM expenses
-      WHERE expense_date <= ${asOfEnd}
+  WHERE "expenseDate" <= ${asOfEnd}
         AND status IN ('APPROVED', 'PAID')
     ` as Array<{ total_expenses: number }>
 

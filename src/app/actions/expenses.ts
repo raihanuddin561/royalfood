@@ -594,8 +594,8 @@ export async function getExpenseAnalytics(period: {
         COUNT(e.id)::INT as expense_count
       FROM expenses e
       JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
-      WHERE e.expense_date >= ${period.startDate}
-        AND e.expense_date <= ${period.endDate}
+      WHERE e."expenseDate" >= ${period.startDate}
+        AND e."expenseDate" <= ${period.endDate}
         AND e.status = 'APPROVED'
       GROUP BY ec.type
       ORDER BY total_amount DESC
@@ -608,14 +608,14 @@ export async function getExpenseAnalytics(period: {
     // Monthly trend
     const monthlyTrend = await prisma.$queryRaw`
       SELECT 
-        DATE_TRUNC('month', e.expense_date) as month,
+        DATE_TRUNC('month', e."expenseDate") as month,
         SUM(e.amount)::FLOAT as total_amount,
         COUNT(e.id)::INT as expense_count
       FROM expenses e
-      WHERE e.expense_date >= ${period.startDate}
-        AND e.expense_date <= ${period.endDate}
+      WHERE e."expenseDate" >= ${period.startDate}
+        AND e."expenseDate" <= ${period.endDate}
         AND e.status = 'APPROVED'
-      GROUP BY DATE_TRUNC('month', e.expense_date)
+      GROUP BY DATE_TRUNC('month', e."expenseDate")
       ORDER BY month ASC
     ` as Array<{
       month: Date
@@ -677,7 +677,7 @@ export async function getBalanceSheetData(asOfDate: Date) {
         SUM(e.amount)::FLOAT as total_amount
       FROM expenses e
       JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
-      WHERE e.expense_date <= ${asOfDate}
+      WHERE e."expenseDate" <= ${asOfDate}
         AND e.status = 'APPROVED'
       GROUP BY ec.type
     ` as Array<{

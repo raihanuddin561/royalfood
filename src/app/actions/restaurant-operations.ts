@@ -471,44 +471,44 @@ export async function getPeriodSummary(startDate: Date, endDate: Date) {
   try {
     const summary = await prisma.$queryRaw`
       SELECT 
-        DATE(s.sale_date) as date,
-        COALESCE(SUM(s.total_amount), 0)::FLOAT as daily_sales,
+        DATE(s."saleDate") as date,
+        COALESCE(SUM(s."totalAmount"), 0)::FLOAT as daily_sales,
         COALESCE(stock_costs.total_cost, 0)::FLOAT as stock_costs,
         COALESCE(employee_costs.total_cost, 0)::FLOAT as employee_costs,
         COALESCE(operational_costs.total_cost, 0)::FLOAT as operational_costs
       FROM generate_series(${startDate}, ${endDate}, '1 day'::interval) as dates(date)
-      LEFT JOIN sales s ON DATE(s.sale_date) = dates.date
+      LEFT JOIN sales s ON DATE(s."saleDate") = dates.date
       LEFT JOIN (
         SELECT 
-          DATE(su.usage_date) as date,
-          SUM(su.total_cost) as total_cost
+          DATE(su."usageDate") as date,
+          SUM(su."totalCost") as total_cost
         FROM stock_usage su
-        WHERE su.usage_date >= ${startDate} AND su.usage_date <= ${endDate}
-        GROUP BY DATE(su.usage_date)
+        WHERE su."usageDate" >= ${startDate} AND su."usageDate" <= ${endDate}
+        GROUP BY DATE(su."usageDate")
       ) stock_costs ON stock_costs.date = dates.date
       LEFT JOIN (
         SELECT 
-          DATE(e.expense_date) as date,
+          DATE(e."expenseDate") as date,
           SUM(e.amount) as total_cost
         FROM expenses e
         JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
-        WHERE e.expense_date >= ${startDate} 
-          AND e.expense_date <= ${endDate}
+        WHERE e."expenseDate" >= ${startDate} 
+          AND e."expenseDate" <= ${endDate}
           AND ec.type = 'PAYROLL'
           AND e.status = 'APPROVED'
-        GROUP BY DATE(e.expense_date)
+        GROUP BY DATE(e."expenseDate")
       ) employee_costs ON employee_costs.date = dates.date
       LEFT JOIN (
         SELECT 
-          DATE(e.expense_date) as date,
+          DATE(e."expenseDate") as date,
           SUM(e.amount) as total_cost
         FROM expenses e
         JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
-        WHERE e.expense_date >= ${startDate} 
-          AND e.expense_date <= ${endDate}
+        WHERE e."expenseDate" >= ${startDate} 
+          AND e."expenseDate" <= ${endDate}
           AND ec.type != 'PAYROLL'
           AND e.status = 'APPROVED'
-        GROUP BY DATE(e.expense_date)
+        GROUP BY DATE(e."expenseDate")
       ) operational_costs ON operational_costs.date = dates.date
       GROUP BY dates.date, stock_costs.total_cost, employee_costs.total_cost, operational_costs.total_cost
       ORDER BY dates.date

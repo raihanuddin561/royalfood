@@ -40,10 +40,52 @@ export default function DailyOperationsDashboard() {
   const [periodData, setPeriodData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [viewType, setViewType] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily')
+  const [startDate, setStartDate] = useState<string | null>(null)
+  const [endDate, setEndDate] = useState<string | null>(null)
 
+  // Compute default start/end when view changes or selectedDate changes
+  useEffect(() => {
+    const date = new Date(selectedDate)
+    const pad = (d: number) => String(d).padStart(2, '0')
+    const toInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+    if (viewType === 'weekly') {
+      const day = date.getDay()
+      const diff = (day + 6) % 7
+      const s = new Date(date)
+      s.setDate(date.getDate() - diff)
+      s.setHours(0, 0, 0, 0)
+      const e = new Date(s)
+      e.setDate(s.getDate() + 6)
+      e.setHours(23, 59, 59, 999)
+      setStartDate(toInput(s))
+      setEndDate(toInput(e))
+    } else if (viewType === 'monthly') {
+      const s = new Date(date.getFullYear(), date.getMonth(), 1)
+      s.setHours(0, 0, 0, 0)
+      const e = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+      e.setHours(23, 59, 59, 999)
+      setStartDate(toInput(s))
+      setEndDate(toInput(e))
+    } else if (viewType === 'yearly') {
+      const s = new Date(date.getFullYear(), 0, 1)
+      s.setHours(0, 0, 0, 0)
+      const e = new Date(date.getFullYear(), 11, 31)
+      e.setHours(23, 59, 59, 999)
+      setStartDate(toInput(s))
+      setEndDate(toInput(e))
+    } else {
+      // daily
+      setStartDate(null)
+      setEndDate(null)
+    }
+  }, [viewType, selectedDate])
+
+  // Reload when relevant inputs change
   useEffect(() => {
     loadDashboardData()
-  }, [selectedDate, viewType])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate, viewType, startDate, endDate])
 
   const loadDashboardData = async () => {
     setLoading(true)
@@ -56,33 +98,43 @@ export default function DailyOperationsDashboard() {
           setDailySummary(null)
         }
       } else {
-        const date = new Date(selectedDate)
-        let startDate: Date
-        let endDate: Date
+        // Prefer explicit start/end inputs if user provided them
+        let s: Date | null = null
+        let e: Date | null = null
 
-        if (viewType === 'weekly') {
-          // Get start of week (Monday). Use a robust calculation so Sunday works correctly.
-          const day = date.getDay()
-          const diff = (day + 6) % 7 // number of days since Monday
-          startDate = new Date(date)
-          startDate.setDate(date.getDate() - diff)
-          startDate.setHours(0, 0, 0, 0)
-          endDate = new Date(startDate)
-          endDate.setDate(startDate.getDate() + 6)
-          endDate.setHours(23, 59, 59, 999)
-        } else if (viewType === 'monthly') {
-          startDate = new Date(date.getFullYear(), date.getMonth(), 1)
-          startDate.setHours(0, 0, 0, 0)
-          endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-          endDate.setHours(23, 59, 59, 999)
-        } else { // yearly
-          startDate = new Date(date.getFullYear(), 0, 1)
-          startDate.setHours(0, 0, 0, 0)
-          endDate = new Date(date.getFullYear(), 11, 31)
-          endDate.setHours(23, 59, 59, 999)
+        if (startDate) s = new Date(startDate)
+        if (endDate) e = new Date(endDate)
+
+        // If either is missing, compute sensible defaults based on selectedDate and viewType
+        if (!s || !e) {
+          const date = new Date(selectedDate)
+          if (viewType === 'weekly') {
+            const day = date.getDay()
+            const diff = (day + 6) % 7
+            s = new Date(date)
+            s.setDate(date.getDate() - diff)
+            s.setHours(0, 0, 0, 0)
+            e = new Date(s)
+            e.setDate(s.getDate() + 6)
+            e.setHours(23, 59, 59, 999)
+          } else if (viewType === 'monthly') {
+            s = new Date(date.getFullYear(), date.getMonth(), 1)
+            s.setHours(0, 0, 0, 0)
+            e = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+            e.setHours(23, 59, 59, 999)
+          } else { // yearly
+            s = new Date(date.getFullYear(), 0, 1)
+            s.setHours(0, 0, 0, 0)
+            e = new Date(date.getFullYear(), 11, 31)
+            e.setHours(23, 59, 59, 999)
+          }
+        } else {
+          // ensure full-day bounds
+          s.setHours(0, 0, 0, 0)
+          e.setHours(23, 59, 59, 999)
         }
 
-        const result = await getPeriodSummary(startDate, endDate)
+        const result = await getPeriodSummary(s, e)
         if (result.success) {
           setPeriodData(result.summary)
         } else {
@@ -115,30 +167,54 @@ export default function DailyOperationsDashboard() {
           <h1 className="text-3xl font-bold text-gray-900">Operations Dashboard</h1>
           <p className="mt-2 text-gray-600">Track your restaurant's operations costs, sales, and profitability</p>
         </div>
-        <div className="flex space-x-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">View</label>
-            <select
-              value={viewType}
-              onChange={(e) => setViewType(e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly')}
-              className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            >
-              <option value="daily">Daily</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
+          <div className="flex space-x-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">View</label>
+              <select
+                value={viewType}
+                onChange={(e) => setViewType(e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly')}
+                className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </div>
+
+            {viewType === 'daily' ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+            ) : (
+              <div className="flex space-x-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start</label>
+                  <input
+                    type="date"
+                    value={startDate ?? ''}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End</label>
+                  <input
+                    type="date"
+                    value={endDate ?? ''}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+            )}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            />
-          </div>
-        </div>
       </div>
 
       {viewType === 'daily' && dailySummary && (
@@ -271,7 +347,7 @@ export default function DailyOperationsDashboard() {
         </>
       )}
 
-      {(viewType !== 'daily') && periodData && (
+  {(viewType !== 'daily') && periodData && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
           <div className="px-6 py-4 border-b border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900">
