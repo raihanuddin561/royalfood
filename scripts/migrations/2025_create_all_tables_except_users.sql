@@ -72,6 +72,13 @@ BEGIN
   END IF;
 END$$;
 
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE lower(typname) = lower('PayMode')) THEN
+    EXECUTE 'CREATE TYPE "PayMode" AS ENUM (''DAILY'',''HOURLY'')';
+  END IF;
+END$$;
+
  
 CREATE TABLE IF NOT EXISTS "partners" (
   "id" TEXT PRIMARY KEY,
@@ -119,6 +126,16 @@ CREATE TABLE IF NOT EXISTS "employees" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "employees_userId_key" ON "employees"("userId");
 CREATE UNIQUE INDEX IF NOT EXISTS "employees_employeeId_key" ON "employees"("employeeId");
+DO $$
+BEGIN
+  -- add payMode column (enum) and standardHoursPerDay if missing
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='employees' AND column_name='payMode') THEN
+    EXECUTE 'ALTER TABLE "employees" ADD COLUMN "payMode" "PayMode" NOT NULL DEFAULT ''DAILY''';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='employees' AND column_name='standardHoursPerDay') THEN
+    EXECUTE 'ALTER TABLE "employees" ADD COLUMN "standardHoursPerDay" INTEGER NOT NULL DEFAULT 8';
+  END IF;
+END$$;
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employees_userId_fkey') THEN
     EXECUTE $cmd$ALTER TABLE "employees" ADD CONSTRAINT "employees_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;$cmd$;

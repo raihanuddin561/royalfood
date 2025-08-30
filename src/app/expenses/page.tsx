@@ -255,7 +255,7 @@ function ExpensePageContent() {
                 <p className="text-2xl font-bold text-gray-900">
                   {formatCurrency(analytics.typeBreakdown.find((t: any) => t.type === 'OPERATIONAL')?.total_amount || 0)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Daily operations</p>
+                <p className="text-xs text-gray-500 mt-1">Operations</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Building className="w-6 h-6 text-purple-600" />

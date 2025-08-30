@@ -431,7 +431,7 @@ export default function FinancialManagementPage() {
         <h3 className="text-lg font-semibold text-blue-900 mb-4">Your Complete Financial Management System</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h4 className="font-semibold text-blue-800 mb-2">Daily Operations:</h4>
+            <h4 className="font-semibold text-blue-800 mb-2">Operations:</h4>
             <ul className="space-y-1 text-sm text-blue-700">
               <li>✓ Add stock input → Updates inventory & creates stock expenses</li>
               <li>✓ Record employee expenses → Tracks payroll costs</li>

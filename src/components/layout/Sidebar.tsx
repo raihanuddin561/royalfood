@@ -35,7 +35,7 @@ interface NavigationItem {
 
 const navigation: NavigationItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: Home, description: 'Main overview' },
-  { name: 'Daily Operations', href: '/operations', icon: Clock, description: 'Daily cost tracking' },
+  { name: 'Operations', href: '/operations', icon: Clock, description: 'Operations cost tracking' },
   { 
     name: 'Admin Panel', 
     href: '/admin', 

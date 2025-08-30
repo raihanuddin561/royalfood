@@ -61,22 +61,32 @@ export default function DailyOperationsDashboard() {
         let endDate: Date
 
         if (viewType === 'weekly') {
-          // Get start of week (Monday)
+          // Get start of week (Monday). Use a robust calculation so Sunday works correctly.
+          const day = date.getDay()
+          const diff = (day + 6) % 7 // number of days since Monday
           startDate = new Date(date)
-          startDate.setDate(date.getDate() - date.getDay() + 1)
+          startDate.setDate(date.getDate() - diff)
+          startDate.setHours(0, 0, 0, 0)
           endDate = new Date(startDate)
           endDate.setDate(startDate.getDate() + 6)
+          endDate.setHours(23, 59, 59, 999)
         } else if (viewType === 'monthly') {
           startDate = new Date(date.getFullYear(), date.getMonth(), 1)
+          startDate.setHours(0, 0, 0, 0)
           endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0)
+          endDate.setHours(23, 59, 59, 999)
         } else { // yearly
           startDate = new Date(date.getFullYear(), 0, 1)
+          startDate.setHours(0, 0, 0, 0)
           endDate = new Date(date.getFullYear(), 11, 31)
+          endDate.setHours(23, 59, 59, 999)
         }
 
         const result = await getPeriodSummary(startDate, endDate)
         if (result.success) {
           setPeriodData(result.summary)
+        } else {
+          setPeriodData(null)
         }
       }
     } catch (error) {
@@ -102,8 +112,8 @@ export default function DailyOperationsDashboard() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Daily Operations Dashboard</h1>
-          <p className="mt-2 text-gray-600">Track your restaurant's daily costs, sales, and profitability</p>
+          <h1 className="text-3xl font-bold text-gray-900">Operations Dashboard</h1>
+          <p className="mt-2 text-gray-600">Track your restaurant's operations costs, sales, and profitability</p>
         </div>
         <div className="flex space-x-4">
           <div>
