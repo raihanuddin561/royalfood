@@ -1,6 +1,6 @@
 "use client"
 import { useState } from 'react'
-import { ConfirmModal } from '@/components/ui/Modal'
+import { BaseModal } from '@/components/ui/Modal'
 
 type Supplier = { id: string; name: string }
 type Item = { id: string; name: string; sku?: string; currentStock?: number }
@@ -24,21 +24,23 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
 
   async function submit(e: any) {
     e.preventDefault()
-    // open confirmation modal
-    setShowConfirm(true)
+    // Submit immediately (no confirmation)
+    await doSubmit()
   }
 
-  const [showConfirm, setShowConfirm] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [createdPurchaseId, setCreatedPurchaseId] = useState<string | null>(null)
 
   async function doSubmit() {
-    setShowConfirm(false)
     setLoading(true)
     try {
       const body = { supplierId, purchaseDate, lines, receiveImmediately: receiveNow }
       const res = await fetch('/admin/purchases/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const data = await res.json()
-      if (!data?.success) throw new Error(data?.error || 'Failed')
-      location.assign(`/admin/purchases/${data.purchaseId}`)
+  if (!data?.success) throw new Error(data?.error || 'Failed')
+  setCreatedPurchaseId(data.purchaseId)
+  setShowSuccess(true)
+  setLoading(false)
     } catch (err: any) {
       alert(err?.message || String(err))
       setLoading(false)
@@ -133,7 +135,19 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
   <div>
   <button className="btn btn-primary" disabled={loading || noItems || invalidLine}>{loading ? 'Creating...' : 'Create Purchase'}</button>
   </div>
-  <ConfirmModal isOpen={showConfirm} title="Confirm create purchase" description={`Create purchase with ${lines.length} line(s)${receiveNow ? ' and receive now (update stock).' : '.'}`} onConfirm={doSubmit} onCancel={() => setShowConfirm(false)} />
+
+  <BaseModal isOpen={showSuccess} onClose={() => setShowSuccess(false)} title="Purchase created" description={createdPurchaseId ? `Purchase ${createdPurchaseId} was created successfully.` : 'Purchase created.'} type="success" size="sm">
+    <div className="pt-2 flex justify-end gap-2">
+      {createdPurchaseId && receiveNow && (
+        <button className="btn btn-primary" onClick={() => { location.assign(`/admin/purchases/${createdPurchaseId}/receive`) }}>
+          Open receive
+        </button>
+      )}
+      <button className="btn" onClick={() => { setShowSuccess(false); location.assign('/admin/purchases') }}>
+        Done
+      </button>
+    </div>
+  </BaseModal>
     </form>
   )
 }

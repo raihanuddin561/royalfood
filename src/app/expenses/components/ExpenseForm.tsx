@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { X, Upload, Calendar, DollarSign, Receipt } from 'lucide-react'
 import { BaseModal, Button } from '@/components/ui/Modal'
 import { ExpenseType, ExpenseStatus, RecurringPeriod } from '@prisma/client'
-import { createExpense, getExpenseCategories } from '@/app/actions/expenses'
 
 interface ExpenseFormProps {
   isOpen: boolean
@@ -47,9 +46,10 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
 
   const loadCategories = async () => {
     try {
-      const result = await getExpenseCategories()
-      if (result.success) {
-        setCategories(result.categories || [])
+      const res = await fetch('/api/expense-categories')
+      if (res.ok) {
+        const cats = await res.json()
+        setCategories(cats || [])
       }
     } catch (error) {
       console.error('Error loading categories:', error)
@@ -86,22 +86,23 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
     setLoading(true)
     
     try {
-      const result = await createExpense({
+      const payload = {
         expenseCategoryId: formData.expenseCategoryId,
         description: formData.description,
         amount: Number(parseFloat(String(formData.amount)) || 0),
-        expenseDate: new Date(formData.expenseDate),
+        expenseDate: formData.expenseDate,
         receiptImage: formData.receiptImage || undefined,
         supplierInfo: formData.supplierInfo || undefined,
         taxAmount: Number(parseFloat(String(formData.taxAmount)) || 0),
         isRecurring: formData.isRecurring,
         recurringPeriod: formData.isRecurring ? formData.recurringPeriod : undefined,
-        nextDueDate: formData.isRecurring && formData.nextDueDate ? new Date(formData.nextDueDate) : undefined,
+        nextDueDate: formData.isRecurring && formData.nextDueDate ? formData.nextDueDate : undefined,
         notes: formData.notes || undefined,
         status: formData.status
-      })
+      }
 
-      if (result.success) {
+      const res = await fetch('/api/expenses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      if (res.ok) {
         onSuccess()
         onClose()
         // Reset form
@@ -119,8 +120,9 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
           notes: '',
           status: 'APPROVED'
         })
-      } else {
-        console.error('Failed to create expense:', result.error)
+      } else if (res) {
+        const err = await res.json().catch(() => null)
+        console.error('Failed to create expense:', err)
       }
     } catch (error) {
       console.error('Error creating expense:', error)

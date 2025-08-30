@@ -9,7 +9,7 @@ interface Expense {
   id: string
   description: string
   amount: number
-  expenseDate: Date
+  expenseDate: string | Date
   status: ExpenseStatus
   receiptImage?: string
   supplierInfo?: string

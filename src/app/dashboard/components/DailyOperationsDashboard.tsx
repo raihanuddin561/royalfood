@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Calendar, DollarSign, TrendingUp, TrendingDown, Package, Users, AlertTriangle, ChefHat } from 'lucide-react'
-import { getDailyCosts, getPeriodSummary } from '@/app/actions/restaurant-operations'
 
 interface DailySummary {
   date: string
@@ -91,10 +90,14 @@ export default function DailyOperationsDashboard() {
     setLoading(true)
     try {
       if (viewType === 'daily') {
-        const result = await getDailyCosts(new Date(selectedDate))
-        if (result.success && result.dailySummary) {
-          setDailySummary(result.dailySummary)
-        } else {
+        // Fetch daily costs via API route (avoid importing server actions into client code)
+        try {
+          const res = await fetch(`/api/operations/daily-costs?date=${selectedDate}`)
+          const result = await res.json()
+          if (result?.success && result.dailySummary) setDailySummary(result.dailySummary)
+          else setDailySummary(null)
+        } catch (err) {
+          console.error('Failed to fetch daily costs:', err)
           setDailySummary(null)
         }
       } else {
@@ -135,14 +138,17 @@ export default function DailyOperationsDashboard() {
         }
 
   // Send date-only strings (YYYY-MM-DD) so server can parse them without timezone shifts
-  const startStr = new Date(s).toISOString().slice(0, 10)
+        const startStr = new Date(s).toISOString().slice(0, 10)
   const endStr = new Date(e).toISOString().slice(0, 10)
-  const result = await getPeriodSummary(startStr, endStr)
-        if (result.success) {
-          setPeriodData(result.summary)
-        } else {
-          setPeriodData(null)
-        }
+  try {
+    const res = await fetch(`/api/operations/period-summary?start=${startStr}&end=${endStr}`)
+    const result = await res.json()
+    if (result.success) setPeriodData(result.summary)
+    else setPeriodData(null)
+  } catch (err) {
+    console.error('Failed to fetch period summary:', err)
+    setPeriodData(null)
+  }
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error)

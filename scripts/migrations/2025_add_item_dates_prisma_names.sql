@@ -1,6 +1,0 @@
-BEGIN;
-
-ALTER TABLE IF EXISTS items ADD COLUMN IF NOT EXISTS "expiryDate" timestamptz NULL;
-ALTER TABLE IF EXISTS items ADD COLUMN IF NOT EXISTS "receivedDate" timestamptz NULL;
-
-COMMIT;

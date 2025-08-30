@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Calendar, DollarSign, TrendingUp, TrendingDown, Package, Users, Building, Receipt } from 'lucide-react'
 import { generateBalanceSheet, getComprehensiveProfitAnalysis } from '@/app/actions/sales'
-import { getExpenseAnalytics } from '@/app/actions/expenses'
+// Use API for expense analytics from client
 
 interface BalanceSheetData {
   asOfDate: string
@@ -69,12 +69,12 @@ export default function FinancialReportsPage() {
         ? new Date(new Date().getFullYear(), new Date().getMonth(), 1)
         : new Date(new Date().setDate(new Date().getDate() - 30))
 
-      const expenseResult = await getExpenseAnalytics({
-        startDate,
-        endDate: new Date()
-      })
-      if (expenseResult.success) {
-        setExpenseAnalytics(expenseResult.analytics)
+      // Fetch expense analytics from API
+      const analyticsParams = new URLSearchParams({ startDate: startDate.toISOString(), endDate: new Date().toISOString() })
+      const analyticsRes = await fetch(`/api/expenses/analytics?${analyticsParams.toString()}`)
+      if (analyticsRes.ok) {
+        const data = await analyticsRes.json()
+        setExpenseAnalytics(data.analytics || data)
       }
     } catch (error) {
       console.error('Error loading financial data:', error)

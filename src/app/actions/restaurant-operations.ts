@@ -513,7 +513,7 @@ export async function getPeriodSummary(startDate: Date | string, endDate: Date |
 
   const summary = await prisma.$queryRaw`
       SELECT 
-        DATE(s."saleDate") as date,
+        dates.date::date as date,
         COALESCE(SUM(s."totalAmount"), 0)::FLOAT as daily_sales,
         COALESCE(stock_costs.total_cost, 0)::FLOAT as stock_costs,
         COALESCE(employee_costs.total_cost, 0)::FLOAT as employee_costs,

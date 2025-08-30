@@ -4,21 +4,17 @@ import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Plus, Filter, Search, Calendar, DollarSign, TrendingUp, TrendingDown, Receipt, Users, Package, Wrench, Building } from 'lucide-react'
 import { ExpenseType, ExpenseStatus } from '@prisma/client'
-import { 
-  getExpenses, 
-  getExpenseCategories, 
-  getExpenseAnalytics,
-  initializeExpenseCategories
-} from '@/app/actions/expenses'
+// Client will call API endpoints: /api/expenses, /api/expense-categories, /api/expenses/analytics
 import ExpenseForm from './components/ExpenseFormFixed'
 import SimpleExpenseForm from './components/SimpleExpenseForm'
 import ExpenseActions from './components/ExpenseActions'
 
+// Shapes returned from API
 interface Expense {
   id: string
   description: string
   amount: number
-  expenseDate: Date
+  expenseDate: string | Date
   status: ExpenseStatus
   receiptImage?: string
   supplierInfo?: string
@@ -111,37 +107,34 @@ function ExpensePageContent() {
     setLoading(true)
 
     try {
-      // Initialize categories if first time
-      await initializeExpenseCategories()
-
-      // Load expenses
-      const expensesResult = await getExpenses({
-        categoryId: selectedCategory !== 'all' ? selectedCategory : undefined,
-        type: selectedType !== 'all' ? selectedType : undefined,
-        status: selectedStatus !== 'all' ? selectedStatus : undefined,
-        dateFrom: dateRange.from,
-        dateTo: dateRange.to,
-        limit: 100
-      })
-
-      if (expensesResult.success) {
-        setExpenses(expensesResult.expenses || [])
+      // Fetch categories from API
+      const categoriesRes = await fetch('/api/expense-categories')
+      if (categoriesRes.ok) {
+        const cats = await categoriesRes.json()
+        setCategories(cats || [])
       }
 
-      // Load categories
-      const categoriesResult = await getExpenseCategories()
-      if (categoriesResult.success) {
-        setCategories(categoriesResult.categories || [])
+      // Fetch expenses
+      const params = new URLSearchParams()
+      if (selectedCategory !== 'all') params.set('categoryId', selectedCategory)
+      if (selectedType !== 'all') params.set('type', selectedType)
+      if (selectedStatus !== 'all') params.set('status', selectedStatus)
+      params.set('dateFrom', dateRange.from.toISOString())
+      params.set('dateTo', dateRange.to.toISOString())
+      params.set('limit', '100')
+
+      const expensesRes = await fetch(`/api/expenses?${params.toString()}`)
+      if (expensesRes.ok) {
+        const data = await expensesRes.json()
+        setExpenses(data || [])
       }
 
-      // Load analytics
-      const analyticsResult = await getExpenseAnalytics({
-        startDate: dateRange.from,
-        endDate: dateRange.to
-      })
-
-      if (analyticsResult.success) {
-        setAnalytics(analyticsResult.analytics)
+      // Fetch analytics
+      const analyticsParams = new URLSearchParams({ startDate: dateRange.from.toISOString(), endDate: dateRange.to.toISOString() })
+      const analyticsRes = await fetch(`/api/expenses/analytics?${analyticsParams.toString()}`)
+      if (analyticsRes.ok) {
+        const data = await analyticsRes.json()
+        setAnalytics(data.analytics || data)
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -157,8 +150,9 @@ function ExpensePageContent() {
     }).format(amount)
   }
 
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-US', {
+  const formatDate = (date: string | Date) => {
+    const d = typeof date === 'string' ? new Date(date) : date
+    return new Date(d).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'

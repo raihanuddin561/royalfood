@@ -6,7 +6,7 @@ import type { UserRole } from '@prisma/client';
 export interface AuthenticatedRequest extends NextRequest {
   user: {
     id: string;
-    email: string;
+  email: string | null | undefined;
     role: UserRole;
     employee?: {
       id: string;
@@ -51,7 +51,8 @@ export function withAuth(
         const roleHierarchy: { [key in UserRole]: number } = {
           EMPLOYEE: 1,
           MANAGER: 2,
-          ADMIN: 3
+          ADMIN: 3,
+          CUSTOMER: 0
         };
 
         const userRoleLevel = roleHierarchy[session.user.role] || 0;
@@ -72,9 +73,19 @@ export function withAuth(
         }
       }
 
-      // Add user data to request
+      // Add user data to request (map to AuthenticatedRequest shape)
       const authenticatedRequest = request as AuthenticatedRequest;
-      authenticatedRequest.user = session.user;
+      authenticatedRequest.user = {
+        id: session.user.id,
+        email: session.user.email ?? null,
+        role: session.user.role,
+        employee: session.user.employee ? {
+          id: session.user.employee.id,
+          name: (session.user.employee as any).name ?? (session.user.employee as any).employeeId ?? '',
+          position: session.user.employee.position ?? '',
+          department: session.user.employee.department ?? ''
+        } : undefined
+      }
 
       // Call the actual handler
       return await handler(authenticatedRequest, context);
@@ -90,11 +101,12 @@ export function withAuth(
 
 // Helper function for role checking
 export function hasRole(userRole: UserRole, requiredRoles: UserRole[]): boolean {
-  const roleHierarchy: { [key in UserRole]: number } = {
-    EMPLOYEE: 1,
-    MANAGER: 2,
-    ADMIN: 3
-  };
+      const roleHierarchy: { [key in UserRole]: number } = {
+        EMPLOYEE: 1,
+        MANAGER: 2,
+        ADMIN: 3,
+        CUSTOMER: 0
+      };
 
   const userRoleLevel = roleHierarchy[userRole] || 0;
   return requiredRoles.some(role => userRoleLevel >= roleHierarchy[role]);
@@ -105,6 +117,10 @@ export const requireAdmin = (handler: RouteHandler) =>
   withAuth(handler, { requiredRoles: ['ADMIN'] });
 
 export const requireManager = (handler: RouteHandler) =>
+  withAuth(handler, { requiredRoles: ['MANAGER', 'ADMIN'] });
+
+// Explicit alias for routes that should allow managers or admins
+export const requireManagerOrAdmin = (handler: RouteHandler) =>
   withAuth(handler, { requiredRoles: ['MANAGER', 'ADMIN'] });
 
 export const requireEmployee = (handler: RouteHandler) =>
