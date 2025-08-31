@@ -1233,49 +1233,59 @@ export async function getComprehensiveProfitAnalysis(
       total_cogs: number
     }>
 
-    // Merge all data by date
-    const combinedData = salesData.map(sale => {
-      const expenses = expenseData.find(exp => 
-        new Date(exp.date).toDateString() === new Date(sale.date).toDateString()
-      )
-      const cogs = cogsData.find(c => 
-        new Date(c.date).toDateString() === new Date(sale.date).toDateString()
-      )
+    // Merge all data by the union of dates from sales, expenses and cogs so
+    // expense-only days (e.g. payroll on non-sales days) are included.
+    const dateSet = new Set<string>()
+    salesData.forEach(s => dateSet.add(new Date(s.date).toISOString().split('T')[0]))
+    expenseData.forEach(e => dateSet.add(new Date(e.date).toISOString().split('T')[0]))
+    cogsData.forEach(c => dateSet.add(new Date(c.date).toISOString().split('T')[0]))
 
-  // directCosts should reflect cost of goods sold (COGS) only.
-  // expenseData.total_expenses already includes stock purchases; for profit calculation
-  // we should replace stock purchase expenses with actual COGS to avoid double-counting.
-  const cogsAmount = cogs?.total_cogs || 0
-  const directCosts = cogsAmount
-  // totalRecordedForDay: prefer aggregated total_expenses if present, otherwise sum components
-  const totalRecordedForDay = (expenses?.total_expenses !== undefined && expenses?.total_expenses !== null)
-    ? expenses.total_expenses
-    : ((expenses?.stock_expenses || 0) + (expenses?.payroll_expenses || 0) + (expenses?.operational_expenses || 0) + (expenses?.utilities_expenses || 0) + (expenses?.other_expenses || 0))
-  // effectiveTotalExpenses for the day = recorded total - recorded stock purchases + actual COGS
-  const effectiveTotalForDay = (totalRecordedForDay || 0) - (expenses?.stock_expenses || 0) + cogsAmount
-  // totalExpenses (legacy) kept for backward compatibility (was used previously as effective total)
-  const totalExpenses = effectiveTotalForDay
-  const grossProfit = sale.total_revenue - cogsAmount
-  const netProfit = sale.total_revenue - totalExpenses
+    const combinedDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a)) // newest first
+
+    const combinedData = combinedDates.map(dateStr => {
+      const sale = salesData.find(s => new Date(s.date).toISOString().split('T')[0] === dateStr) || {
+        total_sales: 0,
+        total_revenue: 0,
+        cash_sales: 0,
+        card_sales: 0,
+        digital_wallet_sales: 0,
+        bank_transfer_sales: 0,
+        total_discounts: 0
+      }
+
+      const expenses = expenseData.find(exp => new Date(exp.date).toISOString().split('T')[0] === dateStr)
+      const cogs = cogsData.find(c => new Date(c.date).toISOString().split('T')[0] === dateStr)
+
+      const cogsAmount = cogs?.total_cogs || 0
+      const directCosts = cogsAmount
+
+      const totalRecordedForDay = (expenses?.total_expenses !== undefined && expenses?.total_expenses !== null)
+        ? expenses.total_expenses
+        : ((expenses?.stock_expenses || 0) + (expenses?.payroll_expenses || 0) + (expenses?.operational_expenses || 0) + (expenses?.utilities_expenses || 0) + (expenses?.other_expenses || 0))
+
+      const effectiveTotalForDay = (totalRecordedForDay || 0) - (expenses?.stock_expenses || 0) + cogsAmount
+      const totalExpenses = effectiveTotalForDay
+
+      const grossProfit = (sale as any).total_revenue - cogsAmount
+      const netProfit = (sale as any).total_revenue - totalExpenses
 
       return {
-        date: sale.date.toISOString().split('T')[0],
-        totalSales: sale.total_sales,
-        totalRevenue: sale.total_revenue,
+        date: dateStr,
+        totalSales: (sale as any).total_sales || 0,
+        totalRevenue: (sale as any).total_revenue || 0,
         directCosts,
-  totalExpenses,
-  // expose recorded and effective totals per day for auditability
-  totalRecordedExpenses: totalRecordedForDay || 0,
-  effectiveTotalExpenses: effectiveTotalForDay || 0,
+        totalExpenses,
+        totalRecordedExpenses: totalRecordedForDay || 0,
+        effectiveTotalExpenses: effectiveTotalForDay || 0,
         grossProfit,
         netProfit,
-        grossMargin: sale.total_revenue > 0 ? (grossProfit / sale.total_revenue) * 100 : 0,
-        netMargin: sale.total_revenue > 0 ? (netProfit / sale.total_revenue) * 100 : 0,
+        grossMargin: (sale as any).total_revenue > 0 ? (grossProfit / (sale as any).total_revenue) * 100 : 0,
+        netMargin: (sale as any).total_revenue > 0 ? (netProfit / (sale as any).total_revenue) * 100 : 0,
         paymentBreakdown: {
-          cash: sale.cash_sales,
-          card: sale.card_sales,
-          digitalWallet: sale.digital_wallet_sales,
-          bankTransfer: sale.bank_transfer_sales
+          cash: (sale as any).cash_sales || 0,
+          card: (sale as any).card_sales || 0,
+          digitalWallet: (sale as any).digital_wallet_sales || 0,
+          bankTransfer: (sale as any).bank_transfer_sales || 0
         },
         expenseBreakdown: {
           costOfGoods: cogs?.total_cogs || 0,
@@ -1285,7 +1295,7 @@ export async function getComprehensiveProfitAnalysis(
           utilitiesExpenses: expenses?.utilities_expenses || 0,
           otherExpenses: expenses?.other_expenses || 0
         },
-        totalDiscounts: sale.total_discounts
+        totalDiscounts: (sale as any).total_discounts || 0
       }
     })
 
@@ -1346,8 +1356,10 @@ export async function getComprehensiveProfitAnalysis(
 // Balance Sheet Generator
 export async function generateBalanceSheet(asOfDate: Date = new Date()) {
   try {
+  // Accept string or Date; coerce to Date
+  const asOf = typeof asOfDate === 'string' ? new Date(asOfDate) : asOfDate
   // Treat asOfDate as end-of-day to include the full date
-  const asOfEnd = new Date(asOfDate)
+  const asOfEnd = new Date(asOf)
   asOfEnd.setHours(23, 59, 59, 999)
     // Assets - Current Assets
     const inventoryValue = await prisma.$queryRaw`
@@ -1489,7 +1501,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
     return {
       success: true,
       balanceSheet: {
-        asOfDate: asOfDate.toISOString().split('T')[0],
+        asOfDate: asOf.toISOString().split('T')[0],
         assets,
         liabilities,
         equity,

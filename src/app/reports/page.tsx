@@ -43,56 +43,54 @@ export default function FinancialReportsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedPeriod, setSelectedPeriod] = useState('this_month')
+  const [selectedStartDate, setSelectedStartDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [selectedEndDate, setSelectedEndDate] = useState<string>(new Date().toISOString().split('T')[0])
 
   useEffect(() => {
     loadFinancialData()
-  }, [selectedDate, selectedPeriod])
+  }, [selectedDate, selectedPeriod, selectedStartDate, selectedEndDate])
 
   const loadFinancialData = async () => {
     setLoading(true)
     try {
-      // Load balance sheet
-      const balanceSheetResult = await generateBalanceSheet(new Date(selectedDate))
-      if (balanceSheetResult.success) {
-        setBalanceSheet(balanceSheetResult.balanceSheet)
-      }
+  // Load balance sheet (moved below after computeRangeFromSelected is defined)
 
       // Load comprehensive profit analysis
       let profitResult
       // compute a start/end anchored to selectedDate for 'today' and 'date' (and optionally other periods)
       const computeRangeFromSelected = (period: string, anchor: string) => {
-        const a = new Date(anchor)
-        let s = new Date(a)
-        let e = new Date(a)
-
-        switch (period) {
-          case 'today':
-          case 'date':
-            s.setHours(0, 0, 0, 0)
-            e.setHours(23, 59, 59, 999)
-            break
-          case 'this_week':
-            const startOfWeek = new Date(a)
-            startOfWeek.setDate(a.getDate() - a.getDay())
-            startOfWeek.setHours(0, 0, 0, 0)
-            s = startOfWeek
-            e = new Date(a)
-            e.setHours(23, 59, 59, 999)
-            break
-          case 'this_month':
-            s = new Date(a.getFullYear(), a.getMonth(), 1)
-            e = new Date(a)
-            e.setHours(23, 59, 59, 999)
-            break
-          default:
-            s.setHours(0, 0, 0, 0)
-            e.setHours(23, 59, 59, 999)
+        // For single-date periods (today, date) anchor to selectedDate
+        if (period === 'today' || period === 'date') {
+          const a = new Date(anchor)
+          const s = new Date(a)
+          const e = new Date(a)
+          s.setHours(0, 0, 0, 0)
+          e.setHours(23, 59, 59, 999)
+          return { start: s, end: e }
         }
 
+        // For custom or multi-day periods, prefer explicit selectedStartDate/selectedEndDate when set
+        if (period === 'custom' || period === 'this_week' || period === 'this_month') {
+          const s = new Date(selectedStartDate)
+          const e = new Date(selectedEndDate)
+          s.setHours(0, 0, 0, 0)
+          e.setHours(23, 59, 59, 999)
+          return { start: s, end: e }
+        }
+
+        // Fallback: single day anchor
+        const a = new Date(anchor)
+        const s = new Date(a)
+        const e = new Date(a)
+        s.setHours(0, 0, 0, 0)
+        e.setHours(23, 59, 59, 999)
         return { start: s, end: e }
       }
 
-      if (selectedPeriod === 'date' || selectedPeriod === 'today' || selectedPeriod === 'this_week' || selectedPeriod === 'this_month') {
+      if (selectedPeriod === 'custom') {
+        const { start, end } = computeRangeFromSelected('custom', selectedDate)
+        profitResult = await getComprehensiveProfitAnalysis({ startDate: start.toISOString(), endDate: end.toISOString() })
+      } else if (selectedPeriod === 'date' || selectedPeriod === 'today' || selectedPeriod === 'this_week' || selectedPeriod === 'this_month') {
         const { start, end } = computeRangeFromSelected(selectedPeriod, selectedDate)
         profitResult = await getComprehensiveProfitAnalysis({ startDate: start.toISOString(), endDate: end.toISOString() })
       } else {
@@ -104,15 +102,26 @@ export default function FinancialReportsPage() {
 
       // Load expense analytics
       // Use the same anchored date range for expense analytics so 'Today' uses selectedDate
-      const { start: analyticsStart, end: analyticsEnd } = computeRangeFromSelected(selectedPeriod, selectedDate)
+  const { start: analyticsStart, end: analyticsEnd } = computeRangeFromSelected(selectedPeriod, selectedDate)
 
-      // Fetch expense analytics from API
-      const analyticsParams = new URLSearchParams({ startDate: analyticsStart.toISOString(), endDate: analyticsEnd.toISOString() })
+  // Fetch expense analytics from API
+  const analyticsParams = new URLSearchParams({ startDate: analyticsStart.toISOString(), endDate: analyticsEnd.toISOString() })
       const analyticsRes = await fetch(`/api/expenses/analytics?${analyticsParams.toString()}`)
       if (analyticsRes.ok) {
         const data = await analyticsRes.json()
         setExpenseAnalytics(data.analytics || data)
       }
+      
+          // Now generate balance sheet for the computed end of range so partnership & equity reflect selected range
+          try {
+            // Pass an ISO string so the server action receives a serializable date
+            const bsResult = await generateBalanceSheet(analyticsEnd.toISOString())
+            if (bsResult && bsResult.success) {
+              setBalanceSheet(bsResult.balanceSheet)
+            }
+          } catch (err) {
+            console.error('Failed to generate balance sheet for range:', err)
+          }
     } catch (error) {
       console.error('Error loading financial data:', error)
     } finally {
@@ -135,6 +144,16 @@ export default function FinancialReportsPage() {
     })
   }
 
+  // Human-friendly active range label for the UI
+  const getActiveRangeLabel = () => {
+    if (selectedPeriod === 'today' || selectedPeriod === 'date') {
+      return selectedDate
+    }
+
+    // For multi-day periods we show start → end
+    return `${selectedStartDate} → ${selectedEndDate}`
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -150,33 +169,85 @@ export default function FinancialReportsPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Financial Reports & Balance Sheet</h1>
           <p className="mt-2 text-gray-600">Comprehensive financial overview and partnership distribution</p>
+          <p className="mt-1 text-sm text-gray-500">Range: <span className="font-medium text-gray-700">{getActiveRangeLabel()}</span></p>
         </div>
         <div className="flex items-center space-x-4">
           <BackHome />
         </div>
         <div className="flex space-x-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">As of Date</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            />
-          </div>
+          {/* If period is 'today' or 'date' show a single date picker; otherwise show start/end pickers */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Analysis Period</label>
             <select
               value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value
+                setSelectedPeriod(val)
+                const today = new Date()
+                if (val === 'custom') {
+                  const end = today
+                  const start = new Date()
+                  start.setDate(end.getDate() - 6)
+                  setSelectedStartDate(start.toISOString().split('T')[0])
+                  setSelectedEndDate(end.toISOString().split('T')[0])
+                  setSelectedDate(end.toISOString().split('T')[0])
+                } else if (val === 'this_week') {
+                  const a = new Date(selectedDate)
+                  const startOfWeek = new Date(a)
+                  startOfWeek.setDate(a.getDate() - a.getDay())
+                  setSelectedStartDate(startOfWeek.toISOString().split('T')[0])
+                  setSelectedEndDate(new Date().toISOString().split('T')[0])
+                } else if (val === 'this_month') {
+                  const a = new Date(selectedDate)
+                  const startOfMonth = new Date(a.getFullYear(), a.getMonth(), 1)
+                  setSelectedStartDate(startOfMonth.toISOString().split('T')[0])
+                  setSelectedEndDate(new Date().toISOString().split('T')[0])
+                } else if (val === 'today' || val === 'date') {
+                  // keep selectedDate as the single anchor
+                }
+              }}
               className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             >
               <option value="today">Today</option>
               <option value="this_week">This Week</option>
               <option value="this_month">This Month</option>
               <option value="date">Date</option>
+              <option value="custom">Custom Range</option>
             </select>
           </div>
+
+          {selectedPeriod === 'today' || selectedPeriod === 'date' ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={selectedStartDate}
+                  onChange={(e) => setSelectedStartDate(e.target.value)}
+                  className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={selectedEndDate}
+                  onChange={(e) => setSelectedEndDate(e.target.value)}
+                  className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
