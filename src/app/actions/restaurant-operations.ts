@@ -327,6 +327,16 @@ export async function recordMultipleStockUsage(data: MultipleStockUsageData) {
 // Daily Cost Tracking
 export async function getDailyCosts(date: Date) {
   try {
+    // Diagnostic logging: incoming date and computed day bounds
+    try {
+      const sLog = new Date(date)
+      sLog.setHours(0, 0, 0, 0)
+      const eLog = new Date(date)
+      eLog.setHours(23, 59, 59, 999)
+      console.log('[getDailyCosts] called', { received: date?.toString?.() || null, start: sLog.toISOString(), end: eLog.toISOString() })
+    } catch (e) {
+      /* ignore logging errors */
+    }
   // Automatically record daily salary expenses for accurate costing
   // Only record salaries when attendance exists for the day (respect attendance)
   const { recordDailySalaryExpenses } = await import('./expenses')
