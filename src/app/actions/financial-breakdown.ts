@@ -29,7 +29,8 @@ export async function computeExpenseBreakdown(
       SUM(CASE WHEN ec.type = 'STOCK' THEN e.amount ELSE 0 END)::FLOAT as stock_expenses,
       SUM(CASE WHEN ec.type = 'PAYROLL' THEN e.amount ELSE 0 END)::FLOAT as payroll_expenses,
       SUM(CASE WHEN ec.type = 'OPERATIONAL' THEN e.amount ELSE 0 END)::FLOAT as operational_expenses,
-      SUM(CASE WHEN ec.type IN ('UTILITIES', 'RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') THEN e.amount ELSE 0 END)::FLOAT as other_expenses
+      SUM(CASE WHEN ec.type = 'UTILITIES' THEN e.amount ELSE 0 END)::FLOAT as utilities_expenses,
+      SUM(CASE WHEN ec.type IN ('RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') THEN e.amount ELSE 0 END)::FLOAT as other_expenses
     FROM expenses e
     JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
     WHERE e."expenseDate" >= ${startDate}
@@ -51,6 +52,7 @@ export async function computeExpenseBreakdown(
   const stockExpensesRecorded = expensesAgg[0]?.stock_expenses || 0
   const payrollExpenses = expensesAgg[0]?.payroll_expenses || 0
   const operationalExpenses = expensesAgg[0]?.operational_expenses || 0
+  const utilitiesExpenses = expensesAgg[0]?.utilities_expenses || 0
   const otherExpenses = expensesAgg[0]?.other_expenses || 0
   const cogsAmount = cogsAgg[0]?.total_cogs || 0
 
@@ -61,6 +63,7 @@ export async function computeExpenseBreakdown(
     recordedStockPurchases: stockExpensesRecorded,
     payrollExpenses,
     operationalExpenses,
+    utilitiesExpenses,
     otherExpenses,
     cogs: cogsAmount,
     effectiveTotalExpenses
@@ -88,8 +91,9 @@ export async function computeExpenseBreakdownSeries(
       SUM(e.amount)::FLOAT as total_expenses,
       SUM(CASE WHEN ec.type = 'STOCK' THEN e.amount ELSE 0 END)::FLOAT as stock_expenses,
       SUM(CASE WHEN ec.type = 'PAYROLL' THEN e.amount ELSE 0 END)::FLOAT as payroll_expenses,
-      SUM(CASE WHEN ec.type = 'OPERATIONAL' THEN e.amount ELSE 0 END)::FLOAT as operational_expenses,
-      SUM(CASE WHEN ec.type IN ('UTILITIES', 'RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') THEN e.amount ELSE 0 END)::FLOAT as other_expenses
+  SUM(CASE WHEN ec.type = 'OPERATIONAL' THEN e.amount ELSE 0 END)::FLOAT as operational_expenses,
+  SUM(CASE WHEN ec.type = 'UTILITIES' THEN e.amount ELSE 0 END)::FLOAT as utilities_expenses,
+  SUM(CASE WHEN ec.type IN ('RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') THEN e.amount ELSE 0 END)::FLOAT as other_expenses
     FROM expenses e
     JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
     WHERE e."expenseDate" >= ${startDate}
@@ -149,6 +153,7 @@ export async function computeExpenseBreakdownSeries(
       stock_expenses: exp.stock_expenses || 0,
       payroll_expenses: exp.payroll_expenses || 0,
       operational_expenses: exp.operational_expenses || 0,
+      utilities_expenses: exp.utilities_expenses || 0,
       other_expenses: exp.other_expenses || 0,
       cogs,
       effectiveTotalExpenses: effective

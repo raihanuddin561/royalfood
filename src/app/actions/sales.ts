@@ -1191,7 +1191,10 @@ export async function getComprehensiveProfitAnalysis(
           CASE WHEN ec.type = 'OPERATIONAL' THEN e.amount ELSE 0 END
         )::FLOAT as operational_expenses,
         SUM(
-          CASE WHEN ec.type IN ('UTILITIES', 'RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') 
+          CASE WHEN ec.type = 'UTILITIES' THEN e.amount ELSE 0 END
+        )::FLOAT as utilities_expenses,
+        SUM(
+          CASE WHEN ec.type IN ('RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') 
                THEN e.amount ELSE 0 END
         )::FLOAT as other_expenses
       FROM expenses e
@@ -1207,6 +1210,7 @@ export async function getComprehensiveProfitAnalysis(
       stock_expenses: number
       payroll_expenses: number
       operational_expenses: number
+      utilities_expenses: number
       other_expenses: number
     }>
 
@@ -1270,6 +1274,7 @@ export async function getComprehensiveProfitAnalysis(
           stockExpenses: expenses?.stock_expenses || 0,
           payrollExpenses: expenses?.payroll_expenses || 0,
           operationalExpenses: expenses?.operational_expenses || 0,
+          utilitiesExpenses: expenses?.utilities_expenses || 0,
           otherExpenses: expenses?.other_expenses || 0
         },
         totalDiscounts: sale.total_discounts
@@ -1284,11 +1289,12 @@ export async function getComprehensiveProfitAnalysis(
     const totalNetProfit = totalRevenue - totalExpenses
 
     // Aggregate expense breakdown across the period for UI auditing
-    const totalCOGS = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.costOfGoods || 0), 0)
-    const totalRecordedStockPurchases = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.stockExpenses || 0), 0)
-    const totalPayrollExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.payrollExpenses || 0), 0)
-    const totalOperationalExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.operationalExpenses || 0), 0)
-    const totalOtherExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.otherExpenses || 0), 0)
+  const totalCOGS = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.costOfGoods || 0), 0)
+  const totalRecordedStockPurchases = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.stockExpenses || 0), 0)
+  const totalPayrollExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.payrollExpenses || 0), 0)
+  const totalOperationalExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.operationalExpenses || 0), 0)
+  const totalUtilitiesExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.utilitiesExpenses || 0), 0)
+  const totalOtherExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.otherExpenses || 0), 0)
 
     return {
       success: true,
@@ -1309,6 +1315,7 @@ export async function getComprehensiveProfitAnalysis(
           totalRecordedStockPurchases,
           totalPayrollExpenses,
           totalOperationalExpenses,
+          totalUtilitiesExpenses,
           totalOtherExpenses
         }
       },
@@ -1375,7 +1382,8 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
         SUM(CASE WHEN ec.type = 'STOCK' THEN e.amount ELSE 0 END)::FLOAT as stock_expenses,
         SUM(CASE WHEN ec.type = 'PAYROLL' THEN e.amount ELSE 0 END)::FLOAT as payroll_expenses,
         SUM(CASE WHEN ec.type = 'OPERATIONAL' THEN e.amount ELSE 0 END)::FLOAT as operational_expenses,
-        SUM(CASE WHEN ec.type IN ('UTILITIES', 'RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') THEN e.amount ELSE 0 END)::FLOAT as other_expenses
+        SUM(CASE WHEN ec.type = 'UTILITIES' THEN e.amount ELSE 0 END)::FLOAT as utilities_expenses,
+        SUM(CASE WHEN ec.type IN ('RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') THEN e.amount ELSE 0 END)::FLOAT as other_expenses
       FROM expenses e
       JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
       WHERE e."expenseDate" <= ${asOfEnd}
@@ -1385,6 +1393,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
       stock_expenses: number
       payroll_expenses: number
       operational_expenses: number
+      utilities_expenses: number
       other_expenses: number
     }>
 
@@ -1402,6 +1411,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
   const stockExpensesRecorded = expensesAgg[0]?.stock_expenses || 0
   const payrollExpensesRecorded = expensesAgg[0]?.payroll_expenses || 0
   const operationalExpensesRecorded = expensesAgg[0]?.operational_expenses || 0
+  const totalUtilitiesRecorded = expensesAgg[0]?.utilities_expenses || 0
   const otherExpensesRecorded = expensesAgg[0]?.other_expenses || 0
   const cogsAmount = cogsAgg[0]?.total_cogs || 0
 
@@ -1477,6 +1487,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
           recordedStockPurchases: stockExpensesRecorded,
           payrollExpenses: payrollExpensesRecorded,
           operationalExpenses: operationalExpensesRecorded,
+          utilitiesExpenses: totalUtilitiesRecorded,
           otherExpenses: otherExpensesRecorded,
           cogs: cogsAmount,
           effectiveTotalExpenses
