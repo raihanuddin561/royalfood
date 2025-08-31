@@ -5,6 +5,7 @@ export type ExpenseBreakdown = {
   recordedStockPurchases: number
   payrollExpenses: number
   operationalExpenses: number
+  utilitiesExpenses: number
   otherExpenses: number
   cogs: number
   effectiveTotalExpenses: number
@@ -123,8 +124,9 @@ export async function computeExpenseBreakdownSeries(
       total_expenses: r.total_expenses || 0,
       stock_expenses: r.stock_expenses || 0,
       payroll_expenses: r.payroll_expenses || 0,
-      operational_expenses: r.operational_expenses || 0,
-      other_expenses: r.other_expenses || 0
+  operational_expenses: r.operational_expenses || 0,
+  utilities_expenses: r.utilities_expenses || 0,
+  other_expenses: r.other_expenses || 0
     }
   }
 
@@ -143,7 +145,7 @@ export async function computeExpenseBreakdownSeries(
 
   while (cur <= last) {
     const key = cur.toISOString().split('T')[0]
-    const exp = expMap[key] || { total_expenses: 0, stock_expenses: 0, payroll_expenses: 0, operational_expenses: 0, other_expenses: 0 }
+  const exp = expMap[key] || { total_expenses: 0, stock_expenses: 0, payroll_expenses: 0, operational_expenses: 0, utilities_expenses: 0, other_expenses: 0 }
     const cogs = cogsMap[key] || 0
     const effective = (exp.total_expenses || 0) - (exp.stock_expenses || 0) + cogs
 
