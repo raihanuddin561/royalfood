@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
+import { useNotification } from '@/components/ui/Notification'
 
 type Diff = {
   id: string
@@ -11,6 +12,7 @@ type Diff = {
 }
 
 export default function ReconcileAdmin() {
+  const { showNotification } = useNotification()
   const [diffs, setDiffs] = useState<Diff[]>([])
   const [loading, setLoading] = useState(false)
   const [applying, setApplying] = useState<string | null>(null)
@@ -43,11 +45,11 @@ export default function ReconcileAdmin() {
       if (data.success) {
         await load()
       } else {
-        alert('Apply failed: ' + (data.error || 'unknown'))
+        showNotification('error', 'Apply failed: ' + (data.error || 'unknown'))
       }
     } catch (e) {
       console.error(e)
-      alert('Apply request failed')
+      showNotification('error', 'Apply request failed')
     } finally {
       setApplying(null)
     }

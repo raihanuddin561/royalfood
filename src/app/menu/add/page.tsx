@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { ArrowLeft, Upload, Plus, X } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
+import { useNotification } from '@/components/ui/Notification'
 
 interface Ingredient {
   id: string
@@ -42,6 +43,7 @@ export default function AddMenuItemPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
+  const { showNotification } = useNotification()
 
   // Fetch categories and inventory items
   useEffect(() => {
@@ -138,11 +140,11 @@ export default function AddMenuItemPage() {
         window.location.href = '/menu'
       } else {
         console.error('Failed to create menu item')
-        alert('Failed to create menu item. Please try again.')
+        showNotification('error', 'Failed to create menu item. Please try again.')
       }
     } catch (error) {
       console.error('Error creating menu item:', error)
-      alert('Error creating menu item. Please try again.')
+      showNotification('error', 'Error creating menu item. Please try again.')
     } finally {
       setLoading(false)
     }

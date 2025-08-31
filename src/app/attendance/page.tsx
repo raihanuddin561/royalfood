@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import { ConfirmModal } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 import { useSession } from 'next-auth/react'
 import EditAttendanceModal from '@/app/employees/components/EditAttendanceModal'
 
@@ -26,6 +28,9 @@ export default function AttendancePage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [batchMode, setBatchMode] = useState<'present'|'hours'|'absent'>('present')
   const [batchHours, setBatchHours] = useState<number | ''>(8)
+  const { showNotification } = useNotification()
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false)
+  const [batchPayload, setBatchPayload] = useState<any>(null)
 
   const fetchData = async () => {
     setLoading(true)
@@ -70,17 +75,10 @@ export default function AttendancePage() {
                   <input type="number" value={batchHours} onChange={(e) => setBatchHours(e.target.value === '' ? '' : Number(e.target.value))} className="p-2 border rounded w-28" />
                 )}
                 <button onClick={async () => {
-                  if (!selectedIds.length) return alert('Select employees first')
+                  if (!selectedIds.length) return showNotification('error', 'Select employees first')
                   const payload = { date, employeeIds: selectedIds, mode: batchMode, hours: batchMode === 'hours' && batchHours !== '' ? Number(batchHours) : undefined }
-                  const res = await fetch('/api/attendance/batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-                  const j = await res.json()
-                  if (j.success) {
-                    alert(`Batch attendance saved: ${j.total}`)
-                    setSelectedIds([])
-                    await fetchData()
-                  } else {
-                    alert('Failed to save batch attendance')
-                  }
+                  setBatchPayload(payload)
+                  setShowBatchConfirm(true)
                 }} className="px-3 py-2 bg-emerald-600 text-white rounded">Apply to Selected</button>
               </div>
               <button onClick={async () => {
@@ -88,10 +86,10 @@ export default function AttendancePage() {
                 const res = await fetch(`/api/record-salary-expenses?${q.toString()}`)
                 const j = await res.json()
                 if (j.success) {
-                  alert('Payroll recorded: ' + (j.result?.totalAmount ?? 0))
+                  showNotification('success', 'Payroll recorded: ' + (j.result?.totalAmount ?? 0))
                   await fetchData()
                 } else {
-                  alert('Failed to record payroll')
+                  showNotification('error', 'Failed to record payroll')
                 }
               }} className="px-3 py-2 bg-emerald-600 text-white rounded">Apply Payroll</button>
             </>
@@ -145,6 +143,31 @@ export default function AttendancePage() {
           onSaved={async () => { await fetchData() }}
         />
       )}
+      <ConfirmModal
+        isOpen={showBatchConfirm}
+        title="Apply batch attendance"
+        description="Apply the selected batch action to chosen employees?"
+        onConfirm={async () => {
+          setShowBatchConfirm(false)
+          if (!batchPayload) return
+          try {
+            const res = await fetch('/api/attendance/batch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(batchPayload) })
+            const j = await res.json()
+            if (j.success) {
+              showNotification('success', `Batch attendance saved: ${j.total}`)
+              setSelectedIds([])
+              await fetchData()
+            } else {
+              showNotification('error', 'Failed to save batch attendance')
+            }
+          } catch (err) {
+            showNotification('error', 'Failed to save batch attendance')
+          }
+        }}
+        onCancel={() => setShowBatchConfirm(false)}
+        confirmLabel="Apply"
+        cancelLabel="Cancel"
+      />
     </div>
   )
 }

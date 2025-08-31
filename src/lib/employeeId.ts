@@ -1,4 +1,4 @@
-import prisma from './prisma'
+import { prisma } from './prisma'
 
 /**
  * Generate a unique employeeId with the given prefix and random alphanumeric suffix.

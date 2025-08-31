@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { BaseModal, Button } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 
 interface Props {
   isOpen: boolean
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function AddEmployeeModal({ isOpen, onClose, onCreated }: Props) {
+  const { showNotification } = useNotification()
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -62,11 +64,11 @@ export default function AddEmployeeModal({ isOpen, onClose, onCreated }: Props) 
             if (onCreated) await onCreated()
           } else {
             const err = await res.json()
-            alert(err.error || 'Failed to create employee')
+            showNotification('error', err.error || 'Failed to create employee')
           }
         } catch (err) {
           console.error(err)
-          alert('Network error')
+          showNotification('error', 'Network error')
         } finally {
           setCreating(false)
         }

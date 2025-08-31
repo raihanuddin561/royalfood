@@ -19,6 +19,8 @@ import {
   Utensils,
   DollarSign
 } from 'lucide-react'
+import { ConfirmModal } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 import { getOrderById, deleteOrder, updateOrderStatus } from '@/app/actions/orders'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { OrderStatus } from '@prisma/client'
@@ -105,6 +107,8 @@ export default function OrderDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { showNotification } = useNotification()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Load order data
   useEffect(() => {
@@ -156,22 +160,26 @@ export default function OrderDetailsPage() {
   // Delete order
   const handleDeleteOrder = async () => {
     if (!order) return
+    setShowDeleteConfirm(true)
+  }
 
-    if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
-      return
-    }
-
+  const performDeleteOrder = async () => {
+    if (!order) return
+    setShowDeleteConfirm(false)
     setUpdating(true)
     try {
       const result = await deleteOrder(order.id)
       
       if (result.success) {
+        showNotification('success', 'Order deleted')
         router.push('/orders')
       } else {
+        showNotification('error', result.error || 'Failed to delete order')
         setError(result.error || 'Failed to delete order')
       }
-    } catch (error) {
-      console.error('Error deleting order:', error)
+    } catch (err) {
+      console.error('Error deleting order:', err)
+      showNotification('error', 'Failed to delete order')
       setError('Failed to delete order')
     } finally {
       setUpdating(false)
@@ -494,6 +502,16 @@ export default function OrderDetailsPage() {
           </div>
         </div>
       </div>
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete order"
+        description="Are you sure you want to delete this order? This action cannot be undone."
+        onConfirm={performDeleteOrder}
+        onCancel={() => setShowDeleteConfirm(false)}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+      />
     </div>
   )
 }

@@ -18,6 +18,8 @@ import {
   FileText,
   AlertTriangle
 } from 'lucide-react'
+import { ConfirmModal } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 import { getOrderById, updateOrder, deleteOrder } from '@/app/actions/orders'
 import { OrderType, OrderStatus } from '@prisma/client'
 
@@ -48,6 +50,8 @@ export default function EditOrderPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { showNotification } = useNotification()
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Order form state
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN')
@@ -197,23 +201,26 @@ export default function EditOrderPage() {
 
   // Delete order
   const handleDeleteOrder = async () => {
-    if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
-      return
-    }
+    setShowDeleteConfirm(true)
+  }
 
+  const performDeleteOrder = async () => {
+    setShowDeleteConfirm(false)
     setSaving(true)
     setError(null)
-
     try {
       const result = await deleteOrder(params.id as string)
       
       if (result.success) {
+        showNotification('success', 'Order deleted')
         router.push('/orders')
       } else {
+        showNotification('error', result.error || 'Failed to delete order')
         setError(result.error || 'Failed to delete order')
       }
-    } catch (error) {
-      console.error('Error deleting order:', error)
+    } catch (err) {
+      console.error('Error deleting order:', err)
+      showNotification('error', 'Failed to delete order')
       setError('Failed to delete order')
     } finally {
       setSaving(false)
@@ -251,6 +258,7 @@ export default function EditOrderPage() {
   }
 
   return (
+    <>
     <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -538,5 +546,16 @@ export default function EditOrderPage() {
         </div>
       </div>
     </div>
+    <ConfirmModal
+      isOpen={showDeleteConfirm}
+      title="Delete order"
+      description="Are you sure you want to delete this order? This action cannot be undone."
+      onConfirm={performDeleteOrder}
+      onCancel={() => setShowDeleteConfirm(false)}
+      confirmLabel="Delete"
+      cancelLabel="Cancel"
+      danger
+    />
+    </>
   )
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Edit, Trash2, User, Mail, Calendar, DollarSign, X } from 'lucide-react'
 import { BaseModal, ConfirmModal, Button } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 
 interface Employee {
   id: string
@@ -37,6 +38,7 @@ export default function EmployeeActions({ employee, onUpdate }: EmployeeActionsP
     hireDate: employee.hireDate.split('T')[0], // Format for input[type="date"]
     isActive: employee.isActive
   })
+  const { showNotification } = useNotification()
 
   const handleEdit = () => {
     setFormData({
@@ -76,14 +78,14 @@ export default function EmployeeActions({ employee, onUpdate }: EmployeeActionsP
       if (response.ok) {
         setShowEditModal(false)
         onUpdate()
-        alert('Employee updated successfully!')
+        showNotification('success', 'Employee updated successfully!')
       } else {
         const error = await response.json()
-        alert(`Error: ${error.error}`)
+        showNotification('error', `Error: ${error.error}`)
       }
     } catch (error) {
       console.error('Error updating employee:', error)
-      alert('Failed to update employee')
+      showNotification('error', 'Failed to update employee')
     } finally {
       setLoading(false)
     }
@@ -100,14 +102,14 @@ export default function EmployeeActions({ employee, onUpdate }: EmployeeActionsP
       if (response.ok) {
         setShowDeleteModal(false)
         onUpdate()
-        alert('Employee deactivated successfully!')
+        showNotification('success', 'Employee deactivated successfully!')
       } else {
         const error = await response.json()
-        alert(`Error: ${error.error}`)
+        showNotification('error', `Error: ${error.error}`)
       }
     } catch (error) {
       console.error('Error deleting employee:', error)
-      alert('Failed to delete employee')
+      showNotification('error', 'Failed to delete employee')
     } finally {
       setLoading(false)
     }
@@ -124,14 +126,14 @@ export default function EmployeeActions({ employee, onUpdate }: EmployeeActionsP
       if (response.ok) {
         onUpdate()
         const result = await response.json()
-        alert(result.message)
+        showNotification('success', result.message)
       } else {
         const error = await response.json()
-        alert(`Error: ${error.error}`)
+        showNotification('error', `Error: ${error.error}`)
       }
     } catch (error) {
       console.error('Error toggling employee status:', error)
-      alert('Failed to toggle employee status')
+      showNotification('error', 'Failed to toggle employee status')
     } finally {
       setLoading(false)
     }

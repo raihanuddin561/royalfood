@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { BaseModal, Button } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 
 interface Props {
   isOpen: boolean
@@ -19,6 +20,7 @@ export default function EditAttendanceModal({ isOpen, onClose, employeeId, emplo
   const [useHoursProration, setUseHoursProration] = useState<boolean>(true)
   const [theDate, setTheDate] = useState<string>(date || new Date().toISOString().split('T')[0])
   const [standardHours, setStandardHours] = useState<number>(8)
+  const { showNotification } = useNotification()
 
   useEffect(() => {
     if (!isOpen) return
@@ -56,21 +58,21 @@ export default function EditAttendanceModal({ isOpen, onClose, employeeId, emplo
             const rr = await r.json()
             if (!rr.success) {
               console.error('Failed to record payroll:', rr)
-              alert('Attendance saved but failed to record payroll. Check server logs.')
+              showNotification('error', 'Attendance saved but failed to record payroll. Check server logs.')
             }
           } catch (err) {
             console.error(err)
-            alert('Attendance saved but failed to record payroll (network error).')
+            showNotification('error', 'Attendance saved but failed to record payroll (network error).')
           }
         }
 
         onClose()
       } else {
-        alert(json.message || 'Failed to save attendance')
+        showNotification('error', json.message || 'Failed to save attendance')
       }
     } catch (err) {
       console.error(err)
-      alert('Network error')
+      showNotification('error', 'Network error')
     } finally {
       setLoading(false)
     }

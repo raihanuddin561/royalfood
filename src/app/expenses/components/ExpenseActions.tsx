@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Edit, Trash2, X, DollarSign, Calendar, FileText, Building, Tag, Receipt } from 'lucide-react'
 import { BaseModal, ConfirmModal, Button } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 import { ExpenseStatus, ExpenseType } from '@prisma/client'
 
 interface Expense {
@@ -56,6 +57,7 @@ export default function ExpenseActions({ expense, categories, onUpdate }: Expens
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [loading, setLoading] = useState(false)
+  const { showNotification } = useNotification()
   const [formData, setFormData] = useState({
     expenseCategoryId: expense.expenseCategory.id,
     description: expense.description,
@@ -104,14 +106,14 @@ export default function ExpenseActions({ expense, categories, onUpdate }: Expens
       if (response.ok) {
         setShowEditModal(false)
         onUpdate()
-        alert('Expense updated successfully!')
+        showNotification('success', 'Expense updated successfully!')
       } else {
         const error = await response.json()
-        alert(`Error: ${error.error}`)
+        showNotification('error', `Error: ${error.error}`)
       }
     } catch (error) {
       console.error('Error updating expense:', error)
-      alert('Failed to update expense')
+      showNotification('error', 'Failed to update expense')
     } finally {
       setLoading(false)
     }
@@ -128,14 +130,14 @@ export default function ExpenseActions({ expense, categories, onUpdate }: Expens
       if (response.ok) {
         setShowDeleteModal(false)
         onUpdate()
-        alert('Expense deleted successfully!')
+        showNotification('success', 'Expense deleted successfully!')
       } else {
         const error = await response.json()
-        alert(`Error: ${error.error}`)
+        showNotification('error', `Error: ${error.error}`)
       }
     } catch (error) {
       console.error('Error deleting expense:', error)
-      alert('Failed to delete expense')
+      showNotification('error', 'Failed to delete expense')
     } finally {
       setLoading(false)
     }

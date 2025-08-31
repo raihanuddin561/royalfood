@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, Package, AlertTriangle, ChefHat } from 'lucide-react'
 import { recordStockUsage } from '@/app/actions/restaurant-operations'
 import { BaseModal, Button, Message } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 
 interface StockUsageFormProps {
   isOpen: boolean
@@ -44,6 +45,7 @@ export default function StockUsageForm({
   const [items, setItems] = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const { showNotification } = useNotification()
 
   useEffect(() => {
     if (isOpen) {
@@ -107,7 +109,7 @@ export default function StockUsageForm({
   usageDate: usageDate
       })
 
-      if (result.success) {
+  if (result.success) {
         onSuccess()
         onClose()
         // Reset form
@@ -118,11 +120,11 @@ export default function StockUsageForm({
           notes: ''
         })
       } else {
-        alert(result.error || 'Failed to record stock usage')
+        showNotification('error', result.error || 'Failed to record stock usage')
       }
     } catch (error) {
       console.error('Error recording stock usage:', error)
-      alert('Failed to record stock usage')
+      showNotification('error', 'Failed to record stock usage')
     } finally {
       setLoading(false)
     }

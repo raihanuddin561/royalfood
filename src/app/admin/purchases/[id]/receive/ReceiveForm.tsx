@@ -1,5 +1,6 @@
 "use client"
 import React, { useState } from 'react'
+import { useNotification } from '@/components/ui/Notification'
 
 type PurchaseItem = {
   id: string
@@ -11,6 +12,7 @@ type PurchaseItem = {
 }
 
 export default function ReceiveForm({ purchase }: any) {
+  const { showNotification } = useNotification()
   const [lines, setLines] = useState<PurchaseItem[]>(
     (purchase.purchaseItems || []).map((pi: any) => ({ ...pi }))
   )
@@ -26,12 +28,12 @@ export default function ReceiveForm({ purchase }: any) {
       const payload = { lines: lines.map(l => ({ purchaseItemId: l.id, receivedQuantity: Number(l.receivedQuantity ?? l.quantity), unitPrice: Number(l.unitPrice) })) }
       const res = await fetch(`/api/admin/purchases/${purchase.id}/receive`, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } })
       const data = await res.json()
-      if (!data.success) throw new Error(data.error || 'Receive failed')
-      alert('Purchase received/updated successfully')
+  if (!data.success) throw new Error(data.error || 'Receive failed')
+  showNotification('success', 'Purchase received/updated successfully')
       // refresh
       location.assign(`/admin/purchases/${purchase.id}`)
     } catch (e: any) {
-      alert(e.message || 'Failed')
+  showNotification('error', e.message || 'Failed')
     } finally { setLoading(false) }
   }
 

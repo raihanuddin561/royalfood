@@ -178,7 +178,8 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -516,8 +517,8 @@ export default function OrdersPage() {
           </div>
         </div>
       </div>
-    </div>
-      <ConfirmModal
+  </div>
+  <ConfirmModal
         isOpen={showDeleteConfirm}
         title="Delete order"
         description="Are you sure you want to delete this order? This action cannot be undone."
@@ -526,5 +527,6 @@ export default function OrdersPage() {
         confirmLabel="Yes, delete"
         cancelLabel="Cancel"
       />
+    </>
   )
 }

@@ -6,6 +6,7 @@ import { ArrowLeft, Save, Trash2, Plus, X } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import { useNotification, Notification } from '@/components/ui/Notification'
+import { ConfirmModal } from '@/components/ui/Modal'
 
 interface MenuItemData {
   id: string
@@ -61,6 +62,7 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [menuItem, setMenuItem] = useState<MenuItemData | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
@@ -202,10 +204,11 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
   }
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this menu item? This action cannot be undone.')) {
-      return
-    }
+    setShowDeleteConfirm(true)
+  }
 
+  const performDelete = async () => {
+    setShowDeleteConfirm(false)
     setDeleting(true)
 
     try {

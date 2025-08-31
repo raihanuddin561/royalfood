@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useNotification } from '@/components/ui/Notification'
 import { Package, AlertTriangle, ChefHat, Check, Plus, Trash } from 'lucide-react'
 import { recordStockUsage, recordMultipleStockUsage } from '@/app/actions/restaurant-operations'
 
@@ -21,6 +22,7 @@ interface MenuItem {
 }
 
 export default function StandaloneStockUsageForm() {
+  const { showNotification } = useNotification()
   const [items, setItems] = useState<InventoryItem[]>([])
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -74,21 +76,21 @@ export default function StandaloneStockUsageForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (mode === 'MENU') {
+      if (mode === 'MENU') {
       if (!selectedItemId || !quantity || isNaN(parseFloat(quantity))) {
-        alert('Please select an item and enter a valid quantity')
+        showNotification('error', 'Please select an item and enter a valid quantity')
         return
       }
 
       if (usageType === 'RECIPE' && !selectedMenuItemId) {
-        alert('Please select a menu item for recipe usage')
+        showNotification('error', 'Please select a menu item for recipe usage')
         return
       }
-    } else {
+      } else {
       // ITEM mode validations: at least one valid entry
       const validEntries = entries.filter(en => en.itemId && en.quantity && !isNaN(parseFloat(en.quantity)))
       if (validEntries.length === 0) {
-        alert('Please add at least one inventory item with valid quantity')
+        showNotification('error', 'Please add at least one inventory item with valid quantity')
         return
       }
     }
@@ -106,7 +108,7 @@ export default function StandaloneStockUsageForm() {
           usageDate: usageDate || undefined
         })
 
-        if (result.success) {
+  if (result.success) {
           setSuccess(true)
           // Reset form
           setSelectedItemId('')
@@ -118,7 +120,7 @@ export default function StandaloneStockUsageForm() {
           setTimeout(() => setSuccess(false), 3000)
           window.location.reload()
         } else {
-          alert(result.error || 'Failed to record stock usage')
+          showNotification('error', result.error || 'Failed to record stock usage')
         }
       } else {
         // ITEM mode: call server-side batch recorder for atomic update
@@ -133,7 +135,7 @@ export default function StandaloneStockUsageForm() {
           }
 
           const res = await recordMultipleStockUsage(payload)
-          if (res.success) {
+            if (res.success) {
             setSuccess(true)
             setEntries([{ itemId: '', quantity: '' }])
             setDescription('')
@@ -142,16 +144,16 @@ export default function StandaloneStockUsageForm() {
           } else {
             const msg = res.error || 'Failed to record batch stock usage'
             const details = res.details ? JSON.stringify(res.details) : ''
-            alert(msg + (details ? '\n' + details : ''))
+            showNotification('error', msg + (details ? '\n' + details : ''))
           }
         } catch (err) {
           console.error('Batch usage error:', err)
-          alert('Failed to record batch stock usage')
+          showNotification('error', 'Failed to record batch stock usage')
         }
       }
     } catch (error) {
       console.error('Error recording stock usage:', error)
-      alert('Failed to record stock usage')
+      showNotification('error', 'Failed to record stock usage')
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,7 @@
 "use client"
 import { useState } from 'react'
 import { BaseModal } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 
 type Supplier = { id: string; name: string }
 type Item = { id: string; name: string; sku?: string; currentStock?: number }
@@ -30,6 +31,7 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
 
   const [showSuccess, setShowSuccess] = useState(false)
   const [createdPurchaseId, setCreatedPurchaseId] = useState<string | null>(null)
+  const { showNotification } = useNotification()
 
   async function doSubmit() {
     setLoading(true)
@@ -42,7 +44,7 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
   setShowSuccess(true)
   setLoading(false)
     } catch (err: any) {
-      alert(err?.message || String(err))
+      showNotification('error', err?.message || String(err))
       setLoading(false)
     }
   }
@@ -82,7 +84,7 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
                   setNewSupplierName('')
                   setShowAddSupplier(false)
                 } catch (err: any) {
-                  alert(err?.message || String(err))
+                  showNotification('error', err?.message || String(err))
                 } finally {
                   setCreatingSupplier(false)
                 }

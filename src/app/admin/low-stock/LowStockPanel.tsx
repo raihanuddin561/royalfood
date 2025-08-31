@@ -36,14 +36,14 @@ export default function LowStockPanel() {
       const res = await fetch('/api/admin/low-stock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
       const data = await res.json()
       if (data.success) {
-        alert(`Created ${data.created.length} purchase drafts. Skipped ${data.skipped.length} items without supplier.`)
+        showNotification('success', `Created ${data.created.length} purchase drafts. Skipped ${data.skipped.length} items without supplier.`)
         load()
       } else {
-        alert('Failed: ' + (data.error || 'unknown'))
+        showNotification('error', 'Failed: ' + (data.error || 'unknown'))
       }
     } catch (e) {
       console.error(e)
-      alert('Create request failed')
+      showNotification('error', 'Create request failed')
     } finally { setCreating(false) }
   }
 
