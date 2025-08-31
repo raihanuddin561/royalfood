@@ -62,10 +62,12 @@ const modalTypeConfig = {
 }
 
 const sizeConfig = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-2xl'
+  // Allow very small viewports to use a viewport-based max width,
+  // and let the sm: breakpoint apply the fixed tailwind max widths.
+  sm: 'max-w-[90vw] sm:max-w-sm',
+  md: 'max-w-[92vw] sm:max-w-md',
+  lg: 'max-w-[96vw] sm:max-w-lg',
+  xl: 'max-w-[98vw] sm:max-w-2xl'
 }
 
 export function BaseModal({
@@ -152,17 +154,17 @@ export function BaseModal({
   aria-modal="true"
   aria-labelledby="modal-title"
   aria-describedby="modal-desc"
-  className={`backdrop:bg-gray-900 backdrop:bg-opacity-50 bg-transparent p-4 sm:p-0 ${sizeConfig[size]} w-full rounded-2xl shadow-xl`}
+  className={`backdrop:bg-gray-900 backdrop:bg-opacity-50 bg-transparent p-2 sm:p-0 mx-auto w-full ${sizeConfig[size]} rounded-2xl shadow-xl`}
     >
-      <div className="bg-white rounded-2xl max-h-[90vh] overflow-y-auto w-full">
+  <div className="bg-white rounded-2xl max-h-[90vh] overflow-y-auto w-full">
         {/* Header */}
-        <div className="flex items-start justify-between p-6 pb-4">
+        <div className="flex items-start justify-between p-4 sm:p-6">
           <div className="flex items-start min-w-0 flex-1 mr-3">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${config.iconBg} mr-3 flex-shrink-0`}>
-              <IconComponent className={`w-6 h-6 ${config.iconColor}`} />
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center ${config.iconBg} mr-3 flex-shrink-0`}>
+              <IconComponent className={`w-5 h-5 sm:w-6 sm:h-6 ${config.iconColor}`} />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className={`text-lg font-semibold ${config.titleColor} break-words leading-tight`}>
+              <h3 className={`text-base sm:text-lg font-semibold ${config.titleColor} break-words leading-tight`}>
                 {title}
               </h3>
               {description && (
@@ -181,8 +183,8 @@ export function BaseModal({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="px-6 pb-6">
+  {/* Content */}
+  <div className="px-4 sm:px-6 pb-4 sm:pb-6">
           {children}
         </div>
       </div>
@@ -328,7 +330,7 @@ export function Button({
   const isDisabled = disabled || loading
 
   return (
-    <button
+      <button
       type={type}
       onClick={onClick}
       disabled={isDisabled}
@@ -337,7 +339,7 @@ export function Button({
       {loading && (
         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
       )}
-      <span className="truncate">{children}</span>
+      <span className="whitespace-normal break-words">{children}</span>
     </button>
   )
 }

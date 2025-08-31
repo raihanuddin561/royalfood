@@ -1,8 +1,9 @@
-'use client'
+ 'use client'
 
 import { useState, useEffect } from 'react'
 import { Calendar, DollarSign, TrendingUp, TrendingDown, Package, Users, Building, Receipt } from 'lucide-react'
 import { generateBalanceSheet, getComprehensiveProfitAnalysis } from '@/app/actions/sales'
+import BackHome from '@/components/BackHome'
 // Use API for expense analytics from client
 
 interface BalanceSheetData {
@@ -57,20 +58,56 @@ export default function FinancialReportsPage() {
       }
 
       // Load comprehensive profit analysis
-      const profitResult = await getComprehensiveProfitAnalysis(selectedPeriod)
-      if (profitResult.success) {
+      let profitResult
+      // compute a start/end anchored to selectedDate for 'today' and 'date' (and optionally other periods)
+      const computeRangeFromSelected = (period: string, anchor: string) => {
+        const a = new Date(anchor)
+        let s = new Date(a)
+        let e = new Date(a)
+
+        switch (period) {
+          case 'today':
+          case 'date':
+            s.setHours(0, 0, 0, 0)
+            e.setHours(23, 59, 59, 999)
+            break
+          case 'this_week':
+            const startOfWeek = new Date(a)
+            startOfWeek.setDate(a.getDate() - a.getDay())
+            startOfWeek.setHours(0, 0, 0, 0)
+            s = startOfWeek
+            e = new Date(a)
+            e.setHours(23, 59, 59, 999)
+            break
+          case 'this_month':
+            s = new Date(a.getFullYear(), a.getMonth(), 1)
+            e = new Date(a)
+            e.setHours(23, 59, 59, 999)
+            break
+          default:
+            s.setHours(0, 0, 0, 0)
+            e.setHours(23, 59, 59, 999)
+        }
+
+        return { start: s, end: e }
+      }
+
+      if (selectedPeriod === 'date' || selectedPeriod === 'today' || selectedPeriod === 'this_week' || selectedPeriod === 'this_month') {
+        const { start, end } = computeRangeFromSelected(selectedPeriod, selectedDate)
+        profitResult = await getComprehensiveProfitAnalysis({ startDate: start.toISOString(), endDate: end.toISOString() })
+      } else {
+        profitResult = await getComprehensiveProfitAnalysis(selectedPeriod)
+      }
+      if (profitResult && profitResult.success) {
         setProfitAnalysis(profitResult)
       }
 
       // Load expense analytics
-      const startDate = selectedPeriod === 'today' 
-        ? new Date() 
-        : selectedPeriod === 'this_month'
-        ? new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-        : new Date(new Date().setDate(new Date().getDate() - 30))
+      // Use the same anchored date range for expense analytics so 'Today' uses selectedDate
+      const { start: analyticsStart, end: analyticsEnd } = computeRangeFromSelected(selectedPeriod, selectedDate)
 
       // Fetch expense analytics from API
-      const analyticsParams = new URLSearchParams({ startDate: startDate.toISOString(), endDate: new Date().toISOString() })
+      const analyticsParams = new URLSearchParams({ startDate: analyticsStart.toISOString(), endDate: analyticsEnd.toISOString() })
       const analyticsRes = await fetch(`/api/expenses/analytics?${analyticsParams.toString()}`)
       if (analyticsRes.ok) {
         const data = await analyticsRes.json()
@@ -114,6 +151,9 @@ export default function FinancialReportsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Financial Reports & Balance Sheet</h1>
           <p className="mt-2 text-gray-600">Comprehensive financial overview and partnership distribution</p>
         </div>
+        <div className="flex items-center space-x-4">
+          <BackHome />
+        </div>
         <div className="flex space-x-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">As of Date</label>
@@ -134,6 +174,7 @@ export default function FinancialReportsPage() {
               <option value="today">Today</option>
               <option value="this_week">This Week</option>
               <option value="this_month">This Month</option>
+              <option value="date">Date</option>
             </select>
           </div>
         </div>

@@ -161,9 +161,11 @@ export default function Sidebar() {
       </button>
       {/* Overlay for mobile sidebar */}
       {open && (
-        <div
+        <button
           className="fixed inset-0 bg-black bg-opacity-40 z-50 block sm:hidden"
           onClick={() => setOpen(false)}
+          aria-label="Close sidebar"
+          onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}
         />
       )}
   {/* Sidebar: static on desktop, fixed and toggleable on mobile */}

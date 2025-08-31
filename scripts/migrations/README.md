@@ -1,3 +1,26 @@
+Migration runner
+================
+
+This folder contains manual SQL migrations and a small admin endpoint to run whitelisted migrations after deployment.
+
+Endpoint
+--------
+POST /api/migrations/run
+
+Body: { "name": "2025_add_user_partner_nullable.sql" }
+
+Only files listed in the ALLOWED_MIGRATIONS array inside `src/app/api/migrations/run/route.ts` can be executed.
+
+Security
+--------
+- The endpoint is protected by `requireAdmin` — ensure your admin protection is correctly enforced.
+- The migration SQL must be idempotent or safe to re-run; prefer `IF NOT EXISTS`/`IF EXISTS` patterns.
+
+Usage
+-----
+1. Deploy your app.
+2. As an admin, call the endpoint with the migration name.
+3. Verify the database changes and run `npx prisma generate` if the Prisma schema changed.
 Reason for this folder state
 =============================
 

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
+import ServerPartnershipSummary from './ServerPartnershipSummary'
 export const dynamic = 'force-dynamic'
 
 // Get dashboard data from database
@@ -299,35 +300,13 @@ export default async function DashboardPage() {
       </div>
 
       {/* Partnership Summary */}
-      <div className="overflow-hidden rounded-lg bg-white shadow">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Partnership Summary (This Month)</h3>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.monthlyRevenue)}</p>
-              <p className="text-sm text-gray-500">Total Revenue</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(data.monthlyRevenue * 0.66)}</p>
-              <p className="text-sm text-gray-500">Est. Total Expenses</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(data.monthlyRevenue * 0.34)}</p>
-              <p className="text-sm text-gray-500">Est. Net Profit</p>
-            </div>
-          </div>
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="bg-blue-50 rounded-lg p-4">
-              <p className="text-sm font-medium text-blue-900">Partner A (60%)</p>
-              <p className="text-lg font-bold text-blue-900">{formatCurrency((data.monthlyRevenue * 0.34) * 0.6)}</p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-4">
-              <p className="text-sm font-medium text-green-900">Partner B (40%)</p>
-              <p className="text-lg font-bold text-green-900">{formatCurrency((data.monthlyRevenue * 0.34) * 0.4)}</p>
-            </div>
+        <div className="overflow-hidden rounded-lg bg-white shadow">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Partnership Summary (This Month)</h3>
+            {/* Use server helper to compute distributable/net profit and partner shares */}
+            <ServerPartnershipSummary monthlyRevenue={data.monthlyRevenue} />
           </div>
         </div>
-      </div>
     </div>
   )
 }

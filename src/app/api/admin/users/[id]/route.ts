@@ -1,3 +1,35 @@
+import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/api-protection'
+
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+  return requireAdmin(async (request: any) => {
+    try {
+      const { prisma } = await import('@/lib/prisma')
+      const body = await req.json()
+      const { partnerId } = body
+
+      // If partnerId is provided, verify partner exists
+      if (partnerId) {
+        const partner = await prisma.partner.findUnique({ where: { id: partnerId } })
+        if (!partner) return NextResponse.json({ error: 'Partner not found' }, { status: 404 })
+        if (!partner.isActive) return NextResponse.json({ error: 'Partner is inactive' }, { status: 400 })
+      }
+
+      const updated = await prisma.user.update({
+        where: { id: params.id },
+        data: { partnerId: partnerId ?? null },
+        select: { id: true, email: true, name: true, partnerId: true }
+      })
+
+      return NextResponse.json({ user: updated })
+    } catch (err) {
+      console.error('Error updating user partner:', err)
+      return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
+    }
+  })(null as any)
+}
+
+export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -10,7 +42,8 @@ export const runtime = 'nodejs'
 const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
   name: z.string().min(1).optional(),
-  role: z.enum(['MANAGER', 'EMPLOYEE']).optional()
+  role: z.enum(['MANAGER', 'EMPLOYEE']).optional(),
+  partnerId: z.string().nullable().optional()
 })
 
 // PATCH /api/admin/users/[id] - Update user (Admin only)
@@ -43,7 +76,7 @@ export async function PATCH(
     }
 
     const { id } = params
-    const updateData = validationResult.data
+  const updateData = validationResult.data as any
 
     // Check if user exists and is not admin
     const existingUser = await prisma.user.findUnique({
@@ -65,6 +98,21 @@ export async function PATCH(
       )
     }
 
+    // If partnerId exists in request, validate partner
+    if (updateData.partnerId !== undefined) {
+      if (updateData.partnerId === null) {
+        // unassign partner
+      } else {
+        const partner = await prisma.partner.findUnique({ where: { id: updateData.partnerId } })
+        if (!partner) {
+          return NextResponse.json({ error: 'Partner not found' }, { status: 404 })
+        }
+        if (!partner.isActive) {
+          return NextResponse.json({ error: 'Partner is inactive' }, { status: 400 })
+        }
+      }
+    }
+
     // Update user
     const updatedUser = await prisma.user.update({
       where: { id },
@@ -75,6 +123,7 @@ export async function PATCH(
         name: true,
         role: true,
         isActive: true,
+        partnerId: true,
         updatedAt: true
       }
     })

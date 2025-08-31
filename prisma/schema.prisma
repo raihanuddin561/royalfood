@@ -27,6 +27,8 @@ model User {
 
   // Relations
   employeeProfile Employee?
+  partnerId       String?
+  partner         Partner? @relation(fields: [partnerId], references: [id])
   createdOrders   Order[]
   createdSales    Sale[]
   inventoryLogs   InventoryLog[]
@@ -62,6 +64,7 @@ model Partner {
 
   // Relations
   profitShares ProfitShare[]
+  users        User[]
 
   @@map("partners")
 }

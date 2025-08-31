@@ -1117,9 +1117,28 @@ export async function getMonthlyProfitTrends(months: number = 6) {
 }
 
 // Comprehensive Profit Analysis with Expense Integration
-export async function getComprehensiveProfitAnalysis(period: string = 'today') {
+export async function getComprehensiveProfitAnalysis(
+  periodOrRange: string | { startDate: Date | string; endDate: Date | string } = 'today'
+) {
   try {
-    const { startDate, endDate } = getDateRange(period)
+    let startDate: Date
+    let endDate: Date
+    // period label to return for UI; default to provided string or 'custom'
+    let period: string | undefined
+
+    if (typeof periodOrRange === 'string') {
+      const range = getDateRange(periodOrRange)
+      startDate = range.startDate
+      endDate = range.endDate
+      period = periodOrRange
+    } else {
+      startDate = new Date(periodOrRange.startDate)
+      endDate = new Date(periodOrRange.endDate)
+      // Create a human-friendly period label for custom ranges
+      const sLabel = startDate.toISOString().split('T')[0]
+      const eLabel = endDate.toISOString().split('T')[0]
+      period = `custom:${sLabel}_to_${eLabel}`
+    }
 
     // Get sales data with detailed breakdown
   const salesData = await prisma.$queryRaw`
@@ -1291,9 +1310,9 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
   asOfEnd.setHours(23, 59, 59, 999)
     // Assets - Current Assets
     const inventoryValue = await prisma.$queryRaw`
-      SELECT SUM(current_stock * cost_price)::FLOAT as total_value
+      SELECT SUM("currentStock" * "costPrice")::FLOAT as total_value
       FROM items
-      WHERE is_active = true
+      WHERE "isActive" = true
     ` as Array<{ total_value: number }>
 
     const cashFromSales = await prisma.$queryRaw`
@@ -1314,9 +1333,9 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
 
     // Payroll Liabilities (Unpaid salaries)
     const payrollLiabilities = await prisma.$queryRaw`
-      SELECT SUM(total_amount)::FLOAT as total_payroll_due
+      SELECT SUM("totalAmount")::FLOAT as total_payroll_due
       FROM payrolls
-      WHERE period <= ${asOfEnd}
+      WHERE "period" <= ${asOfEnd}
         AND status IN ('PENDING', 'APPROVED')
     ` as Array<{ total_payroll_due: number }>
 
@@ -1359,11 +1378,35 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
       totalEquity: retainedEarnings
     }
 
-    // Partnership distribution (40/60 split)
-    const partnershipDistribution = {
-      partner1Share: retainedEarnings * 0.4, // 40%
-      partner2Share: retainedEarnings * 0.6, // 60%
+    // Partnership distribution - use DB-driven partner shares
+  let partnershipDistribution: any = {
+      partner1Share: 0,
+      partner2Share: 0,
       totalDistributable: retainedEarnings
+    }
+
+    try {
+      // Lazy import to avoid circular deps
+      const { getPartnershipDistribution } = await import('@/app/actions/partnership')
+      const dist = await getPartnershipDistribution(retainedEarnings)
+
+      // Map first two partners to partner1/partner2 for compatibility with existing UI
+      const p1 = dist.partners[0]
+      const p2 = dist.partners[1]
+
+      partnershipDistribution = {
+        partner1Share: p1 ? p1.amount : 0,
+        partner2Share: p2 ? p2.amount : 0,
+        totalDistributable: dist.totalDistributable,
+        partners: dist.partners // array of { id, name, sharePercent, amount }
+      }
+    } catch (err) {
+      console.error('Failed to compute partnership distribution from DB, falling back to 40/60', err)
+      partnershipDistribution = {
+        partner1Share: retainedEarnings * 0.4,
+        partner2Share: retainedEarnings * 0.6,
+        totalDistributable: retainedEarnings
+      }
     }
 
     return {

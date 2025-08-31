@@ -21,6 +21,8 @@ interface User {
     department: string
     salary: number
   }
+  partnerId?: string | null
+  partner?: { id: string; name: string } | null
 }
 
 interface CreateUserForm {
@@ -74,6 +76,24 @@ export default function UsersManagement() {
       setLoading(false)
     }
   }
+
+  const [partners, setPartners] = useState<{ id: string; name: string }[]>([])
+
+  useEffect(() => {
+    // fetch partners for assignment
+    const loadPartners = async () => {
+      try {
+        const res = await fetch('/api/partners')
+        if (res.ok) {
+          const data = await res.json()
+          setPartners(data)
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    loadPartners()
+  }, [])
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -432,18 +452,50 @@ export default function UsersManagement() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {user.role !== 'ADMIN' && (
-                        <button
-                          onClick={() => handleToggleUserStatus(user.id, user.isActive)}
-                          className={`px-3 py-1 rounded text-xs font-medium ${
-                            user.isActive
-                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                              : 'bg-green-100 text-green-700 hover:bg-green-200'
-                          } transition-colors`}
+                      <div className="flex items-center space-x-2">
+                        {user.role !== 'ADMIN' && (
+                          <button
+                            onClick={() => handleToggleUserStatus(user.id, user.isActive)}
+                            className={`px-3 py-1 rounded text-xs font-medium ${
+                              user.isActive
+                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                : 'bg-green-100 text-green-700 hover:bg-green-200'
+                            } transition-colors`}
+                          >
+                            {user.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                        )}
+
+                        {/* Partner assignment dropdown */}
+                        <select
+                          value={user.partnerId || ''}
+                          onChange={async (e) => {
+                            const partnerId = e.target.value || null
+                            try {
+                              const res = await fetch(`/api/admin/users/${user.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ partnerId })
+                              })
+                              if (res.ok) {
+                                showNotification('success', 'Partner assignment updated')
+                                fetchUsers()
+                              } else {
+                                const err = await res.json()
+                                showNotification('error', err.error || 'Failed to update partner')
+                              }
+                            } catch (err) {
+                              showNotification('error', 'Network error')
+                            }
+                          }}
+                          className="px-2 py-1 border rounded text-sm"
                         >
-                          {user.isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                      )}
+                          <option value="">No partner</option>
+                          {partners.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </td>
                   </tr>
                 ))}

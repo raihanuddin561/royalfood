@@ -36,6 +36,10 @@ async function getUsersHandler(request: AuthenticatedRequest) {
         role: true,
         isActive: true,
         createdAt: true,
+        partnerId: true,
+        partner: {
+          select: { id: true, name: true }
+        },
         employeeProfile: {
           select: {
             employeeId: true,
