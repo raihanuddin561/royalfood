@@ -73,9 +73,37 @@ export default function StandaloneStockUsageForm() {
   const estimatedCost = selectedItem && quantity ? 
     parseFloat(quantity) * selectedItem.costPrice : 0
 
+  const getAvailable = (it: InventoryItem | undefined) => {
+    if (!it) return 0
+    // some endpoints return `currentStock`, others `quantity` — prefer currentStock when present
+    // @ts-ignore
+    return typeof (it as any).currentStock === 'number' ? (it as any).currentStock : it.quantity ?? 0
+  }
+
+  // Over-quantity guards
+  const menuOverQuantity = (() => {
+    if (!selectedItem || !quantity) return false
+    const q = parseFloat(quantity || '0')
+    if (isNaN(q)) return false
+    return q > getAvailable(selectedItem)
+  })()
+
+  const anyEntryOverQuantity = entries.some(en => {
+    if (!en.itemId || !en.quantity) return false
+    const it = items.find(i => i.id === en.itemId)
+    if (!it) return false
+    const q = parseFloat(en.quantity || '0')
+    if (isNaN(q)) return false
+    return q > getAvailable(it)
+  })
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+    // Prevent submission when client-side over-quantity is detected
+    if (menuOverQuantity || anyEntryOverQuantity) {
+      showNotification('error', 'One or more entered quantities exceed available stock. Reduce quantities to proceed.')
+      return
+    }
       if (mode === 'MENU') {
       if (!selectedItemId || !quantity || isNaN(parseFloat(quantity))) {
         showNotification('error', 'Please select an item and enter a valid quantity')
@@ -279,7 +307,7 @@ export default function StandaloneStockUsageForm() {
                 placeholder="Enter quantity"
                 step="0.01"
                 min="0.01"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${menuOverQuantity ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-500'}`}
                 required
               />
               {selectedItem && (
@@ -305,9 +333,12 @@ export default function StandaloneStockUsageForm() {
 
             {selectedItem && quantity && (
               <p className="mt-2 text-sm text-gray-600">
-                Available: {selectedItem.quantity} {selectedItem.unit} • 
+                Available: {getAvailable(selectedItem)} {selectedItem.unit} • 
                 Estimated Cost: <span className="font-semibold">${estimatedCost.toFixed(2)}</span>
               </p>
+            )}
+            {menuOverQuantity && (
+              <p className="mt-2 text-sm text-red-600">Entered quantity exceeds available stock. Reduce quantity or use "Use all".</p>
             )}
           </div>
         </div>
@@ -328,24 +359,38 @@ export default function StandaloneStockUsageForm() {
                       <option key={item.id} value={item.id}>{item.name} ({item.quantity} {item.unit})</option>
                     ))}
                   </select>
+                  {/* Show available stock immediately when an item is selected */}
+                  {en.itemId && (() => {
+                    const it = items.find(i => i.id === en.itemId)
+                    if (!it) return null
+                    return (
+                      <p className="mt-1 text-xs text-gray-600">Available: {it.currentStock} {it.unit}</p>
+                    )
+                  })()}
                 </div>
                 <div className="col-span-4">
-                  <input
-                    type="number"
-                    value={en.quantity}
-                    onChange={(e) => setEntries(prev => prev.map((p, i) => i === idx ? { ...p, quantity: e.target.value } : p))}
-                    placeholder="Quantity"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                  {/* Inline availability warning */}
-                  {en.itemId && en.quantity && (() => {
+                  {(() => {
                     const it = items.find(i => i.id === en.itemId)
                     const q = parseFloat(en.quantity || '0')
-                    if (it && !isNaN(q) && q > it.currentStock) {
-                      return <p className="mt-1 text-xs text-red-600">Insufficient stock: available {it.currentStock} {it.unit}</p>
-                    }
-                    return null
+                    const over = it && !isNaN(q) && q > getAvailable(it)
+                    return (
+                      <>
+                        <input
+                          type="number"
+                          value={en.quantity}
+                          onChange={(e) => setEntries(prev => prev.map((p, i) => i === idx ? { ...p, quantity: e.target.value } : p))}
+                          placeholder="Quantity"
+                          step="0.01"
+                          className={`w-full px-3 py-2 border rounded-md ${over ? 'border-red-500 focus:ring-red-200' : 'border-gray-300'}`}
+                        />
+                        {/* Inline availability warning */}
+                        {en.itemId && en.quantity && it && (
+                          <p className={`mt-1 text-xs ${over ? 'text-red-600' : 'text-gray-600'}`}>
+                            {over ? `Insufficient stock: available ${getAvailable(it)} ${it.unit}` : `Available: ${getAvailable(it)} ${it.unit}`}
+                          </p>
+                        )}
+                      </>
+                    )
                   })()}
                 </div>
                 <div className="col-span-2 flex space-x-2">
@@ -421,7 +466,7 @@ export default function StandaloneStockUsageForm() {
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || menuOverQuantity || anyEntryOverQuantity}
           className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Recording...' : 'Record Stock Usage'}

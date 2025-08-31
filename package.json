@@ -12,6 +12,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && next build",
+  "test:unit": "tsx ./scripts/test-financial-breakdown.js",
     "db:migrate:run": "node ./scripts/run_migrations.js",
     "db:migrate:safe": "node ./scripts/apply_migrations_safe.js"
   },

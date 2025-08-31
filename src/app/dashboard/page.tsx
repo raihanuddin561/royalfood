@@ -10,6 +10,7 @@ import {
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
 import ServerPartnershipSummary from './ServerPartnershipSummary'
+import FinancialBreakdownClient from './FinancialBreakdownClient'
 export const dynamic = 'force-dynamic'
 
 // Get dashboard data from database
@@ -305,6 +306,12 @@ export default async function DashboardPage() {
             <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Partnership Summary (This Month)</h3>
             {/* Use server helper to compute distributable/net profit and partner shares */}
             <ServerPartnershipSummary monthlyRevenue={data.monthlyRevenue} />
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-lg bg-white shadow mt-4">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Financial Breakdown (Audit)</h3>
+            <FinancialBreakdownClient />
           </div>
         </div>
     </div>

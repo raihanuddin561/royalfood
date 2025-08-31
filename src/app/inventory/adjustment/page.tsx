@@ -1,4 +1,5 @@
 import { Plus, Minus, AlertTriangle, Package, Save, ArrowLeft, Trash2, Calendar } from 'lucide-react'
+import QuickAdjustmentForm from './QuickAdjustmentForm'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
@@ -172,71 +173,9 @@ export default async function StockAdjustmentPage() {
               <p className="text-sm text-gray-600 mt-1">Adjust stock levels or record waste</p>
             </div>
             <div className="p-6">
-              <form className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Item
-                  </label>
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white">
-                    <option value="">Choose an item...</option>
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} - Current: {item.currentStock} {item.unit} - {formatCurrency(item.costPrice)}/{item.unit}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Adjustment Type
-                    </label>
-                    <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white">
-                      <option value="ADJUSTMENT">Stock Adjustment</option>
-                      <option value="WASTE">Record Waste</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Quantity
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
-                      />
-                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
-                        <button
-                          type="button"
-                          className="w-6 h-6 bg-red-100 text-red-600 rounded hover:bg-red-200 flex items-center justify-center"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <button
-                          type="button"
-                          className="w-6 h-6 bg-green-100 text-green-600 rounded hover:bg-green-200 flex items-center justify-center"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reason/Notes
-                  </label>
-                  <textarea
-                    rows={3}
-                    placeholder="Describe the reason for this adjustment..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white resize-none"
-                  ></textarea>
-                </div>
+              {/* Controlled quick adjustment form */}
+              {/* We'll manage selectedItemId, adjustmentType and qty to provide availability guard */}
+              <QuickAdjustmentForm items={items} />
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="flex">
@@ -252,23 +191,6 @@ export default async function StockAdjustmentPage() {
                     </div>
                   </div>
                 </div>
-
-                <div className="flex space-x-3">
-                  <button
-                    type="submit"
-                    className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Adjustment
-                  </button>
-                  <button
-                    type="button"
-                    className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    Clear Form
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
 

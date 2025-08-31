@@ -36,6 +36,9 @@ export default async function ServerPartnershipSummary({ monthlyRevenue }: Props
         <div className="text-center">
           <p className="text-2xl font-bold text-green-600">{formatCurrency(retained)}</p>
           <p className="text-sm text-gray-500">Est. Net Profit</p>
+          {resp?.balanceSheet?.expenseBreakdown && (
+            <p className="text-xs text-gray-400 mt-1">COGS: {formatCurrency(resp.balanceSheet.expenseBreakdown.cogs || 0)} · StockPurch: {formatCurrency(resp.balanceSheet.expenseBreakdown.recordedStockPurchases || 0)}</p>
+          )}
         </div>
       </div>
 

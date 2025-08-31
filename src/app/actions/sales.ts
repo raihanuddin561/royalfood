@@ -1238,10 +1238,16 @@ export async function getComprehensiveProfitAnalysis(
         new Date(c.date).toDateString() === new Date(sale.date).toDateString()
       )
 
-      const directCosts = (cogs?.total_cogs || 0) + (expenses?.stock_expenses || 0)
-      const totalExpenses = (expenses?.total_expenses || 0) + directCosts
-      const grossProfit = sale.total_revenue - directCosts
-      const netProfit = sale.total_revenue - totalExpenses
+  // directCosts should reflect cost of goods sold (COGS) only.
+  // expenseData.total_expenses already includes stock purchases; for profit calculation
+  // we should replace stock purchase expenses with actual COGS to avoid double-counting.
+  const cogsAmount = cogs?.total_cogs || 0
+  const directCosts = cogsAmount
+  // totalExpenses = total recorded expenses (all types) MINUS stock purchases (to avoid double-counting)
+  // plus actual COGS for the period
+  const totalExpenses = (expenses?.total_expenses || 0) - (expenses?.stock_expenses || 0) + cogsAmount
+  const grossProfit = sale.total_revenue - cogsAmount
+  const netProfit = sale.total_revenue - totalExpenses
 
       return {
         date: sale.date.toISOString().split('T')[0],
@@ -1277,6 +1283,13 @@ export async function getComprehensiveProfitAnalysis(
     const totalGrossProfit = totalRevenue - totalDirectCosts
     const totalNetProfit = totalRevenue - totalExpenses
 
+    // Aggregate expense breakdown across the period for UI auditing
+    const totalCOGS = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.costOfGoods || 0), 0)
+    const totalRecordedStockPurchases = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.stockExpenses || 0), 0)
+    const totalPayrollExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.payrollExpenses || 0), 0)
+    const totalOperationalExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.operationalExpenses || 0), 0)
+    const totalOtherExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.otherExpenses || 0), 0)
+
     return {
       success: true,
       period,
@@ -1289,7 +1302,15 @@ export async function getComprehensiveProfitAnalysis(
         grossMargin: totalRevenue > 0 ? (totalGrossProfit / totalRevenue) * 100 : 0,
         netMargin: totalRevenue > 0 ? (totalNetProfit / totalRevenue) * 100 : 0,
         totalSales: combinedData.reduce((sum, day) => sum + day.totalSales, 0),
-        daysWithData: combinedData.length
+        daysWithData: combinedData.length,
+        // Breakdown for UI auditing
+        breakdown: {
+          totalCOGS,
+          totalRecordedStockPurchases,
+          totalPayrollExpenses,
+          totalOperationalExpenses,
+          totalOtherExpenses
+        }
       },
       dailyData: combinedData
     }
@@ -1347,12 +1368,45 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
         AND status = 'COMPLETED'
     ` as Array<{ total_revenue: number }>
 
-    const totalExpenses = await prisma.$queryRaw`
-      SELECT SUM(amount)::FLOAT as total_expenses
-      FROM expenses
-  WHERE "expenseDate" <= ${asOfEnd}
-        AND status IN ('APPROVED', 'PAID')
-    ` as Array<{ total_expenses: number }>
+    // Fetch total recorded expenses up to asOfEnd, broken down by category types
+    const expensesAgg = await prisma.$queryRaw`
+      SELECT 
+        SUM(e.amount)::FLOAT as total_expenses,
+        SUM(CASE WHEN ec.type = 'STOCK' THEN e.amount ELSE 0 END)::FLOAT as stock_expenses,
+        SUM(CASE WHEN ec.type = 'PAYROLL' THEN e.amount ELSE 0 END)::FLOAT as payroll_expenses,
+        SUM(CASE WHEN ec.type = 'OPERATIONAL' THEN e.amount ELSE 0 END)::FLOAT as operational_expenses,
+        SUM(CASE WHEN ec.type IN ('UTILITIES', 'RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') THEN e.amount ELSE 0 END)::FLOAT as other_expenses
+      FROM expenses e
+      JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
+      WHERE e."expenseDate" <= ${asOfEnd}
+        AND e.status IN ('APPROVED', 'PAID')
+    ` as Array<{
+      total_expenses: number
+      stock_expenses: number
+      payroll_expenses: number
+      operational_expenses: number
+      other_expenses: number
+    }>
+
+    // Calculate COGS up to asOfEnd by summing stock-out inventory logs linked to sales
+    const cogsAgg = await prisma.$queryRaw`
+      SELECT SUM(ABS(il.quantity) * i."costPrice")::FLOAT as total_cogs
+      FROM inventory_logs il
+      JOIN items i ON il."itemId" = i.id
+      WHERE il.createdAt <= ${asOfEnd}
+        AND il.type = 'STOCK_OUT'
+        AND il.reason ILIKE '%Sale%'
+    ` as Array<{ total_cogs: number }>
+
+  const totalExpensesRecorded = expensesAgg[0]?.total_expenses || 0
+  const stockExpensesRecorded = expensesAgg[0]?.stock_expenses || 0
+  const payrollExpensesRecorded = expensesAgg[0]?.payroll_expenses || 0
+  const operationalExpensesRecorded = expensesAgg[0]?.operational_expenses || 0
+  const otherExpensesRecorded = expensesAgg[0]?.other_expenses || 0
+  const cogsAmount = cogsAgg[0]?.total_cogs || 0
+
+  // Replace recorded stock purchase expense with actual COGS to avoid double counting
+  const effectiveTotalExpenses = totalExpensesRecorded - stockExpensesRecorded + cogsAmount
 
     const assets = {
       currentAssets: {
@@ -1372,7 +1426,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
       totalLiabilities: (accountsPayable[0]?.total_payable || 0) + (payrollLiabilities[0]?.total_payroll_due || 0)
     }
 
-    const retainedEarnings = (totalRevenue[0]?.total_revenue || 0) - (totalExpenses[0]?.total_expenses || 0)
+  const retainedEarnings = (totalRevenue[0]?.total_revenue || 0) - effectiveTotalExpenses
     const equity = {
       retainedEarnings,
       totalEquity: retainedEarnings
@@ -1417,6 +1471,16 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
         liabilities,
         equity,
         partnershipDistribution,
+        // Expense & COGS breakdown for UI auditing
+        expenseBreakdown: {
+          totalRecordedExpenses: totalExpensesRecorded,
+          recordedStockPurchases: stockExpensesRecorded,
+          payrollExpenses: payrollExpensesRecorded,
+          operationalExpenses: operationalExpensesRecorded,
+          otherExpenses: otherExpensesRecorded,
+          cogs: cogsAmount,
+          effectiveTotalExpenses
+        },
         balanceCheck: assets.totalAssets - liabilities.totalLiabilities - equity.totalEquity
       }
     }

@@ -142,6 +142,20 @@ export default function StockUsageForm({
 
   const selectedItem = items.find(item => item.id === formData.itemId)
 
+  const getAvailable = (it: InventoryItem | undefined) => {
+    if (!it) return 0
+    // prefer currentStock if present, otherwise quantity
+    // @ts-ignore
+    return typeof (it as any).currentStock === 'number' ? (it as any).currentStock : it.quantity ?? 0
+  }
+
+  const overQuantity = (() => {
+    if (!selectedItem || !formData.quantity) return false
+    const q = Number(formData.quantity)
+    if (isNaN(q)) return false
+    return q > getAvailable(selectedItem)
+  })()
+
   return (
     <BaseModal
       isOpen={isOpen}
@@ -248,14 +262,12 @@ export default function StockUsageForm({
                 value={formData.quantity}
                 onChange={(e) => handleInputChange('quantity', e.target.value)}
                 placeholder={`Enter quantity${selectedItem ? ` in ${selectedItem.unit}` : ''}`}
-                className={`block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                  errors.quantity ? 'border-red-300' : ''
-                }`}
+                className={`block w-full rounded-md focus:ring-2 sm:text-sm ${errors.quantity || overQuantity ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
               />
               {selectedItem && (
                 <button
                   type="button"
-                  onClick={() => handleInputChange('quantity', String(selectedItem.quantity))}
+                  onClick={() => handleInputChange('quantity', String(getAvailable(selectedItem)))}
                   className="px-3 py-2 bg-indigo-50 text-indigo-700 rounded-md text-sm border border-indigo-100"
                 >
                   Use all
@@ -269,6 +281,9 @@ export default function StockUsageForm({
             </p>
             {errors.quantity && (
               <p className="mt-1 text-sm text-red-600">{errors.quantity}</p>
+            )}
+            {overQuantity && !errors.quantity && (
+              <p className="mt-1 text-sm text-red-600">Entered quantity exceeds available stock. Available: {selectedItem ? getAvailable(selectedItem) : 0} {selectedItem?.unit}</p>
             )}
           </div>
 
@@ -316,7 +331,7 @@ export default function StockUsageForm({
             <Button variant="secondary" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button variant="primary" type="submit" loading={loading}>
+            <Button variant="primary" type="submit" loading={loading} disabled={loading || overQuantity}>
               {loading ? 'Recording...' : 'Record Usage'}
             </Button>
           </div>

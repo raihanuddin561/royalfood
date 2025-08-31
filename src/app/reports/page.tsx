@@ -241,6 +241,27 @@ export default function FinancialReportsPage() {
         </div>
       )}
 
+      {/* Expense Breakdown Audit (COGS vs recorded stock purchases, payroll, operational) */}
+      {profitAnalysis?.summary?.breakdown && (
+        <div className="mt-6 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900">Expense Breakdown (Audit)</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+            <div className="p-3 border rounded-lg">
+              <p className="text-sm text-gray-600">Cost of Goods Sold (COGS)</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(profitAnalysis.summary.breakdown.totalCOGS)}</p>
+            </div>
+            <div className="p-3 border rounded-lg">
+              <p className="text-sm text-gray-600">Recorded Stock Purchases</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(profitAnalysis.summary.breakdown.totalRecordedStockPurchases)}</p>
+            </div>
+            <div className="p-3 border rounded-lg">
+              <p className="text-sm text-gray-600">Operational + Other</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency((profitAnalysis.summary.breakdown.totalOperationalExpenses || 0) + (profitAnalysis.summary.breakdown.totalOtherExpenses || 0))}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Balance Sheet */}
       {balanceSheet && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
