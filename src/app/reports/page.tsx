@@ -200,7 +200,7 @@ export default function FinancialReportsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-600">{formatCurrency(profitAnalysis.summary.totalExpenses)}</p>
+                <p className="text-2xl font-bold text-red-600">{formatCurrency(profitAnalysis.summary.effectiveTotalExpenses ?? profitAnalysis.summary.totalExpenses)}</p>
                 <p className="text-xs text-gray-500 mt-1">All costs included</p>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">

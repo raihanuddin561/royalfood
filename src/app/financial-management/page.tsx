@@ -54,7 +54,10 @@ export default function FinancialManagementPage() {
         stockExpenses: 0,
         employeeExpenses: 0,
         operationalExpenses: 0,
-        totalExpenses: 0,
+        utilitiesExpenses: 0,
+        otherExpenses: 0,
+        totalRecordedExpenses: 0,
+        effectiveTotalExpenses: 0,
         currentStockValue: 0,
         stockMovement: 0,
         stockTurnover: 0,
@@ -211,7 +214,7 @@ export default function FinancialManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-600">{safeCurrencyFormat(financialData.totalExpenses)}</p>
+                <p className="text-2xl font-bold text-red-600">{safeCurrencyFormat((financialData as any).effectiveTotalExpenses ?? (financialData as any).totalExpenses)}</p>
                 <p className="text-xs text-gray-500 mt-1">All categories</p>
               </div>
               <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">

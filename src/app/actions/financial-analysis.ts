@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { computeExpenseBreakdown } from '@/app/actions/financial-breakdown'
 
 export interface FinancialDataInput {
   date: Date
@@ -18,8 +19,11 @@ export interface ComprehensiveFinancialData {
   // Expense Data
   stockExpenses: number           // Money spent buying inventory
   employeeExpenses: number        // Salaries, wages, benefits
-  operationalExpenses: number     // Rent, utilities, other expenses
-  totalExpenses: number
+  operationalExpenses: number     // Rent, operational and other expenses (excl. utilities)
+  utilitiesExpenses: number       // Utilities specifically
+  otherExpenses: number
+  totalRecordedExpenses: number   // recorded total (may include stock purchases)
+  effectiveTotalExpenses: number  // recorded total MINUS stock purchases + COGS (used for profit)
   
   // Inventory Data
   currentStockValue: number       // Value of current inventory
@@ -104,75 +108,30 @@ export async function getComprehensiveFinancialData({ date, period }: FinancialD
       // Continue with default values (0) if sales data fails
     }
 
-    // 2. GET EXPENSE DATA - with safe handling
+    // 2. GET EXPENSE DATA - use canonical helper to ensure CONSISTENT breakdown (includes utilities)
     let stockExpenses = 0
-    let employeeExpenses = 0  
+    let employeeExpenses = 0
     let operationalExpenses = 0
+    let utilitiesExpenses = 0
+    let otherExpenses = 0
+    let totalRecordedExpenses = 0
+    let effectiveTotalExpenses = 0
+    let cogsAmount = 0
 
     try {
-      const expenseData = await prisma.expense.groupBy({
-        by: ['expenseCategory'],
-        where: {
-          expenseDate: {
-            gte: startDate,
-            lte: endDate
-          },
-          status: 'PAID'
-        },
-        _sum: {
-          amount: true
-        },
-        include: {
-          expenseCategory: {
-            select: {
-              type: true
-            }
-          }
-        }
-      })
-
-      // Process expenses with null safety
-      if (expenseData && Array.isArray(expenseData)) {
-        for (const expense of expenseData) {
-          const amount = expense._sum.amount || 0
-          
-          try {
-            // Get category type
-            const category = await prisma.expenseCategory.findUnique({
-              where: { id: expense.expenseCategory },
-              select: { type: true }
-            })
-
-            if (category) {
-              switch (category.type) {
-                case 'STOCK':
-                  stockExpenses += amount
-                  break
-                case 'PAYROLL':
-                  employeeExpenses += amount
-                  break
-                case 'OPERATIONAL':
-                case 'UTILITIES':
-                case 'RENT':
-                case 'MAINTENANCE':
-                case 'INSURANCE':
-                  operationalExpenses += amount
-                  break
-              }
-            }
-          } catch (categoryError) {
-            console.warn('Error processing expense category:', categoryError)
-            // Add to operational by default if category lookup fails
-            operationalExpenses += amount
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Error fetching expense data, using default values:', error)
-      // Continue with default values (0) if expense data fails
+      const breakdown = await computeExpenseBreakdown(prisma, startDate, endDate)
+      totalRecordedExpenses = breakdown.totalRecordedExpenses || 0
+      stockExpenses = breakdown.recordedStockPurchases || 0
+      employeeExpenses = breakdown.payrollExpenses || 0
+      operationalExpenses = breakdown.operationalExpenses || 0
+      utilitiesExpenses = breakdown.utilitiesExpenses || 0
+      otherExpenses = breakdown.otherExpenses || 0
+      cogsAmount = breakdown.cogs || 0
+      effectiveTotalExpenses = breakdown.effectiveTotalExpenses || 0
+    } catch (err) {
+      console.warn('Failed to compute expense breakdown, falling back to manual grouping', err)
+      // fallback: keep previous values (they are zero)
     }
-
-    const totalExpenses = stockExpenses + employeeExpenses + operationalExpenses
 
     // 3. GET INVENTORY DATA - with safe handling
     let currentStockValue = 0
@@ -202,26 +161,32 @@ export async function getComprehensiveFinancialData({ date, period }: FinancialD
 
     // 4. CALCULATE FINANCIAL METRICS - with safe math operations
     const costOfGoodsSold = stockExpenses
-    const grossProfit = dailySales - costOfGoodsSold
-    const netProfit = grossProfit - employeeExpenses - operationalExpenses
+  const grossProfit = dailySales - costOfGoodsSold
+  // Use effective total expenses (recorded - stock + COGS) for net profit calculation
+  const netProfit = grossProfit - effectiveTotalExpenses
     const profitMargin = dailySales > 0 ? (netProfit / dailySales) * 100 : 0
 
-    // Stock Movement and Turnover - with safe division
-    const stockMovement = stockExpenses // Money spent on stock
-    const stockTurnover = currentStockValue > 0 ? costOfGoodsSold / currentStockValue : 0
+  // Stock Movement and Turnover - with safe division
+  const stockMovement = stockExpenses // Money spent on stock
+  const stockTurnover = currentStockValue > 0 ? costOfGoodsSold / currentStockValue : 0
 
-    // 5. BALANCE SHEET CALCULATIONS - with safe math
-    const estimatedCash = Math.max(0, netProfit)
-    const totalAssets = currentStockValue + estimatedCash
-    const totalLiabilities = Math.max(0, totalExpenses * 0.1) // Assuming 10% outstanding
-    const equity = totalAssets - totalLiabilities
+  // Use recorded totals if available; otherwise derive from components
+  const totalExpensesRecordedComputed = totalRecordedExpenses || (stockExpenses + employeeExpenses + operationalExpenses + utilitiesExpenses + otherExpenses)
 
-    // 6. CASH FLOW - with safe calculations
-    const cashInflow = dailySales
-    const cashOutflow = totalExpenses
-    const netCashFlow = cashInflow - cashOutflow
+  // 5. BALANCE SHEET CALCULATIONS - with safe math
+  const estimatedCash = Math.max(0, netProfit)
+  const totalAssets = currentStockValue + estimatedCash
+  // For liabilities estimate, use recorded totals as base (some payables may be outstanding)
+  const totalLiabilities = Math.max(0, totalExpensesRecordedComputed * 0.1) // Assuming 10% outstanding
+  const equity = totalAssets - totalLiabilities
 
-    const result: ComprehensiveFinancialData = {
+  // 6. CASH FLOW - with safe calculations
+  const cashInflow = dailySales
+  // cash outflow should reflect recorded cash expenses
+  const cashOutflow = totalExpensesRecordedComputed
+  const netCashFlow = cashInflow - cashOutflow
+
+    const result: ComprehensiveFinancialData & { totalExpenses?: number } = {
       date: date.toISOString().split('T')[0],
       
       // Revenue
@@ -229,11 +194,16 @@ export async function getComprehensiveFinancialData({ date, period }: FinancialD
       totalOrders,
       averageOrderValue: Number(averageOrderValue.toFixed(2)),
       
-      // Expenses
-      stockExpenses: Number(stockExpenses.toFixed(2)),
-      employeeExpenses: Number(employeeExpenses.toFixed(2)),
-      operationalExpenses: Number(operationalExpenses.toFixed(2)),
-      totalExpenses: Number(totalExpenses.toFixed(2)),
+  // Expenses
+  stockExpenses: Number(stockExpenses.toFixed(2)),
+  employeeExpenses: Number(employeeExpenses.toFixed(2)),
+  operationalExpenses: Number(operationalExpenses.toFixed(2)),
+  utilitiesExpenses: Number((utilitiesExpenses || 0).toFixed(2)),
+  otherExpenses: Number((otherExpenses || 0).toFixed(2)),
+  totalRecordedExpenses: Number((totalExpensesRecordedComputed || 0).toFixed(2)),
+  effectiveTotalExpenses: Number((effectiveTotalExpenses || 0).toFixed(2)),
+  // Backwards-compatible alias used by existing UI
+  totalExpenses: Number((effectiveTotalExpenses || 0).toFixed(2)),
       
       // Inventory
       currentStockValue: Number(currentStockValue.toFixed(2)),
@@ -250,10 +220,10 @@ export async function getComprehensiveFinancialData({ date, period }: FinancialD
       totalLiabilities: Number(totalLiabilities.toFixed(2)),
       equity: Number(equity.toFixed(2)),
       
-      // Cash Flow
-      cashInflow: Number(cashInflow.toFixed(2)),
-      cashOutflow: Number(cashOutflow.toFixed(2)),
-      netCashFlow: Number(netCashFlow.toFixed(2))
+  // Cash Flow
+  cashInflow: Number(cashInflow.toFixed(2)),
+  cashOutflow: Number(cashOutflow.toFixed(2)),
+  netCashFlow: Number(netCashFlow.toFixed(2))
     }
 
     return {
@@ -265,7 +235,7 @@ export async function getComprehensiveFinancialData({ date, period }: FinancialD
     console.error('Error calculating comprehensive financial data:', error)
     
     // Return default safe values if everything fails
-    const defaultData: ComprehensiveFinancialData = {
+  const defaultData: ComprehensiveFinancialData & { totalExpenses?: number } = {
       date: date.toISOString().split('T')[0],
       dailySales: 0,
       totalOrders: 0,
@@ -273,7 +243,11 @@ export async function getComprehensiveFinancialData({ date, period }: FinancialD
       stockExpenses: 0,
       employeeExpenses: 0,
       operationalExpenses: 0,
-      totalExpenses: 0,
+      utilitiesExpenses: 0,
+      otherExpenses: 0,
+      totalRecordedExpenses: 0,
+  effectiveTotalExpenses: 0,
+  totalExpenses: 0,
       currentStockValue: 0,
       stockMovement: 0,
       stockTurnover: 0,
