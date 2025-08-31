@@ -36,9 +36,9 @@ async function getUsersHandler(request: AuthenticatedRequest) {
         role: true,
         isActive: true,
         createdAt: true,
-        partnerId: true,
+        // don't select scalar partnerId here; use the relation object instead
         partner: {
-          select: { id: true, name: true }
+          select: { id: true, name: true, sharePercent: true }
         },
         employeeProfile: {
           select: {

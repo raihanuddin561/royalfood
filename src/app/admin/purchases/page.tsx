@@ -3,7 +3,14 @@ export const dynamic = 'force-dynamic'
 import Link from 'next/link'
 
 export default async function PurchasesPage() {
-  const purchases = await prisma.purchase.findMany({ orderBy: { purchaseDate: 'desc' }, take: 50, include: { supplier: true } })
+  const purchases = await prisma.purchase.findMany({
+    orderBy: { purchaseDate: 'desc' },
+    take: 50,
+    include: {
+      supplier: true,
+      purchaseItems: { include: { item: true } }
+    }
+  })
 
   return (
     <div>
@@ -18,7 +25,7 @@ export default async function PurchasesPage() {
           <thead>
             <tr className="text-left">
               <th>Purchase#</th>
-              <th>Supplier</th>
+              <th>Items</th>
               <th>Date</th>
               <th>Total</th>
               <th>Status</th>
@@ -29,7 +36,7 @@ export default async function PurchasesPage() {
             {purchases.map(p => (
               <tr key={p.id} className="border-t">
                 <td className="py-2">{p.purchaseNumber}</td>
-                <td className="py-2">{p.supplier?.name}</td>
+                <td className="py-2">{(p.purchaseItems || []).map(pi => pi.item?.name).filter(Boolean).join(', ')}</td>
                 <td className="py-2">{new Date(p.purchaseDate).toLocaleDateString()}</td>
                 <td className="py-2">{p.totalAmount}</td>
                 <td className="py-2">{p.status}</td>

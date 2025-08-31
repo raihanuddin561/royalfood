@@ -19,6 +19,8 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { deleteOrder, getOrdersWithStats } from '@/app/actions/orders'
+import { ConfirmModal } from '@/components/ui/Modal'
+import { useNotification } from '@/components/ui/Notification'
 import Link from 'next/link'
 
 interface OrderData {
@@ -90,6 +92,9 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState('all')
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [targetDeleteId, setTargetDeleteId] = useState<string | null>(null)
+  const { showNotification } = useNotification()
 
   // Load orders data
   useEffect(() => {
@@ -115,29 +120,31 @@ export default function OrdersPage() {
   }
 
   // Handle delete order
-  const handleDeleteOrder = async (orderId: string) => {
-    if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
-      return
-    }
+  const confirmDeleteOrder = (orderId: string) => {
+    setTargetDeleteId(orderId)
+    setShowDeleteConfirm(true)
+  }
 
+  const handleDeleteOrder = async (orderId?: string) => {
+    if (!orderId) return
+
+    setShowDeleteConfirm(false)
     setDeleting(orderId)
     try {
       const result = await deleteOrder(orderId)
-      
       if (result.success) {
-        // Remove order from local state
         setOrders(orders.filter(order => order.id !== orderId))
-        // Reload to get updated stats
         loadOrders()
-        alert('Order deleted successfully!')
+        showNotification('success', 'Order deleted successfully', 'Deleted')
       } else {
-        alert(`Failed to delete order: ${result.error || 'Unknown error'}`)
+        showNotification('error', `Failed to delete order: ${result.error || 'Unknown error'}`, 'Delete Failed')
       }
     } catch (error) {
       console.error('Error deleting order:', error)
-      alert(`Failed to delete order: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      showNotification('error', `Failed to delete order: ${error instanceof Error ? error.message : 'Unknown error'}`, 'Delete Failed')
     } finally {
       setDeleting(null)
+      setTargetDeleteId(null)
     }
   }
 
@@ -411,7 +418,7 @@ export default function OrdersPage() {
                       <Edit className="h-4 w-4" />
                     </Link>
                     <button 
-                      onClick={() => handleDeleteOrder(order.id)}
+                      onClick={() => confirmDeleteOrder(order.id)}
                       disabled={deleting === order.id}
                       className="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Delete Order"
@@ -510,5 +517,14 @@ export default function OrdersPage() {
         </div>
       </div>
     </div>
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        title="Delete order"
+        description="Are you sure you want to delete this order? This action cannot be undone."
+        onConfirm={() => handleDeleteOrder(targetDeleteId || undefined)}
+        onCancel={() => { setShowDeleteConfirm(false); setTargetDeleteId(null) }}
+        confirmLabel="Yes, delete"
+        cancelLabel="Cancel"
+      />
   )
 }

@@ -1,8 +1,46 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-async function normalizeActivePartners(activePartners: Array<any>) {
+async function normalizeActivePartners(activePartners: Array<any>, preserveId?: string) {
   if (!activePartners || activePartners.length === 0) return
+
+  // If a preserveId is given we should keep that partner's percent unchanged and
+  // scale the remaining active partners so the total still becomes 100.
+  if (preserveId) {
+    const preserved = activePartners.find((p: any) => p.id === preserveId)
+    // if preserved not found, fall back to full normalization
+    if (preserved) {
+      const preservedSp = Number(preserved.sharePercent || 0)
+      const others = activePartners.filter((p: any) => p.id !== preserveId)
+      const totalOthers = others.reduce((s: number, p: any) => s + (Number(p.sharePercent || 0)), 0)
+      let remaining = 100 - preservedSp
+      if (remaining < 0) remaining = 0
+
+      if (others.length === 0) {
+        // nothing else to update
+        return
+      }
+
+      if (totalOthers === 0) {
+        // distribute remaining evenly among others
+        const per = remaining / others.length
+        for (const p of others) {
+          await prisma.partner.update({ where: { id: p.id }, data: { sharePercent: per } })
+        }
+        return
+      }
+
+      // scale other partners proportionally so their sum == remaining
+      for (const p of others) {
+        const normalized = ((Number(p.sharePercent || 0)) / totalOthers) * remaining
+        await prisma.partner.update({ where: { id: p.id }, data: { sharePercent: normalized } })
+      }
+      return
+    }
+    // if preserved partner not part of activePartners, continue to full normalize
+  }
+
+  // Full normalization (no preserved partner): scale all actives to sum to 100
   const total = activePartners.reduce((s, p) => s + (p.sharePercent || 0), 0)
   if (Math.abs(total - 100) < 0.0001) return // already normalized
 
@@ -44,14 +82,32 @@ export async function POST(req: Request) {
     if (isNaN(sp) || sp < 0) {
       return NextResponse.json({ success: false, error: 'sharePercent must be a valid non-negative number' }, { status: 400 })
     }
-    // Create partner then normalize active partners to sum to 100%
-    const partner = await prisma.partner.create({
-      data: { name, email, phone: phone || null, address: address || null, sharePercent: sp, isActive: Boolean(isActive) }
+    // Use upsert to avoid unique constraint failures on email.
+    // If a partner with this email exists, update provided fields; otherwise create.
+    const partner = await prisma.partner.upsert({
+      where: { email },
+      update: {
+        name,
+        phone: phone || null,
+        address: address || null,
+        sharePercent: sp,
+        isActive: Boolean(isActive)
+      },
+      create: {
+        name,
+        email,
+        phone: phone || null,
+        address: address || null,
+        sharePercent: sp,
+        isActive: Boolean(isActive)
+      }
     })
 
-    // Recalculate and normalize active partners
-    const activePartners = await prisma.partner.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } })
-    await normalizeActivePartners(activePartners)
+  // Recalculate and normalize active partners
+  const activePartners = await prisma.partner.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } })
+  // if sharePercent was provided we preserve this partner's percent and adjust others
+  const preserveId = typeof sharePercent !== 'undefined' ? partner.id : undefined
+  await normalizeActivePartners(activePartners, preserveId)
 
     const refreshed = await prisma.partner.findUnique({ where: { id: partner.id } })
     return NextResponse.json({ success: true, data: refreshed })
@@ -64,7 +120,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const body = await req.json()
-    const { id, name, email, phone, address, sharePercent, isActive } = body
+  const { id, name, email, phone, address, sharePercent, isActive, skipNormalize } = body
     if (!id) return NextResponse.json({ success: false, error: 'id required' }, { status: 400 })
 
     const data: any = {}
@@ -82,8 +138,12 @@ export async function PATCH(req: Request) {
   const partner = await prisma.partner.update({ where: { id }, data })
 
   // After update, normalize active partners so total sharePercent == 100
-  const activePartners = await prisma.partner.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } })
-  await normalizeActivePartners(activePartners)
+  if (!skipNormalize) {
+    const activePartners = await prisma.partner.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } })
+    // if sharePercent was in request we want to preserve this partner's percent
+    const preserveId = typeof sharePercent !== 'undefined' ? id : undefined
+    await normalizeActivePartners(activePartners, preserveId)
+  }
 
   const refreshed = await prisma.partner.findUnique({ where: { id: partner.id } })
   return NextResponse.json({ success: true, data: refreshed })

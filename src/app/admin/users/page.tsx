@@ -85,8 +85,9 @@ export default function UsersManagement() {
       try {
         const res = await fetch('/api/partners')
         if (res.ok) {
-          const data = await res.json()
-          setPartners(data)
+          const payload = await res.json()
+          const list = Array.isArray(payload) ? payload : (payload?.data ?? [])
+          setPartners(list)
         }
       } catch (err) {
         // ignore
@@ -168,6 +169,51 @@ export default function UsersManagement() {
       }
     } catch (error) {
       showNotification('error', 'Error updating user status')
+    }
+  }
+
+  // Edit user
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [editSubmitting, setEditSubmitting] = useState(false)
+  const [editForm, setEditForm] = useState<{ name: string; role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE'; partnerId: string | null; isActive: boolean }>({ name: '', role: 'EMPLOYEE', partnerId: null, isActive: true })
+
+  const openEdit = (user: User) => {
+    setEditingUser(user)
+    setEditForm({
+      name: user.name || '',
+      role: user.role,
+      partnerId: user.partner?.id ?? null,
+      isActive: user.isActive
+    })
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingUser) return
+    setEditSubmitting(true)
+    try {
+      const body: any = { name: editForm.name, role: editForm.role, isActive: editForm.isActive }
+      // include partnerId explicitly (nullable)
+      body.partnerId = editForm.partnerId
+
+      const res = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      if (res.ok) {
+        showNotification('success', 'User updated')
+        setEditingUser(null)
+        await fetchUsers()
+      } else {
+        const err = await res.json()
+        showNotification('error', err.error || 'Failed to update user')
+      }
+    } catch (err) {
+      showNotification('error', 'Network error while updating user')
+    } finally {
+      setEditSubmitting(false)
     }
   }
 
@@ -391,6 +437,49 @@ export default function UsersManagement() {
           </BaseModal>
         )}
 
+        {/* Edit User Modal */}
+        {editingUser && (
+          <BaseModal
+            isOpen={!!editingUser}
+            onClose={() => setEditingUser(null)}
+            title={`Edit User: ${editingUser.name}`}
+            description="Update user details"
+            size="md"
+          >
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="w-full p-2 border rounded" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as any })} className="w-full p-2 border rounded">
+                  <option value="EMPLOYEE">Employee</option>
+                  <option value="MANAGER">Manager</option>
+                  {/* Prevent editing admin role in UI - show if present but don't allow assignment */}
+                  {editingUser.role === 'ADMIN' && <option value="ADMIN">Admin</option>}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Partner</label>
+                <select value={editForm.partnerId || ''} onChange={(e) => setEditForm({ ...editForm, partnerId: e.target.value || null })} className="w-full p-2 border rounded">
+                  <option value="">No partner</option>
+                  {(partners || []).map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center space-x-3">
+                <Button type="submit" variant="primary" loading={editSubmitting}>Save</Button>
+                <Button type="button" variant="secondary" onClick={() => setEditingUser(null)}>Cancel</Button>
+              </div>
+            </form>
+          </BaseModal>
+        )}
+
         {/* Users List */}
         <div className="bg-white shadow-sm rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -454,47 +543,33 @@ export default function UsersManagement() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center space-x-2">
                         {user.role !== 'ADMIN' && (
-                          <button
-                            onClick={() => handleToggleUserStatus(user.id, user.isActive)}
-                            className={`px-3 py-1 rounded text-xs font-medium ${
-                              user.isActive
-                                ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                                : 'bg-green-100 text-green-700 hover:bg-green-200'
-                            } transition-colors`}
-                          >
-                            {user.isActive ? 'Deactivate' : 'Activate'}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleToggleUserStatus(user.id, user.isActive)}
+                              className={`px-3 py-1 rounded text-xs font-medium ${
+                                user.isActive
+                                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+                              } transition-colors`}
+                            >
+                              {user.isActive ? 'Deactivate' : 'Activate'}
+                            </button>
+
+                            <button
+                              onClick={() => openEdit(user)}
+                              className="px-3 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors"
+                            >
+                              Edit
+                            </button>
+                          </>
                         )}
 
-                        {/* Partner assignment dropdown */}
-                        <select
-                          value={user.partnerId || ''}
-                          onChange={async (e) => {
-                            const partnerId = e.target.value || null
-                            try {
-                              const res = await fetch(`/api/admin/users/${user.id}`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ partnerId })
-                              })
-                              if (res.ok) {
-                                showNotification('success', 'Partner assignment updated')
-                                fetchUsers()
-                              } else {
-                                const err = await res.json()
-                                showNotification('error', err.error || 'Failed to update partner')
-                              }
-                            } catch (err) {
-                              showNotification('error', 'Network error')
-                            }
-                          }}
-                          className="px-2 py-1 border rounded text-sm"
-                        >
-                          <option value="">No partner</option>
-                          {partners.map((p) => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                          ))}
-                        </select>
+                        {/* Show partner share percent if assigned */}
+                        {user.partner ? (
+                          <div className="px-2 py-1 text-sm text-gray-700">{user.partner.name} — {user.partner.sharePercent?.toFixed?.(2) ?? user.partner.sharePercent}%</div>
+                        ) : (
+                          <div className="px-2 py-1 text-sm text-gray-400">No partner</div>
+                        )}
                       </div>
                     </td>
                   </tr>
