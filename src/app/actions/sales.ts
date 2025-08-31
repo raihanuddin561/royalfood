@@ -1247,9 +1247,14 @@ export async function getComprehensiveProfitAnalysis(
   // we should replace stock purchase expenses with actual COGS to avoid double-counting.
   const cogsAmount = cogs?.total_cogs || 0
   const directCosts = cogsAmount
-  // totalExpenses = total recorded expenses (all types) MINUS stock purchases (to avoid double-counting)
-  // plus actual COGS for the period
-  const totalExpenses = (expenses?.total_expenses || 0) - (expenses?.stock_expenses || 0) + cogsAmount
+  // totalRecordedForDay: prefer aggregated total_expenses if present, otherwise sum components
+  const totalRecordedForDay = (expenses?.total_expenses !== undefined && expenses?.total_expenses !== null)
+    ? expenses.total_expenses
+    : ((expenses?.stock_expenses || 0) + (expenses?.payroll_expenses || 0) + (expenses?.operational_expenses || 0) + (expenses?.utilities_expenses || 0) + (expenses?.other_expenses || 0))
+  // effectiveTotalExpenses for the day = recorded total - recorded stock purchases + actual COGS
+  const effectiveTotalForDay = (totalRecordedForDay || 0) - (expenses?.stock_expenses || 0) + cogsAmount
+  // totalExpenses (legacy) kept for backward compatibility (was used previously as effective total)
+  const totalExpenses = effectiveTotalForDay
   const grossProfit = sale.total_revenue - cogsAmount
   const netProfit = sale.total_revenue - totalExpenses
 
@@ -1258,7 +1263,10 @@ export async function getComprehensiveProfitAnalysis(
         totalSales: sale.total_sales,
         totalRevenue: sale.total_revenue,
         directCosts,
-        totalExpenses,
+  totalExpenses,
+  // expose recorded and effective totals per day for auditability
+  totalRecordedExpenses: totalRecordedForDay || 0,
+  effectiveTotalExpenses: effectiveTotalForDay || 0,
         grossProfit,
         netProfit,
         grossMargin: sale.total_revenue > 0 ? (grossProfit / sale.total_revenue) * 100 : 0,
@@ -1285,8 +1293,11 @@ export async function getComprehensiveProfitAnalysis(
     const totalRevenue = combinedData.reduce((sum, day) => sum + day.totalRevenue, 0)
     const totalDirectCosts = combinedData.reduce((sum, day) => sum + day.directCosts, 0)
     const totalExpenses = combinedData.reduce((sum, day) => sum + day.totalExpenses, 0)
+    // Aggregated recorded and effective totals across the period
+    const totalRecordedExpenses = combinedData.reduce((sum, day) => sum + (day.totalRecordedExpenses || 0), 0)
+    const totalEffectiveExpenses = combinedData.reduce((sum, day) => sum + (day.effectiveTotalExpenses || 0), 0)
     const totalGrossProfit = totalRevenue - totalDirectCosts
-    const totalNetProfit = totalRevenue - totalExpenses
+    const totalNetProfit = totalRevenue - totalEffectiveExpenses
 
     // Aggregate expense breakdown across the period for UI auditing
   const totalCOGS = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.costOfGoods || 0), 0)
@@ -1300,11 +1311,13 @@ export async function getComprehensiveProfitAnalysis(
       success: true,
       period,
       summary: {
-        totalRevenue,
-        totalDirectCosts,
-        totalExpenses,
-        totalGrossProfit,
-        totalNetProfit,
+  totalRevenue,
+  totalDirectCosts,
+  totalExpenses,
+  totalRecordedExpenses,
+  effectiveTotalExpenses: totalEffectiveExpenses,
+  totalGrossProfit,
+  totalNetProfit,
         grossMargin: totalRevenue > 0 ? (totalGrossProfit / totalRevenue) * 100 : 0,
         netMargin: totalRevenue > 0 ? (totalNetProfit / totalRevenue) * 100 : 0,
         totalSales: combinedData.reduce((sum, day) => sum + day.totalSales, 0),
@@ -1402,7 +1415,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
       SELECT SUM(ABS(il.quantity) * i."costPrice")::FLOAT as total_cogs
       FROM inventory_logs il
       JOIN items i ON il."itemId" = i.id
-      WHERE il.createdAt <= ${asOfEnd}
+      WHERE il."createdAt" <= ${asOfEnd}
         AND il.type = 'STOCK_OUT'
         AND il.reason ILIKE '%Sale%'
     ` as Array<{ total_cogs: number }>
