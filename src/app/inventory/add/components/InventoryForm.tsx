@@ -8,6 +8,8 @@ import { createInventoryItem } from '@/app/actions/inventory'
 import { CustomUnitSelector } from '../../components/CustomUnitSelector'
 import { useNotification, Notification } from '@/components/ui/Notification'
 import { ConfirmModal } from '@/components/ui/Modal'
+import { SmartQuantityInput } from '@/components/ui/SmartQuantityInput'
+import { SmartPriceInput } from '@/components/ui/SmartPriceInput'
 
 interface Category {
   id: string
@@ -41,6 +43,9 @@ function SubmitButton() {
 
 export default function InventoryForm({ categories, suppliers }: InventoryFormProps) {
   const [selectedUnit, setSelectedUnit] = useState('')
+  const [costPrice, setCostPrice] = useState(0)
+  const [initialStock, setInitialStock] = useState(0)
+  const [reorderLevel, setReorderLevel] = useState(0)
   const today = new Date().toISOString().split('T')[0]
   const [receivedDate, setReceivedDate] = useState(today)
   const { showNotification, notification, clearNotification } = useNotification()
@@ -155,45 +160,42 @@ export default function InventoryForm({ categories, suppliers }: InventoryFormPr
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Cost Price <span className="text-red-500">*</span>
             </label>
-            <input
-              name="costPrice"
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
+            <SmartPriceInput
+              value={costPrice}
+              onChange={setCostPrice}
+              currency="৳"
               placeholder="0.00"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
+              className="w-full"
             />
+            <input name="costPrice" type="hidden" value={costPrice} />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Initial Stock <span className="text-red-500">*</span>
             </label>
-            <input
-              name="initialStock"
-              type="number"
-              step="0.01"
-              min="0"
-              required
+            <SmartQuantityInput
+              value={initialStock}
+              onChange={setInitialStock}
+              unit={selectedUnit}
               placeholder="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+            <input name="initialStock" type="hidden" value={initialStock} />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Reorder Level <span className="text-red-500">*</span>
             </label>
-            <input
-              name="reorderLevel"
-              type="number"
-              step="0.01"
-              min="0"
-              required
+            <SmartQuantityInput
+              value={reorderLevel}
+              onChange={setReorderLevel}
+              unit={selectedUnit}
               placeholder="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 bg-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
+            <input name="reorderLevel" type="hidden" value={reorderLevel} />
           </div>
 
           <div>
