@@ -9,6 +9,7 @@ interface InventoryItem {
   id: string
   name: string
   quantity: number
+  currentStock?: number
   unit: string
   costPrice: number
   category: {
@@ -54,7 +55,9 @@ export default function StandaloneStockUsageForm() {
         
         if (itemsResponse.ok) {
           const itemsData = await itemsResponse.json()
-          setItems(itemsData)
+          // Handle both API formats
+          const itemsList = itemsData.success ? itemsData.items : itemsData
+          setItems(itemsList || [])
         }
         
         if (menuResponse.ok) {
@@ -75,9 +78,8 @@ export default function StandaloneStockUsageForm() {
 
   const getAvailable = (it: InventoryItem | undefined) => {
     if (!it) return 0
-    // some endpoints return `currentStock`, others `quantity` — prefer currentStock when present
-    // @ts-ignore
-    return typeof (it as any).currentStock === 'number' ? (it as any).currentStock : it.quantity ?? 0
+    // Use currentStock if available, otherwise fall back to quantity
+    return it.currentStock ?? it.quantity ?? 0
   }
 
   // Over-quantity guards
@@ -136,7 +138,7 @@ export default function StandaloneStockUsageForm() {
           usageDate: usageDate || undefined
         })
 
-  if (result.success) {
+        if (result.success) {
           setSuccess(true)
           // Reset form
           setSelectedItemId('')
@@ -148,7 +150,7 @@ export default function StandaloneStockUsageForm() {
           setTimeout(() => setSuccess(false), 3000)
           window.location.reload()
         } else {
-          showNotification('error', result.error || 'Failed to record stock usage')
+          showNotification('error', (result as any).message || (result as any).error || 'Failed to record stock usage')
         }
       } else {
         // ITEM mode: call server-side batch recorder for atomic update
@@ -163,15 +165,15 @@ export default function StandaloneStockUsageForm() {
           }
 
           const res = await recordMultipleStockUsage(payload)
-            if (res.success) {
+          if (res.success) {
             setSuccess(true)
             setEntries([{ itemId: '', quantity: '' }])
             setDescription('')
             setTimeout(() => setSuccess(false), 3000)
             window.location.reload()
           } else {
-            const msg = res.error || 'Failed to record batch stock usage'
-            const details = res.details ? JSON.stringify(res.details) : ''
+            const msg = (res as any).message || (res as any).error || 'Failed to record batch stock usage'
+            const details = (res as any).details ? JSON.stringify((res as any).details) : ''
             showNotification('error', msg + (details ? '\n' + details : ''))
           }
         } catch (err) {
@@ -291,7 +293,7 @@ export default function StandaloneStockUsageForm() {
             <option value="">Choose an item...</option>
             {items.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.name} ({item.quantity} {item.unit} available - ${item.costPrice.toFixed(2)}/{item.unit})
+                {item.name} ({getAvailable(item)} {item.unit} available - ${item.costPrice.toFixed(2)}/{item.unit})
               </option>
             ))}
           </select>
@@ -318,7 +320,7 @@ export default function StandaloneStockUsageForm() {
               {selectedItem && (
                 <button
                   type="button"
-                  onClick={() => setQuantity(String(selectedItem.quantity))}
+                  onClick={() => setQuantity(String(getAvailable(selectedItem)))}
                   className="px-3 py-2 bg-indigo-50 text-indigo-700 rounded-md text-sm border border-indigo-100"
                 >
                   Use all
@@ -356,7 +358,7 @@ export default function StandaloneStockUsageForm() {
                   >
                     <option value="">Select item...</option>
                     {items.map(item => (
-                      <option key={item.id} value={item.id}>{item.name} ({item.quantity} {item.unit})</option>
+                      <option key={item.id} value={item.id}>{item.name} ({getAvailable(item)} {item.unit})</option>
                     ))}
                   </select>
                   {/* Show available stock immediately when an item is selected */}
@@ -364,7 +366,7 @@ export default function StandaloneStockUsageForm() {
                     const it = items.find(i => i.id === en.itemId)
                     if (!it) return null
                     return (
-                      <p className="mt-1 text-xs text-gray-600">Available: {it.currentStock} {it.unit}</p>
+                      <p className="mt-1 text-xs text-gray-600">Available: {getAvailable(it)} {it.unit}</p>
                     )
                   })()}
                 </div>

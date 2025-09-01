@@ -136,17 +136,17 @@ async function getStockUsageData() {
     // Calculate statistics
     const todayStats = {
       totalCost: todayUsage.reduce((sum, usage) => sum + usage.totalCost, 0),
-      recipeUsage: todayUsage.filter(u => u.usageType === 'RECIPE').reduce((sum, usage) => sum + usage.totalCost, 0),
-      wastage: todayUsage.filter(u => u.usageType === 'WASTAGE').reduce((sum, usage) => sum + usage.totalCost, 0),
-      otherUsage: todayUsage.filter(u => u.usageType === 'OTHER').reduce((sum, usage) => sum + usage.totalCost, 0),
+      recipeUsage: todayUsage.filter(u => u.reason === 'PRODUCTION').reduce((sum, usage) => sum + usage.totalCost, 0),
+      wastage: todayUsage.filter(u => u.reason === 'WASTE').reduce((sum, usage) => sum + usage.totalCost, 0),
+      otherUsage: todayUsage.filter(u => !['PRODUCTION', 'WASTE'].includes(u.reason)).reduce((sum, usage) => sum + usage.totalCost, 0),
       count: todayUsage.length
     }
 
     const weeklyStats = {
       totalCost: weeklyUsage.reduce((sum, usage) => sum + usage.totalCost, 0),
-      recipeUsage: weeklyUsage.filter(u => u.usageType === 'RECIPE').reduce((sum, usage) => sum + usage.totalCost, 0),
-      wastage: weeklyUsage.filter(u => u.usageType === 'WASTAGE').reduce((sum, usage) => sum + usage.totalCost, 0),
-      otherUsage: weeklyUsage.filter(u => u.usageType === 'OTHER').reduce((sum, usage) => sum + usage.totalCost, 0),
+      recipeUsage: weeklyUsage.filter(u => u.reason === 'PRODUCTION').reduce((sum, usage) => sum + usage.totalCost, 0),
+      wastage: weeklyUsage.filter(u => u.reason === 'WASTE').reduce((sum, usage) => sum + usage.totalCost, 0),
+      otherUsage: weeklyUsage.filter(u => !['PRODUCTION', 'WASTE'].includes(u.reason)).reduce((sum, usage) => sum + usage.totalCost, 0),
       count: weeklyUsage.length
     }
 
@@ -169,7 +169,12 @@ async function getStockUsageData() {
       recentUsage: [],
       todayStats: { totalCost: 0, recipeUsage: 0, wastage: 0, otherUsage: 0, count: 0 },
       weeklyStats: { totalCost: 0, recipeUsage: 0, wastage: 0, otherUsage: 0, count: 0 },
-      monthlyTotal: 0
+      monthlyTotal: 0,
+      integrity: {
+        ordersMissingUsage: [],
+        anomalies: [],
+        missingDays: []
+      }
     }
   }
 }
@@ -296,15 +301,15 @@ export default async function StockUsagePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-yellow-50 rounded">
               <p className="text-sm text-gray-700">Orders without usage (past week)</p>
-              <p className="text-2xl font-bold text-gray-900">{integrity.ordersMissingUsage.length}</p>
+              <p className="text-2xl font-bold text-gray-900">{(integrity?.ordersMissingUsage as any[])?.length ?? 0}</p>
             </div>
             <div className="p-4 bg-red-50 rounded">
               <p className="text-sm text-gray-700">Anomalous usage rows (qty ≤ 0 or cost ≤ 0)</p>
-              <p className="text-2xl font-bold text-red-700">{integrity.anomalies.length}</p>
+              <p className="text-2xl font-bold text-red-700">{integrity?.anomalies?.length ?? 0}</p>
             </div>
             <div className="p-4 bg-blue-50 rounded">
               <p className="text-sm text-gray-700">Days with no usage (past week)</p>
-              <p className="text-2xl font-bold text-blue-700">{integrity.missingDays.length}</p>
+              <p className="text-2xl font-bold text-blue-700">{integrity?.missingDays?.length ?? 0}</p>
             </div>
           </div>
 
@@ -312,11 +317,11 @@ export default async function StockUsagePage() {
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <h4 className="text-sm font-medium text-gray-800 mb-2">Recent orders missing usage</h4>
-              {integrity.ordersMissingUsage.length === 0 ? (
+              {((integrity?.ordersMissingUsage as any[])?.length ?? 0) === 0 ? (
                 <p className="text-xs text-gray-500">None</p>
               ) : (
                 <ul className="text-sm text-gray-700 space-y-1">
-                  {integrity.ordersMissingUsage.slice(0,6).map((o: any) => (
+                  {((integrity?.ordersMissingUsage as any[]) ?? []).slice(0,6).map((o: any) => (
                     <li key={o.id}>{o.orderNumber} • {new Date(o.createdAt).toLocaleString()}</li>
                   ))}
                 </ul>
@@ -325,11 +330,11 @@ export default async function StockUsagePage() {
 
             <div>
               <h4 className="text-sm font-medium text-gray-800 mb-2">Anomalous usage rows</h4>
-              {integrity.anomalies.length === 0 ? (
+              {(integrity?.anomalies?.length ?? 0) === 0 ? (
                 <p className="text-xs text-gray-500">None</p>
               ) : (
                 <ul className="text-sm text-gray-700 space-y-1">
-                  {integrity.anomalies.slice(0,6).map((a: any) => (
+                  {(integrity?.anomalies ?? []).slice(0,6).map((a: any) => (
                     <li key={a.id}>{a.item?.name || a.itemId} • Qty: {a.quantity} • Cost: {a.totalCost} • {a.menuItem?.name || '—'}</li>
                   ))}
                 </ul>
@@ -338,11 +343,11 @@ export default async function StockUsagePage() {
 
             <div>
               <h4 className="text-sm font-medium text-gray-800 mb-2">Missing days</h4>
-              {integrity.missingDays.length === 0 ? (
+              {(integrity?.missingDays?.length ?? 0) === 0 ? (
                 <p className="text-xs text-gray-500">None</p>
               ) : (
                 <ul className="text-sm text-gray-700 space-y-1">
-                  {integrity.missingDays.map((d: string) => (<li key={d}>{d}</li>))}
+                  {(integrity?.missingDays ?? []).map((d: string) => (<li key={d}>{d}</li>))}
                 </ul>
               )}
             </div>
@@ -381,15 +386,15 @@ export default async function StockUsagePage() {
                     <div key={usage.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center space-x-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          usage.usageType === 'RECIPE' 
+                          usage.reason === 'PRODUCTION' 
                             ? 'bg-green-100' 
-                            : usage.usageType === 'WASTAGE' 
+                            : usage.reason === 'WASTE' 
                               ? 'bg-red-100' 
                               : 'bg-orange-100'
                         }`}>
-                          {usage.usageType === 'RECIPE' ? (
+                          {usage.reason === 'PRODUCTION' ? (
                             <Package className="w-4 h-4 text-green-600" />
-                          ) : usage.usageType === 'WASTAGE' ? (
+                          ) : usage.reason === 'WASTE' ? (
                             <AlertTriangle className="w-4 h-4 text-red-600" />
                           ) : (
                             <Activity className="w-4 h-4 text-orange-600" />
@@ -398,7 +403,7 @@ export default async function StockUsagePage() {
                         <div>
                           <p className="text-sm font-medium text-gray-900">{usage.item.name}</p>
                           <p className="text-xs text-gray-500">
-                            Quantity: {usage.quantity} {usage.item.unit} • {usage.usageType}
+                            Quantity: {usage.quantity} {usage.item.unit} • {usage.reason}
                             {usage.menuItem && ` • ${usage.menuItem.name}`}
                           </p>
                         </div>
@@ -433,15 +438,15 @@ export default async function StockUsagePage() {
                   <div key={usage.id} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg border border-gray-100">
                     <div className="flex items-center space-x-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        usage.usageType === 'RECIPE' 
+                        usage.reason === 'PRODUCTION' 
                           ? 'bg-green-100' 
-                          : usage.usageType === 'WASTAGE' 
+                          : usage.reason === 'WASTE' 
                             ? 'bg-red-100' 
                             : 'bg-orange-100'
                       }`}>
-                        {usage.usageType === 'RECIPE' ? (
+                        {usage.reason === 'PRODUCTION' ? (
                           <Package className="w-4 h-4 text-green-600" />
-                        ) : usage.usageType === 'WASTAGE' ? (
+                        ) : usage.reason === 'WASTE' ? (
                           <AlertTriangle className="w-4 h-4 text-red-600" />
                         ) : (
                           <Activity className="w-4 h-4 text-orange-600" />
@@ -450,11 +455,11 @@ export default async function StockUsagePage() {
                       <div>
                         <p className="text-sm font-medium text-gray-900">{usage.item.name}</p>
                         <p className="text-xs text-gray-500">
-                          Quantity: {usage.quantity} {usage.item.unit} • {usage.usageType}
+                          Quantity: {usage.quantity} {usage.item.unit} • {usage.reason}
                           {usage.menuItem && ` • ${usage.menuItem.name}`}
                         </p>
-                        {usage.description && (
-                          <p className="text-xs text-gray-400 mt-1">{usage.description}</p>
+                        {(usage as any).description && (
+                          <p className="text-xs text-gray-400 mt-1">{(usage as any).description}</p>
                         )}
                       </div>
                     </div>
