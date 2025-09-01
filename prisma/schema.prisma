@@ -531,6 +531,7 @@ model Sale {
   discountAmount Float        @default(0)
   deliveryFee   Float         @default(0)
   totalAmount   Float         @default(0) // For backward compatibility
+  finalAmount   Float         @default(0) // Backward compatibility for existing code
   paymentMethod PaymentMethod
   status        SaleStatus    @default(COMPLETED)
   notes         String?

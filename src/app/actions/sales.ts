@@ -133,9 +133,9 @@ export async function createDailySale(data: CreateDailySaleData) {
           saleNumber: generateSaleNumber(),
           userId: adminUser.id,
           saleDate: data.saleDate || new Date(),
-          totalAmount,
+          totalAmount: finalAmount, // Total after discount
           discountAmount,
-          finalAmount,
+          finalAmount, // Keep for backward compatibility
           paymentMethod: data.paymentMethod,
           status: 'COMPLETED',
           notes: data.notes || null
@@ -200,7 +200,7 @@ export async function createDailySale(data: CreateDailySaleData) {
       data: {
         saleId: result.sale.id,
         saleNumber: result.sale.saleNumber,
-        finalAmount,
+        totalAmount: finalAmount,
         grossProfit: result.grossProfit,
         itemsSold: result.itemsSold
       }
@@ -262,10 +262,10 @@ export async function createQuickSale(formData: FormData) {
       data: {
         saleNumber: generateSaleNumber(),
         userId: adminUser.id,
-  saleDate: saleDate,
+        saleDate: saleDate,
         totalAmount,
         discountAmount: 0,
-        finalAmount: totalAmount,
+        finalAmount: totalAmount, // For quick sale, final amount equals total amount
         paymentMethod: paymentMethod as any,
         status: 'COMPLETED',
         notes: notes || 'Quick sale - total amount entry'
@@ -282,7 +282,7 @@ export async function createQuickSale(formData: FormData) {
       data: {
         saleId: sale.id,
         saleNumber: sale.saleNumber,
-        finalAmount: totalAmount
+        totalAmount: totalAmount
       }
     }
   } catch (error) {
