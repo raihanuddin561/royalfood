@@ -113,7 +113,7 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
             </select>
             <div className="flex flex-col">
               <label htmlFor={`qty-${i}`} className="text-xs text-gray-600">Quantity</label>
-              <input id={`qty-${i}`} className="input w-24" type="number" min={0} value={l.quantity} onChange={e => updateLine(i, { quantity: Number(e.target.value) })} />
+              <input id={`qty-${i}`} className="input w-24" type="number" step="0.01" min={0} value={l.quantity} onChange={e => updateLine(i, { quantity: parseFloat(e.target.value || '0') })} />
             </div>
             <div className="flex flex-col">
               <label htmlFor={`price-${i}`} className="text-xs text-gray-600">Unit price</label>
