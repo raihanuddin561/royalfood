@@ -95,8 +95,18 @@ function ExpensePageContent() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showExpenseForm, setShowExpenseForm] = useState(false)
   const [dateRange, setDateRange] = useState({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-    to: new Date()
+    from: (() => {
+      const now = new Date()
+      // Start from beginning of previous month to catch all recent expenses
+      const startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+      startDate.setHours(0, 0, 0, 0)
+      return startDate
+    })(),
+    to: (() => {
+      const now = new Date()
+      now.setHours(23, 59, 59, 999)
+      return now
+    })()
   })
 
   useEffect(() => {
