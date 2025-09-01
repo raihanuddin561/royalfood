@@ -34,6 +34,7 @@ export async function GET(req: Request) {
     const transformedItems = items.map(item => ({
       id: item.id,
       name: item.name,
+      quantity: item.currentStock, // Map currentStock to quantity for form compatibility
       currentStock: item.currentStock,
       unit: item.unit,
       costPrice: item.costPrice,
@@ -42,7 +43,10 @@ export async function GET(req: Request) {
 
     console.log('Transformed items:', transformedItems)
 
-    return NextResponse.json(transformedItems)
+    return NextResponse.json({
+      success: true,
+      items: transformedItems
+    })
   } catch (error) {
     console.error('Error fetching inventory items:', error)
     return NextResponse.json(

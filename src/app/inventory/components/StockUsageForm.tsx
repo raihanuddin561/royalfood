@@ -19,6 +19,7 @@ interface InventoryItem {
   id: string
   name: string
   quantity: number
+  currentStock?: number
   unit: string
   costPrice?: number
   category: {
@@ -77,8 +78,8 @@ export default function StockUsageForm({
     }
 
     const selectedItem = items.find(item => item.id === formData.itemId)
-    if (selectedItem && Number(formData.quantity) > selectedItem.quantity) {
-      newErrors.quantity = `Insufficient stock. Available: ${selectedItem.quantity} ${selectedItem.unit}`
+    if (selectedItem && Number(formData.quantity) > getAvailable(selectedItem)) {
+      newErrors.quantity = `Insufficient stock. Available: ${getAvailable(selectedItem)} ${selectedItem.unit}`
     }
 
     setErrors(newErrors)
@@ -145,9 +146,8 @@ export default function StockUsageForm({
 
   const getAvailable = (it: InventoryItem | undefined) => {
     if (!it) return 0
-    // prefer currentStock if present, otherwise quantity
-    // @ts-ignore
-    return typeof (it as any).currentStock === 'number' ? (it as any).currentStock : it.quantity ?? 0
+    // Use currentStock if available, otherwise fall back to quantity
+    return it.currentStock ?? it.quantity ?? 0
   }
 
   const overQuantity = (() => {
@@ -226,7 +226,7 @@ export default function StockUsageForm({
               <option value="">Choose an inventory item</option>
               {items.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.name} - Available: {item.quantity} {item.unit}
+                  {item.name} - Available: {getAvailable(item)} {item.unit}
                 </option>
               ))}
             </select>
@@ -243,7 +243,14 @@ export default function StockUsageForm({
                 <div className="flex-1">
                   <p className="text-sm font-medium text-blue-900">{selectedItem.name}</p>
                   <p className="text-sm text-blue-700">
-                    Available: {selectedItem.quantity} {selectedItem.unit} | 
+                    <span className="font-medium">Available Stock:</span> {getAvailable(selectedItem)} {selectedItem.unit}
+                    {selectedItem.costPrice && (
+                      <span className="ml-3">
+                        <span className="font-medium">Cost:</span> BDT {selectedItem.costPrice.toFixed(2)}/{selectedItem.unit}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
                     Category: {selectedItem.category.name}
                   </p>
                 </div>
