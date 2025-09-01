@@ -3,6 +3,8 @@ import { useState } from 'react'
 import { BaseModal } from '@/components/ui/Modal'
 import { useNotification } from '@/components/ui/Notification'
 import { toast } from '@/components/ui/Toast'
+import { SmartQuantityInput } from '@/components/ui/SmartQuantityInput'
+import { SmartPriceInput } from '@/components/ui/SmartPriceInput'
 
 type Supplier = { id: string; name: string }
 type Item = { id: string; name: string; sku?: string; currentStock?: number }
@@ -167,24 +169,71 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
         {noItems && (
           <div className="text-sm text-red-600 mb-2">No inventory items found. Add items from the Inventory section.</div>
         )}
-        {lines.map((l, i) => (
-          <div key={i} className="flex gap-2 items-center mb-2">
-            <label htmlFor={`item-select-${i}`} className="sr-only">Item</label>
-            <select id={`item-select-${i}`} className="input flex-1" value={l.itemId} onChange={e => updateLine(i, { itemId: e.target.value })} disabled={noItems}>
-              <option value="">Select item…</option>
-              {items.map(it => <option key={it.id} value={it.id}>{it.name}{it.sku ? ` (${it.sku})` : ''}</option>)}
-            </select>
-            <div className="flex flex-col">
-              <label htmlFor={`qty-${i}`} className="text-xs text-gray-600">Quantity</label>
-              <input id={`qty-${i}`} className="input w-24" type="number" step="0.01" min={0} value={l.quantity} onChange={e => updateLine(i, { quantity: parseFloat(e.target.value || '0') })} />
+        {lines.map((l, i) => {
+          const selectedItem = items.find(item => item.id === l.itemId)
+          return (
+            <div key={i} className="flex gap-2 items-start mb-2 p-3 bg-gray-50 rounded-lg">
+              <div className="flex-1">
+                <label htmlFor={`item-select-${i}`} className="block text-sm font-medium text-gray-700 mb-1">Item</label>
+                <select 
+                  id={`item-select-${i}`} 
+                  className="input w-full" 
+                  value={l.itemId} 
+                  onChange={e => updateLine(i, { itemId: e.target.value })} 
+                  disabled={noItems}
+                >
+                  <option value="">Select item…</option>
+                  {items.map(it => (
+                    <option key={it.id} value={it.id}>
+                      {it.name}{it.sku ? ` (${it.sku})` : ''}
+                      {it.currentStock !== undefined ? ` - Current: ${it.currentStock}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="w-32">
+                <SmartQuantityInput
+                  label="Quantity"
+                  value={l.quantity}
+                  onChange={(newQty) => updateLine(i, { quantity: newQty })}
+                  unit={selectedItem?.unit || 'units'}
+                  min={0.001}
+                  placeholder="0.000"
+                  showConverter={true}
+                />
+              </div>
+              
+              <div className="w-32">
+                <label htmlFor={`price-${i}`} className="block text-sm font-medium text-gray-700 mb-1">Unit Price (₹)</label>
+                <SmartPriceInput
+                  value={l.unitPrice}
+                  onChange={(value: number) => updateLine(i, { unitPrice: value })}
+                  currency="₹"
+                  placeholder="0.00"
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="w-32 pt-6">
+                <div className="text-sm text-gray-600">
+                  Total: ₹{(l.quantity * l.unitPrice).toFixed(2)}
+                </div>
+              </div>
+              
+              <div className="pt-6">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary text-sm px-2 py-1" 
+                  onClick={() => removeLine(i)}
+                  disabled={loading}
+                >
+                  Remove
+                </button>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <label htmlFor={`price-${i}`} className="text-xs text-gray-600">Unit price</label>
-              <input id={`price-${i}`} className="input w-32" type="number" step="0.01" value={l.unitPrice} onChange={e => updateLine(i, { unitPrice: Number(e.target.value) })} />
-            </div>
-            <button type="button" className="btn" onClick={() => removeLine(i)}>Remove</button>
-          </div>
-        ))}
+          )
+        })}
         <div>
           <button type="button" className="btn" onClick={addLine} disabled={noItems}>Add line</button>
         </div>

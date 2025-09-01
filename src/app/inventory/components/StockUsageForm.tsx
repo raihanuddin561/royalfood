@@ -5,6 +5,7 @@ import { X, Package, AlertTriangle, ChefHat } from 'lucide-react'
 import { recordStockUsage } from '@/app/actions/restaurant-operations'
 import { BaseModal, Button, Message } from '@/components/ui/Modal'
 import { useNotification } from '@/components/ui/Notification'
+import { SmartQuantityInput } from '@/components/ui/SmartQuantityInput'
 
 interface StockUsageFormProps {
   isOpen: boolean
@@ -256,13 +257,12 @@ export default function StockUsageForm({
                 Quantity Used * {selectedItem && `(${selectedItem.unit})`}
               </label>
             <div className="flex items-center space-x-2">
-              <input
-                type="number"
-                step="0.01"
-                value={formData.quantity}
-                onChange={(e) => handleInputChange('quantity', e.target.value)}
+              <SmartQuantityInput
+                value={parseFloat(formData.quantity) || 0}
+                onChange={(value: number) => handleInputChange('quantity', value.toString())}
+                unit={selectedItem?.unit || ''}
                 placeholder={`Enter quantity${selectedItem ? ` in ${selectedItem.unit}` : ''}`}
-                className={`block w-full rounded-md focus:ring-2 sm:text-sm ${errors.quantity || overQuantity ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
+                className={`rounded-md focus:ring-2 sm:text-sm ${errors.quantity || overQuantity ? 'border-red-300 focus:ring-red-200' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
               />
               {selectedItem && (
                 <button

@@ -5,6 +5,8 @@ import { ArrowLeft, Upload, Plus, X } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import { useNotification } from '@/components/ui/Notification'
+import { SmartQuantityInput } from '@/components/ui/SmartQuantityInput'
+import { SmartPriceInput } from '@/components/ui/SmartPriceInput'
 
 interface Ingredient {
   id: string
@@ -236,17 +238,12 @@ export default function AddMenuItemPage() {
                   Selling Price (BDT) *
                 </label>
                 <div className="mt-1">
-                  <input
-                    type="number"
-                    name="price"
-                    id="price"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  <SmartPriceInput
+                    value={parseFloat(formData.price) || 0}
+                    onChange={(value: number) => setFormData({ ...formData, price: value.toString() })}
+                    currency="৳"
                     placeholder="0.00"
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                   />
                 </div>
               </div>
@@ -333,13 +330,11 @@ export default function AddMenuItemPage() {
                       </div>
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center space-x-2">
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.1"
+                          <SmartQuantityInput
                             value={ingredient.quantity}
-                            onChange={(e) => updateIngredientQuantity(ingredient.id, parseFloat(e.target.value) || 0)}
-                            className="w-20 px-2 py-1 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            onChange={(value: number) => updateIngredientQuantity(ingredient.id, value)}
+                            unit={ingredient.unit}
+                            className="w-24 text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                           <span className="text-sm text-gray-500">{ingredient.unit}</span>
                         </div>

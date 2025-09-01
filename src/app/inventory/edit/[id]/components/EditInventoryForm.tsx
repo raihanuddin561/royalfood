@@ -5,6 +5,8 @@ import { Save, X, AlertCircle, ToggleLeft, ToggleRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { updateInventoryItem, toggleItemStatus } from '@/app/actions/inventory'
 import { CustomUnitSelector } from '../../../components/CustomUnitSelector'
+import { SmartQuantityInput } from '@/components/ui/SmartQuantityInput'
+import { SmartPriceInput } from '@/components/ui/SmartPriceInput'
 
 interface EditInventoryFormProps {
   item: {
@@ -267,16 +269,12 @@ export function EditInventoryForm({ item, categories, suppliers }: EditInventory
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Current Stock *
             </label>
-            <input
-              type="number"
-              name="currentStock"
-              value={formData.currentStock}
-              onChange={handleInputChange}
-              required
-              min="0"
-              step="0.01"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            <SmartQuantityInput
+              value={parseFloat(formData.currentStock) || 0}
+              onChange={(value: number) => setFormData(prev => ({ ...prev, currentStock: value.toString() }))}
+              unit={formData.unit}
               placeholder="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
@@ -284,15 +282,12 @@ export function EditInventoryForm({ item, categories, suppliers }: EditInventory
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Min Stock Level
             </label>
-            <input
-              type="number"
-              name="minStockLevel"
-              value={formData.minStockLevel}
-              onChange={handleInputChange}
-              min="0"
-              step="1"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            <SmartQuantityInput
+              value={parseFloat(formData.minStockLevel) || 0}
+              onChange={(value: number) => setFormData(prev => ({ ...prev, minStockLevel: value.toString() }))}
+              unit={formData.unit}
               placeholder="0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
@@ -303,16 +298,12 @@ export function EditInventoryForm({ item, categories, suppliers }: EditInventory
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Cost Price (BDT) <span className="text-red-500">*</span>
             </label>
-            <input
-              type="number"
-              name="costPrice"
-              value={formData.costPrice}
-              onChange={handleInputChange}
-              min="0"
-              step="0.01"
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            <SmartPriceInput
+              value={parseFloat(formData.costPrice) || 0}
+              onChange={(value: number) => setFormData(prev => ({ ...prev, costPrice: value.toString() }))}
+              currency="৳"
               placeholder="0.00"
+              className="w-full"
             />
             <p className="text-xs text-gray-500 mt-1">Cost per unit of this ingredient/stock item</p>
           </div>

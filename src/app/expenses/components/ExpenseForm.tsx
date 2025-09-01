@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, Upload, Calendar, DollarSign, Receipt } from 'lucide-react'
 import { BaseModal, Button } from '@/components/ui/Modal'
 import { ExpenseType, ExpenseStatus, RecurringPeriod } from '@prisma/client'
+import { SmartPriceInput } from '@/components/ui/SmartPriceInput'
 
 interface ExpenseFormProps {
   isOpen: boolean
@@ -199,21 +200,15 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Amount *
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <DollarSign className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => handleInputChange('amount', e.target.value)}
-                    placeholder="0.00"
-                    className={`block w-full pl-10 rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-                      errors.amount ? 'border-red-300' : ''
-                    }`}
-                  />
-                </div>
+                <SmartPriceInput
+                  value={parseFloat(formData.amount) || 0}
+                  onChange={(value: number) => handleInputChange('amount', value.toString())}
+                  currency="৳"
+                  placeholder="0.00"
+                  className={`${
+                    errors.amount ? 'border-red-300' : ''
+                  }`}
+                />
                 {errors.amount && (
                   <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
                 )}
@@ -223,19 +218,13 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tax Amount
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <DollarSign className="h-4 w-4 text-gray-400" />
-                  </div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.taxAmount}
-                    onChange={(e) => handleInputChange('taxAmount', e.target.value)}
-                    placeholder="0.00"
-                    className="block w-full pl-10 rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
-                </div>
+                <SmartPriceInput
+                  value={parseFloat(formData.taxAmount) || 0}
+                  onChange={(value: number) => handleInputChange('taxAmount', value.toString())}
+                  currency="৳"
+                  placeholder="0.00"
+                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                />
               </div>
             </div>
 
