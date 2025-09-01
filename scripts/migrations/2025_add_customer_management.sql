@@ -1,7 +1,3 @@
--- Add Customer Management Tables
--- This migration adds support for customer-facing ordering system
-
--- 1. Create customers table
 CREATE TABLE IF NOT EXISTS customers (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
@@ -15,7 +11,6 @@ CREATE TABLE IF NOT EXISTS customers (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Create delivery_addresses table
 CREATE TABLE IF NOT EXISTS delivery_addresses (
     id TEXT PRIMARY KEY,
     customer_id TEXT NOT NULL,
@@ -30,59 +25,166 @@ CREATE TABLE IF NOT EXISTS delivery_addresses (
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
 );
 
--- 3. Update orders table to support customer orders
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id TEXT;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_address_id TEXT;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS guest_name TEXT;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS guest_phone TEXT;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS guest_email TEXT;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS guest_address TEXT;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS subtotal DECIMAL(10,2);
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee DECIMAL(10,2) DEFAULT 0;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS kitchen_notes TEXT;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS estimated_time INTEGER;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'CASH';
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'PENDING';
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMP;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS preparing_at TIMESTAMP;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS ready_at TIMESTAMP;
-ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP;
+CREATE TABLE IF NOT EXISTS customers (
+    id TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    address TEXT NOT NULL,
+    city TEXT,
+    "zipCode" TEXT,
+    "isActive" BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
--- 4. Update sales table to support customer tracking
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS customer_id TEXT;
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS subtotal DECIMAL(10,2);
-ALTER TABLE sales ADD COLUMN IF NOT EXISTS delivery_fee DECIMAL(10,2) DEFAULT 0;
+CREATE TABLE IF NOT EXISTS delivery_addresses (
+    id TEXT PRIMARY KEY,
+    "customerId" TEXT NOT NULL,
+    label TEXT NOT NULL,
+    address TEXT NOT NULL,
+    city TEXT,
+    "zipCode" TEXT,
+    landmark TEXT,
+    "isDefault" BOOLEAN DEFAULT false,
+    "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("customerId") REFERENCES customers(id) ON DELETE CASCADE
+);
 
--- Add foreign key constraints
-ALTER TABLE orders ADD CONSTRAINT fk_orders_customer 
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
-ALTER TABLE orders ADD CONSTRAINT fk_orders_delivery_address 
-    FOREIGN KEY (delivery_address_id) REFERENCES delivery_addresses(id) ON DELETE SET NULL;
-ALTER TABLE sales ADD CONSTRAINT fk_sales_customer 
-    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='customerId') THEN
+        ALTER TABLE orders ADD COLUMN "customerId" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='deliveryAddressId') THEN
+        ALTER TABLE orders ADD COLUMN "deliveryAddressId" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='guestName') THEN
+        ALTER TABLE orders ADD COLUMN "guestName" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='guestPhone') THEN
+        ALTER TABLE orders ADD COLUMN "guestPhone" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='guestEmail') THEN
+        ALTER TABLE orders ADD COLUMN "guestEmail" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='guestAddress') THEN
+        ALTER TABLE orders ADD COLUMN "guestAddress" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='subtotal') THEN
+        ALTER TABLE orders ADD COLUMN subtotal DECIMAL(10,2);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='deliveryFee') THEN
+        ALTER TABLE orders ADD COLUMN "deliveryFee" DECIMAL(10,2) DEFAULT 0;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='kitchenNotes') THEN
+        ALTER TABLE orders ADD COLUMN "kitchenNotes" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='estimatedTime') THEN
+        ALTER TABLE orders ADD COLUMN "estimatedTime" INTEGER;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='paymentMethod') THEN
+        ALTER TABLE orders ADD COLUMN "paymentMethod" TEXT DEFAULT 'CASH';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='paymentStatus') THEN
+        ALTER TABLE orders ADD COLUMN "paymentStatus" TEXT DEFAULT 'PENDING';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='orderDate') THEN
+        ALTER TABLE orders ADD COLUMN "orderDate" TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='confirmedAt') THEN
+        ALTER TABLE orders ADD COLUMN "confirmedAt" TIMESTAMP;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='preparingAt') THEN
+        ALTER TABLE orders ADD COLUMN "preparingAt" TIMESTAMP;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='readyAt') THEN
+        ALTER TABLE orders ADD COLUMN "readyAt" TIMESTAMP;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='orders' AND column_name='deliveredAt') THEN
+        ALTER TABLE orders ADD COLUMN "deliveredAt" TIMESTAMP;
+    END IF;
+END $$;
 
--- Create indexes for better performance
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='sales' AND column_name='customerId') THEN
+        ALTER TABLE sales ADD COLUMN "customerId" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='sales' AND column_name='subtotal') THEN
+        ALTER TABLE sales ADD COLUMN subtotal DECIMAL(10,2);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='sales' AND column_name='deliveryFee') THEN
+        ALTER TABLE sales ADD COLUMN "deliveryFee" DECIMAL(10,2) DEFAULT 0;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'fk_orders_customer' 
+        AND table_name = 'orders'
+    ) THEN
+        ALTER TABLE orders ADD CONSTRAINT fk_orders_customer 
+            FOREIGN KEY ("customerId") REFERENCES customers(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'fk_orders_delivery_address' 
+        AND table_name = 'orders'
+    ) THEN
+        ALTER TABLE orders ADD CONSTRAINT fk_orders_delivery_address 
+            FOREIGN KEY ("deliveryAddressId") REFERENCES delivery_addresses(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'fk_sales_customer' 
+        AND table_name = 'sales'
+    ) THEN
+        ALTER TABLE sales ADD CONSTRAINT fk_sales_customer 
+            FOREIGN KEY ("customerId") REFERENCES customers(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_customers_email ON customers(email);
 CREATE INDEX IF NOT EXISTS idx_customers_phone ON customers(phone);
-CREATE INDEX IF NOT EXISTS idx_delivery_addresses_customer ON delivery_addresses(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_delivery_address ON orders(delivery_address_id);
-CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales(customer_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_addresses_customer ON delivery_addresses("customerId");
+CREATE INDEX IF NOT EXISTS idx_orders_customer ON orders("customerId");
+CREATE INDEX IF NOT EXISTS idx_orders_delivery_address ON orders("deliveryAddressId");
+CREATE INDEX IF NOT EXISTS idx_sales_customer ON sales("customerId");
 
--- Migrate existing orders to use subtotal and total_amount properly
 UPDATE orders 
-SET subtotal = COALESCE(total_amount - tax_amount + discount_amount, total_amount)
+SET subtotal = COALESCE("totalAmount" - "taxAmount" + "discountAmount", "totalAmount")
 WHERE subtotal IS NULL;
 
--- Migrate existing sales to use subtotal properly  
 UPDATE sales 
-SET subtotal = COALESCE(total_amount - tax_amount + discount_amount, total_amount)
+SET subtotal = COALESCE("totalAmount" - "taxAmount" + "discountAmount", "totalAmount")
 WHERE subtotal IS NULL;
-
--- Add sample data for testing (optional)
--- INSERT INTO customers (id, email, phone, name, address, city) VALUES
--- ('cust_001', 'john.doe@email.com', '+8801234567890', 'John Doe', '123 Main St, Dhaka', 'Dhaka'),
--- ('cust_002', 'jane.smith@email.com', '+8801234567891', 'Jane Smith', '456 Park Ave, Chittagong', 'Chittagong');
-
-COMMIT;
