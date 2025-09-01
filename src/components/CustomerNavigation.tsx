@@ -10,6 +10,12 @@ export default function CustomerNavigation() {
         </div>
         <div className="flex space-x-3">
           <Link 
+            href="/" 
+            className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+          >
+            🏠 Home
+          </Link>
+          <Link 
             href="/public-menu" 
             className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors"
           >

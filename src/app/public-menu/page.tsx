@@ -10,8 +10,11 @@ import {
   Phone,
   User,
   Check,
-  X
+  X,
+  Home,
+  LogIn
 } from 'lucide-react'
+import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import { useNotification } from '@/components/ui/Notification'
 
@@ -207,26 +210,46 @@ export default function PublicMenuPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header with Navigation */}
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Royal Food</h1>
-              <p className="text-sm text-gray-600">Delicious food delivered to your door</p>
-            </div>
-            <button
-              onClick={() => setShowCart(true)}
-              className="relative bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <ShoppingCart className="h-5 w-5 mr-2" />
-              Cart
-              {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                  {cartItemCount}
+            <div className="flex items-center space-x-8">
+              <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+                <h1 className="text-2xl font-bold text-gray-900">Royal Food</h1>
+              </Link>
+              <nav className="hidden md:flex space-x-6">
+                <Link href="/" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+                  <Home className="h-4 w-4 mr-2" />
+                  Home
+                </Link>
+                <span className="flex items-center text-blue-600 font-medium">
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Menu
                 </span>
-              )}
-            </button>
+              </nav>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/signin"
+                className="hidden sm:flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                Staff Login
+              </Link>
+              <button
+                onClick={() => setShowCart(true)}
+                className="relative bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Cart
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                    {cartItemCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </header>
