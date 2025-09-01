@@ -11,7 +11,7 @@ async function getFinancialData() {
   const startOfYear = new Date(today.getFullYear(), 0, 1)
   
   try {
-    const [items, inventoryLogs, sales, monthlyLogs, yearlyLogs] = await Promise.all([
+    const [items, inventoryLogs, sales, monthlyLogs, yearlyLogs, stockUsages, monthlyStockUsages, expenses, monthlyExpenses] = await Promise.all([
       // Get all inventory items with current values
       prisma.item.findMany({
         include: {
@@ -106,6 +106,62 @@ async function getFinancialData() {
             }
           }
         }
+      }),
+
+      // Stock usage costs (ingredient consumption)
+      prisma.stockUsage.findMany({
+        include: {
+          item: {
+            select: {
+              name: true,
+              unit: true
+            }
+          }
+        }
+      }),
+
+      // Monthly stock usage costs
+      prisma.stockUsage.findMany({
+        where: {
+          usageDate: {
+            gte: startOfMonth
+          }
+        },
+        include: {
+          item: {
+            select: {
+              name: true,
+              unit: true
+            }
+          }
+        }
+      }),
+
+      // All operational expenses (salary, utilities, etc.)
+      prisma.expense.findMany({
+        where: {
+          status: {
+            in: ['APPROVED', 'PAID']
+          }
+        },
+        include: {
+          expenseCategory: true
+        }
+      }),
+
+      // Monthly expenses
+      prisma.expense.findMany({
+        where: {
+          expenseDate: {
+            gte: startOfMonth
+          },
+          status: {
+            in: ['APPROVED', 'PAID']
+          }
+        },
+        include: {
+          expenseCategory: true
+        }
       })
     ])
 
@@ -159,12 +215,37 @@ async function getFinancialData() {
       .filter(log => log.type === 'WASTE')
       .reduce((sum, log) => sum + (Math.abs(log.quantity) * log.item.costPrice), 0)
 
-    // Calculate Cost of Goods Sold (COGS)
-    const totalCOGS = stockOutValue + wasteValue
+    // Calculate stock usage costs (ingredient consumption)
+    const totalStockUsageCost = stockUsages.reduce((sum, usage) => sum + usage.totalCost, 0)
+    const monthlyStockUsageCost = monthlyStockUsages.reduce((sum, usage) => sum + usage.totalCost, 0)
+
+    // Calculate operational expenses by category
+    const totalExpensesCost = expenses.reduce((sum, expense) => sum + expense.amount, 0)
+    const monthlyExpensesCost = monthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+
+    // Break down expenses by type
+    const expensesByType = expenses.reduce((acc, expense) => {
+      const type = expense.expenseCategory.type
+      acc[type] = (acc[type] || 0) + expense.amount
+      return acc
+    }, {} as Record<string, number>)
+
+    const monthlyExpensesByType = monthlyExpenses.reduce((acc, expense) => {
+      const type = expense.expenseCategory.type
+      acc[type] = (acc[type] || 0) + expense.amount
+      return acc
+    }, {} as Record<string, number>)
+
+    // Calculate Cost of Goods Sold (COGS) - now includes stock usage
+    const totalCOGS = stockOutValue + wasteValue + totalStockUsageCost
 
     // Calculate Gross Profit (Sales Revenue - COGS)
     const totalSalesRevenue = sales.reduce((sum, sale) => sum + sale.finalAmount, 0)
     const grossProfit = totalSalesRevenue - totalCOGS
+
+    // Calculate Net Profit (Gross Profit - Operating Expenses)
+    const totalOperatingExpenses = totalExpensesCost
+    const netProfit = grossProfit - totalOperatingExpenses
 
     // Category-wise analysis
     const categoryAnalysis = items.reduce((acc, item) => {
@@ -197,15 +278,32 @@ async function getFinancialData() {
           totalLiabilities: stockInValue
         },
         equity: {
-          retainedEarnings: grossProfit,
-          totalEquity: grossProfit
+          retainedEarnings: netProfit,
+          totalEquity: netProfit
         }
       },
       incomeStatement: {
         revenue: totalSalesRevenue,
         cogs: totalCOGS,
         grossProfit,
-        grossProfitMargin: totalSalesRevenue > 0 ? (grossProfit / totalSalesRevenue) * 100 : 0
+        operatingExpenses: totalOperatingExpenses,
+        netProfit,
+        grossProfitMargin: totalSalesRevenue > 0 ? (grossProfit / totalSalesRevenue) * 100 : 0,
+        netProfitMargin: totalSalesRevenue > 0 ? (netProfit / totalSalesRevenue) * 100 : 0
+      },
+      costBreakdown: {
+        inventoryMovements: {
+          stockOut: stockOutValue,
+          waste: wasteValue
+        },
+        stockUsage: totalStockUsageCost,
+        monthlyStockUsage: monthlyStockUsageCost,
+        expenses: {
+          total: totalExpensesCost,
+          monthly: monthlyExpensesCost,
+          byType: expensesByType,
+          monthlyByType: monthlyExpensesByType
+        }
       },
       inventoryMetrics: {
         totalValue: currentInventoryValue,
@@ -267,6 +365,7 @@ export default async function InventoryReportsPage() {
     monthlyAnalysis,
     yearlyAnalysis,
     categoryAnalysis,
+    costBreakdown,
     inventoryLogs
   } = data
 
@@ -444,6 +543,108 @@ export default async function InventoryReportsPage() {
                 </div>
                 <div className="text-sm text-gray-500 mt-1">
                   Gross Profit Margin: {incomeStatement.grossProfitMargin.toFixed(1)}%
+                </div>
+              </div>
+              
+              {incomeStatement.operatingExpenses > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Operating Expenses</span>
+                    <span className="font-medium text-red-600">({formatCurrency(incomeStatement.operatingExpenses)})</span>
+                  </div>
+                  <div className="border-t border-gray-200 pt-2">
+                    <div className="flex justify-between font-semibold text-lg">
+                      <span>Net Profit</span>
+                      <span className={incomeStatement.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                        {formatCurrency(incomeStatement.netProfit)}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-500 mt-1">
+                      Net Profit Margin: {incomeStatement.netProfitMargin.toFixed(1)}%
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Comprehensive Cost Breakdown */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">Cost Breakdown Analysis</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Cost of Goods Sold Breakdown */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Cost of Goods Sold (COGS)</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Stock Movement (Sales)</span>
+                    <span className="font-medium text-red-600">{formatCurrency(costBreakdown.inventoryMovements.stockOut)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Stock Usage (Production)</span>
+                    <span className="font-medium text-red-600">{formatCurrency(costBreakdown.stockUsage)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Waste & Spoilage</span>
+                    <span className="font-medium text-red-600">{formatCurrency(costBreakdown.inventoryMovements.waste)}</span>
+                  </div>
+                  <div className="border-t border-gray-200 pt-2">
+                    <div className="flex justify-between font-semibold">
+                      <span>Total COGS</span>
+                      <span className="text-red-600">{formatCurrency(incomeStatement.cogs)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Operating Expenses Breakdown */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Operating Expenses</h3>
+                <div className="space-y-3">
+                  {Object.entries(costBreakdown.expenses.byType).map(([type, amount]) => (
+                    <div key={type} className="flex justify-between">
+                      <span className="text-gray-600 capitalize">{type.toLowerCase().replace('_', ' ')}</span>
+                      <span className="font-medium text-orange-600">{formatCurrency(amount as number)}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-gray-200 pt-2">
+                    <div className="flex justify-between font-semibold">
+                      <span>Total Operating Expenses</span>
+                      <span className="text-orange-600">{formatCurrency(costBreakdown.expenses.total)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Monthly Cost Comparison */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">This Month vs Total</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-blue-800">Monthly Stock Usage</p>
+                  <p className="text-2xl font-bold text-blue-900">{formatCurrency(costBreakdown.monthlyStockUsage)}</p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    {costBreakdown.stockUsage > 0 ? ((costBreakdown.monthlyStockUsage / costBreakdown.stockUsage) * 100).toFixed(1) : 0}% of total
+                  </p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-orange-800">Monthly Expenses</p>
+                  <p className="text-2xl font-bold text-orange-900">{formatCurrency(costBreakdown.expenses.monthly)}</p>
+                  <p className="text-xs text-orange-600 mt-1">
+                    {costBreakdown.expenses.total > 0 ? ((costBreakdown.expenses.monthly / costBreakdown.expenses.total) * 100).toFixed(1) : 0}% of total
+                  </p>
+                </div>
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <p className="text-sm font-medium text-purple-800">Total Monthly Costs</p>
+                  <p className="text-2xl font-bold text-purple-900">
+                    {formatCurrency(costBreakdown.monthlyStockUsage + costBreakdown.expenses.monthly)}
+                  </p>
+                  <p className="text-xs text-purple-600 mt-1">Stock Usage + Expenses</p>
                 </div>
               </div>
             </div>
