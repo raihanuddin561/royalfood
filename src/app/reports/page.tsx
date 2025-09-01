@@ -33,6 +33,17 @@ interface BalanceSheetData {
     partner2Share: number
     totalDistributable: number
   }
+  expenseBreakdown?: {
+    totalRecordedExpenses: number
+    recordedStockPurchases: number
+    payrollExpenses: number
+    operationalExpenses: number
+    utilitiesExpenses: number
+    otherExpenses: number
+    cogs: number
+    stockUsageCost: number
+    effectiveTotalExpenses: number
+  }
   balanceCheck: number
 }
 
@@ -114,9 +125,9 @@ export default function FinancialReportsPage() {
       
           // Now generate balance sheet for the computed end of range so partnership & equity reflect selected range
           try {
-            // Pass an ISO string so the server action receives a serializable date
-            const bsResult = await generateBalanceSheet(analyticsEnd.toISOString())
-            if (bsResult && bsResult.success) {
+            // Pass a Date object instead of string
+            const bsResult = await generateBalanceSheet(analyticsEnd)
+            if (bsResult && bsResult.success && bsResult.balanceSheet) {
               setBalanceSheet(bsResult.balanceSheet)
             }
           } catch (err) {
@@ -315,19 +326,47 @@ export default function FinancialReportsPage() {
       {/* Expense Breakdown Audit (COGS vs recorded stock purchases, payroll, operational) */}
       {profitAnalysis?.summary?.breakdown && (
         <div className="mt-6 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">Expense Breakdown (Audit)</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+          <h3 className="text-lg font-semibold text-gray-900">Complete Cost Breakdown</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
             <div className="p-3 border rounded-lg">
               <p className="text-sm text-gray-600">Cost of Goods Sold (COGS)</p>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(profitAnalysis.summary.breakdown.totalCOGS)}</p>
+              <p className="text-xl font-bold text-red-600">{formatCurrency(profitAnalysis.summary.breakdown.totalCOGS)}</p>
+              <p className="text-xs text-gray-500">Inventory sales</p>
             </div>
             <div className="p-3 border rounded-lg">
-              <p className="text-sm text-gray-600">Recorded Stock Purchases</p>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(profitAnalysis.summary.breakdown.totalRecordedStockPurchases)}</p>
+              <p className="text-sm text-gray-600">Stock Usage Cost</p>
+              <p className="text-xl font-bold text-red-600">{formatCurrency(profitAnalysis.summary.breakdown.totalStockUsageCost || 0)}</p>
+              <p className="text-xs text-gray-500">Ingredient consumption</p>
             </div>
             <div className="p-3 border rounded-lg">
-              <p className="text-sm text-gray-600">Operational + Other</p>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency((profitAnalysis.summary.breakdown.totalOperationalExpenses || 0) + (profitAnalysis.summary.breakdown.totalOtherExpenses || 0))}</p>
+              <p className="text-sm text-gray-600">Payroll Expenses</p>
+              <p className="text-xl font-bold text-orange-600">{formatCurrency(profitAnalysis.summary.breakdown.totalPayrollExpenses)}</p>
+              <p className="text-xs text-gray-500">Staff salaries</p>
+            </div>
+            <div className="p-3 border rounded-lg">
+              <p className="text-sm text-gray-600">Utilities</p>
+              <p className="text-xl font-bold text-orange-600">{formatCurrency(profitAnalysis.summary.breakdown.totalUtilitiesExpenses || 0)}</p>
+              <p className="text-xs text-gray-500">Electric, water, gas</p>
+            </div>
+            <div className="p-3 border rounded-lg">
+              <p className="text-sm text-gray-600">Operational</p>
+              <p className="text-xl font-bold text-orange-600">{formatCurrency(profitAnalysis.summary.breakdown.totalOperationalExpenses)}</p>
+              <p className="text-xs text-gray-500">Daily operations</p>
+            </div>
+            <div className="p-3 border rounded-lg">
+              <p className="text-sm text-gray-600">Other Expenses</p>
+              <p className="text-xl font-bold text-orange-600">{formatCurrency(profitAnalysis.summary.breakdown.totalOtherExpenses || 0)}</p>
+              <p className="text-xs text-gray-500">Rent, insurance, etc.</p>
+            </div>
+            <div className="p-3 border rounded-lg bg-blue-50">
+              <p className="text-sm text-gray-600">Total Direct Costs</p>
+              <p className="text-xl font-bold text-blue-600">{formatCurrency((profitAnalysis.summary.breakdown.totalCOGS + (profitAnalysis.summary.breakdown.totalStockUsageCost || 0)))}</p>
+              <p className="text-xs text-gray-500">COGS + Stock Usage</p>
+            </div>
+            <div className="p-3 border rounded-lg bg-purple-50">
+              <p className="text-sm text-gray-600">Total Operating Costs</p>
+              <p className="text-xl font-bold text-purple-600">{formatCurrency((profitAnalysis.summary.breakdown.totalPayrollExpenses || 0) + (profitAnalysis.summary.breakdown.totalOperationalExpenses || 0) + (profitAnalysis.summary.breakdown.totalUtilitiesExpenses || 0) + (profitAnalysis.summary.breakdown.totalOtherExpenses || 0))}</p>
+              <p className="text-xs text-gray-500">All operational expenses</p>
             </div>
           </div>
         </div>

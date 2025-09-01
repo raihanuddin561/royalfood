@@ -1233,12 +1233,28 @@ export async function getComprehensiveProfitAnalysis(
       total_cogs: number
     }>
 
-    // Merge all data by the union of dates from sales, expenses and cogs so
+    // Calculate stock usage costs (ingredient consumption) 
+    const stockUsageData = await prisma.$queryRaw`
+      SELECT
+        DATE(su."usageDate") as date,
+        SUM(su."totalCost")::FLOAT as total_stock_usage_cost
+      FROM stock_usage su
+      WHERE su."usageDate" >= ${startDate}
+        AND su."usageDate" <= ${endDate}
+      GROUP BY DATE(su."usageDate")
+      ORDER BY DATE(su."usageDate") DESC
+    ` as Array<{
+      date: Date
+      total_stock_usage_cost: number
+    }>
+
+    // Merge all data by the union of dates from sales, expenses, cogs, and stock usage so
     // expense-only days (e.g. payroll on non-sales days) are included.
     const dateSet = new Set<string>()
     salesData.forEach(s => dateSet.add(new Date(s.date).toISOString().split('T')[0]))
     expenseData.forEach(e => dateSet.add(new Date(e.date).toISOString().split('T')[0]))
     cogsData.forEach(c => dateSet.add(new Date(c.date).toISOString().split('T')[0]))
+    stockUsageData.forEach(su => dateSet.add(new Date(su.date).toISOString().split('T')[0]))
 
     const combinedDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a)) // newest first
 
@@ -1255,9 +1271,11 @@ export async function getComprehensiveProfitAnalysis(
 
       const expenses = expenseData.find(exp => new Date(exp.date).toISOString().split('T')[0] === dateStr)
       const cogs = cogsData.find(c => new Date(c.date).toISOString().split('T')[0] === dateStr)
+      const stockUsage = stockUsageData.find(su => new Date(su.date).toISOString().split('T')[0] === dateStr)
 
       const cogsAmount = cogs?.total_cogs || 0
-      const directCosts = cogsAmount
+      const stockUsageAmount = stockUsage?.total_stock_usage_cost || 0
+      const directCosts = cogsAmount + stockUsageAmount
 
       const totalRecordedForDay = (expenses?.total_expenses !== undefined && expenses?.total_expenses !== null)
         ? expenses.total_expenses
@@ -1289,6 +1307,7 @@ export async function getComprehensiveProfitAnalysis(
         },
         expenseBreakdown: {
           costOfGoods: cogs?.total_cogs || 0,
+          stockUsageCost: stockUsage?.total_stock_usage_cost || 0,
           stockExpenses: expenses?.stock_expenses || 0,
           payrollExpenses: expenses?.payroll_expenses || 0,
           operationalExpenses: expenses?.operational_expenses || 0,
@@ -1311,6 +1330,7 @@ export async function getComprehensiveProfitAnalysis(
 
     // Aggregate expense breakdown across the period for UI auditing
   const totalCOGS = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.costOfGoods || 0), 0)
+  const totalStockUsageCost = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.stockUsageCost || 0), 0)
   const totalRecordedStockPurchases = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.stockExpenses || 0), 0)
   const totalPayrollExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.payrollExpenses || 0), 0)
   const totalOperationalExpenses = combinedData.reduce((sum, day) => sum + (day.expenseBreakdown?.operationalExpenses || 0), 0)
@@ -1335,6 +1355,7 @@ export async function getComprehensiveProfitAnalysis(
         // Breakdown for UI auditing
         breakdown: {
           totalCOGS,
+          totalStockUsageCost,
           totalRecordedStockPurchases,
           totalPayrollExpenses,
           totalOperationalExpenses,
@@ -1432,6 +1453,13 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
         AND il.reason ILIKE '%Sale%'
     ` as Array<{ total_cogs: number }>
 
+    // Calculate stock usage costs (ingredient consumption)
+    const stockUsageAgg = await prisma.$queryRaw`
+      SELECT SUM(su."totalCost")::FLOAT as total_stock_usage_cost
+      FROM stock_usage su
+      WHERE su."usageDate" <= ${asOfEnd}
+    ` as Array<{ total_stock_usage_cost: number }>
+
   const totalExpensesRecorded = expensesAgg[0]?.total_expenses || 0
   const stockExpensesRecorded = expensesAgg[0]?.stock_expenses || 0
   const payrollExpensesRecorded = expensesAgg[0]?.payroll_expenses || 0
@@ -1439,9 +1467,10 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
   const totalUtilitiesRecorded = expensesAgg[0]?.utilities_expenses || 0
   const otherExpensesRecorded = expensesAgg[0]?.other_expenses || 0
   const cogsAmount = cogsAgg[0]?.total_cogs || 0
+  const stockUsageAmount = stockUsageAgg[0]?.total_stock_usage_cost || 0
 
-  // Replace recorded stock purchase expense with actual COGS to avoid double counting
-  const effectiveTotalExpenses = totalExpensesRecorded - stockExpensesRecorded + cogsAmount
+  // Replace recorded stock purchase expense with actual COGS + stock usage to avoid double counting
+  const effectiveTotalExpenses = totalExpensesRecorded - stockExpensesRecorded + cogsAmount + stockUsageAmount
 
     const assets = {
       currentAssets: {
@@ -1515,6 +1544,7 @@ export async function generateBalanceSheet(asOfDate: Date = new Date()) {
           utilitiesExpenses: totalUtilitiesRecorded,
           otherExpenses: otherExpensesRecorded,
           cogs: cogsAmount,
+          stockUsageCost: stockUsageAmount,
           effectiveTotalExpenses
         },
         balanceCheck: assets.totalAssets - liabilities.totalLiabilities - equity.totalEquity
