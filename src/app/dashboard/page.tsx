@@ -11,6 +11,7 @@ import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
 import ServerPartnershipSummary from './ServerPartnershipSummary'
 import FinancialBreakdownClient from './FinancialBreakdownClient'
+import CustomerNavigation from '@/components/CustomerNavigation'
 export const dynamic = 'force-dynamic'
 
 // Get dashboard data from database
@@ -180,6 +181,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Customer Features Navigation */}
+      <CustomerNavigation />
+
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>

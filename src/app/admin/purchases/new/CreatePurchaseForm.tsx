@@ -1,15 +1,15 @@
 "use client"
 import { useState } from 'react'
-import { BaseModal } from '@/components/ui/Modal'
 import { useNotification } from '@/components/ui/Notification'
 import { toast } from '@/components/ui/Toast'
 import { SmartQuantityInput } from '@/components/ui/SmartQuantityInput'
 import { SmartPriceInput } from '@/components/ui/SmartPriceInput'
 
 type Supplier = { id: string; name: string }
-type Item = { id: string; name: string; sku?: string; currentStock?: number }
+type Item = { id: string; name: string; sku?: string; currentStock?: number; unit?: string }
 
 export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Supplier[]; items: Item[] }) {
+  const { showNotification } = useNotification()
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id || '')
   const [localSuppliers, setLocalSuppliers] = useState<Supplier[]>(suppliers)
   const [showAddSupplier, setShowAddSupplier] = useState(false)
@@ -51,10 +51,6 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
     await doSubmit()
   }
 
-  const [showSuccess, setShowSuccess] = useState(false)
-  const [createdPurchaseId, setCreatedPurchaseId] = useState<string | null>(null)
-  const { showNotification } = useNotification()
-
   async function doSubmit() {
     // Prevent double submission
     if (loading) {
@@ -83,20 +79,25 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
       
       if (!data?.success) throw new Error(data?.error || 'Failed')
       
-      setCreatedPurchaseId(data.purchaseId)
-      setShowSuccess(true)
-      
-      // Show professional success notification
+      // Show success notification and redirect appropriately
       if (receiveNow) {
         toast.success(
           'Purchase Created & Stock Updated',
-          `Purchase order ${data.purchaseId} created and stock automatically updated. No double-counting occurred.`
+          `Purchase order ${data.purchaseId} created and stock automatically updated.`
         )
+        // Redirect to purchase details since stock is already updated
+        setTimeout(() => {
+          window.location.href = `/admin/purchases/${data.purchaseId}`
+        }, 1500)
       } else {
         toast.success(
           'Purchase Order Created',
-          `Purchase order ${data.purchaseId} created successfully. Stock will update when you mark it as received.`
+          `Purchase order ${data.purchaseId} created successfully. Redirecting to receive items.`
         )
+        // Redirect to receive page since stock needs to be updated
+        setTimeout(() => {
+          window.location.href = `/admin/purchases/${data.purchaseId}/receive`
+        }, 1500)
       }
       
     } catch (err: any) {
@@ -149,7 +150,7 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
                   setNewSupplierName('')
                   setShowAddSupplier(false)
                 } catch (err: any) {
-                  showNotification('error', err?.message || String(err))
+                  toast.error('Supplier Creation Failed', err?.message || String(err))
                 } finally {
                   setCreatingSupplier(false)
                 }
@@ -271,19 +272,6 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
           </p>
         )}
       </div>
-
-  <BaseModal isOpen={showSuccess} onClose={() => setShowSuccess(false)} title="Purchase created" description={createdPurchaseId ? `Purchase ${createdPurchaseId} was created successfully.` : 'Purchase created.'} type="success" size="sm">
-    <div className="pt-2 flex justify-end gap-2">
-      {createdPurchaseId && receiveNow && (
-        <button className="btn btn-primary" onClick={() => { location.assign(`/admin/purchases/${createdPurchaseId}/receive`) }}>
-          Open receive
-        </button>
-      )}
-      <button className="btn" onClick={() => { setShowSuccess(false); location.assign('/admin/purchases') }}>
-        Done
-      </button>
-    </div>
-  </BaseModal>
     </form>
   )
 }
