@@ -54,7 +54,7 @@ export default function FinancialReportsPage() {
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedPeriod, setSelectedPeriod] = useState('this_month')
-  const [selectedStartDate, setSelectedStartDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [selectedStartDate, setSelectedStartDate] = useState<string>(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
   const [selectedEndDate, setSelectedEndDate] = useState<string>(new Date().toISOString().split('T')[0])
 
   useEffect(() => {
@@ -209,10 +209,10 @@ export default function FinancialReportsPage() {
                   setSelectedStartDate(startOfWeek.toISOString().split('T')[0])
                   setSelectedEndDate(new Date().toISOString().split('T')[0])
                 } else if (val === 'this_month') {
-                  const a = new Date(selectedDate)
-                  const startOfMonth = new Date(a.getFullYear(), a.getMonth(), 1)
+                  const now = new Date()
+                  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
                   setSelectedStartDate(startOfMonth.toISOString().split('T')[0])
-                  setSelectedEndDate(new Date().toISOString().split('T')[0])
+                  setSelectedEndDate(now.toISOString().split('T')[0])
                 } else if (val === 'today' || val === 'date') {
                   // keep selectedDate as the single anchor
                 }
@@ -264,63 +264,76 @@ export default function FinancialReportsPage() {
 
       {/* Key Metrics Summary */}
       {profitAnalysis && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(profitAnalysis.summary.totalRevenue)}</p>
-                <p className="text-xs text-gray-500 mt-1">{profitAnalysis.period}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-600">{formatCurrency(profitAnalysis.summary.effectiveTotalExpenses ?? profitAnalysis.summary.totalExpenses)}</p>
-                <p className="text-xs text-gray-500 mt-1">All costs included</p>
-              </div>
-              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                <TrendingDown className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Net Profit</p>
-                <p className={`text-2xl font-bold ${profitAnalysis.summary.totalNetProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {formatCurrency(profitAnalysis.summary.totalNetProfit)}
+        <>
+          {profitAnalysis.summary.totalRevenue === 0 && profitAnalysis.summary.totalExpenses === 0 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center">
+                <Calendar className="w-5 h-5 text-yellow-600 mr-2" />
+                <p className="text-yellow-800">
+                  <strong>No data for selected period.</strong> Try changing to "This Month" or select a different date range.
                 </p>
-                <p className="text-xs text-gray-500 mt-1">{profitAnalysis.summary.netMargin.toFixed(1)}% margin</p>
-              </div>
-              <div className={`w-12 h-12 ${profitAnalysis.summary.totalNetProfit >= 0 ? 'bg-green-100' : 'bg-red-100'} rounded-lg flex items-center justify-center`}>
-                <TrendingUp className={`w-6 h-6 ${profitAnalysis.summary.totalNetProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
               </div>
             </div>
-          </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                  <p className="text-2xl font-bold text-green-600">{formatCurrency(profitAnalysis.summary.totalRevenue)}</p>
+                  <p className="text-xs text-gray-500 mt-1">{profitAnalysis.period}</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Gross Profit</p>
-                <p className={`text-2xl font-bold ${profitAnalysis.summary.totalGrossProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  {formatCurrency(profitAnalysis.summary.totalGrossProfit)}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">{profitAnalysis.summary.grossMargin.toFixed(1)}% margin</p>
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Expenses</p>
+                  <p className="text-2xl font-bold text-red-600">{formatCurrency(profitAnalysis.summary.effectiveTotalExpenses ?? profitAnalysis.summary.totalExpenses)}</p>
+                  <p className="text-xs text-gray-500 mt-1">All costs included</p>
+                </div>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <TrendingDown className="w-6 h-6 text-red-600" />
+                </div>
               </div>
-              <div className={`w-12 h-12 ${profitAnalysis.summary.totalGrossProfit >= 0 ? 'bg-blue-100' : 'bg-red-100'} rounded-lg flex items-center justify-center`}>
-                <TrendingUp className={`w-6 h-6 ${profitAnalysis.summary.totalGrossProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Net Profit</p>
+                  <p className={`text-2xl font-bold ${profitAnalysis.summary.totalNetProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(profitAnalysis.summary.totalNetProfit)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{profitAnalysis.summary.netMargin.toFixed(1)}% margin</p>
+                </div>
+                <div className={`w-12 h-12 ${profitAnalysis.summary.totalNetProfit >= 0 ? 'bg-green-100' : 'bg-red-100'} rounded-lg flex items-center justify-center`}>
+                  <TrendingUp className={`w-6 h-6 ${profitAnalysis.summary.totalNetProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Gross Profit</p>
+                  <p className={`text-2xl font-bold ${profitAnalysis.summary.totalGrossProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                    {formatCurrency(profitAnalysis.summary.totalGrossProfit)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">{profitAnalysis.summary.grossMargin.toFixed(1)}% margin</p>
+                </div>
+                <div className={`w-12 h-12 ${profitAnalysis.summary.totalGrossProfit >= 0 ? 'bg-blue-100' : 'bg-red-100'} rounded-lg flex items-center justify-center`}>
+                  <TrendingUp className={`w-6 h-6 ${profitAnalysis.summary.totalGrossProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Expense Breakdown Audit (COGS vs recorded stock purchases, payroll, operational) */}
