@@ -4,7 +4,7 @@ BEGIN
         CREATE TYPE "UserRole" AS ENUM ('ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER');
     ELSE
         BEGIN
-            ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'CUSTOMER';
+            ALTER TYPE "UserRole" ADD VALUE 'CUSTOMER';
         EXCEPTION
             WHEN duplicate_object THEN NULL;
         END;
@@ -50,9 +50,18 @@ CREATE TABLE IF NOT EXISTS "delivery_addresses" (
     CONSTRAINT "delivery_addresses_pkey" PRIMARY KEY ("id")
 );
 
-ALTER TABLE "delivery_addresses" 
-ADD CONSTRAINT IF NOT EXISTS "delivery_addresses_customerId_fkey" 
-FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'delivery_addresses_customerId_fkey' 
+        AND table_name = 'delivery_addresses'
+    ) THEN
+        ALTER TABLE "delivery_addresses" 
+        ADD CONSTRAINT "delivery_addresses_customerId_fkey" 
+        FOREIGN KEY ("customerId") REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 DO $$ 
 BEGIN 
