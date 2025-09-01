@@ -317,10 +317,10 @@ export default function StockUsageForm({
           {selectedItem && formData.quantity && (
             <div className="bg-green-50 border border-green-200 rounded-md p-3">
               <p className="text-sm text-green-800">
-                    <span className="font-medium">Estimated Cost:</span> ৳{(Number(formData.quantity) * (selectedItem?.costPrice ?? 50)).toFixed(2)}
+                    <span className="font-medium">Estimated Cost:</span> BDT {(Number(formData.quantity) * (selectedItem?.costPrice ?? 50)).toFixed(2)}
                     <br />
                     <span className="text-xs text-green-600">
-                      {formData.quantity} {selectedItem.unit} × ৳{(selectedItem?.costPrice ?? 50).toFixed(2)}/{selectedItem.unit}
+                      {formData.quantity} {selectedItem.unit} × BDT {(selectedItem?.costPrice ?? 50).toFixed(2)}/{selectedItem.unit}
                     </span>
                   </p>
             </div>

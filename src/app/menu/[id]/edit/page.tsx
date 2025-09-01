@@ -358,7 +358,7 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
               <SmartPriceInput
                 value={parseFloat(formData.price) || 0}
                 onChange={(value: number) => setFormData({ ...formData, price: value.toString() })}
-                currency="৳"
+                currency="BDT"
                 placeholder="0.00"
                 className="mt-1"
               />

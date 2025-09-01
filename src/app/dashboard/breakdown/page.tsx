@@ -2,13 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { formatCurrency as formatCurrencyUtil } from '@/lib/currency-config'
 
 function formatCurrency(v: number) {
-  try {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'BDT' }).format(v)
-  } catch (e) {
-    return `৳${v.toFixed(2)}`
-  }
+  return formatCurrencyUtil(v)
 }
 
 function CustomTooltip({ active, payload, label }: any) {

@@ -1,45 +1,24 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { 
+  formatCurrency as formatCurrencyCore, 
+  formatAmount as formatAmountCore,
+  currentCurrency 
+} from './currency-config'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// Format currency in BDT (Bangladesh Taka) with English locale
-// Note: Using English formatting as requested. Bengali locale available in locale.ts
+// Format currency using centralized configuration
+// This now uses the centralized currency config from currency-config.ts
 export function formatCurrency(amount: number | null | undefined): string {
-  try {
-    const value = amount || 0
-    if (!isFinite(value) || isNaN(value)) {
-      return '৳0.00'
-    }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'BDT',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(value)
-  } catch (error) {
-    console.warn('Currency formatting error:', error)
-    return `৳${(amount || 0).toFixed(2)}`
-  }
+  return formatCurrencyCore(amount, currentCurrency)
 }
 
-// Format currency without symbol (just the number with commas) - English locale
+// Format amount without currency symbol using centralized configuration
 export function formatAmount(amount: number | null | undefined): string {
-  try {
-    const value = amount || 0
-    if (!isFinite(value) || isNaN(value)) {
-      return '0.00'
-    }
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    }).format(value)
-  } catch (error) {
-    console.warn('Amount formatting error:', error)
-    return (amount || 0).toFixed(2)
-  }
+  return formatAmountCore(amount, currentCurrency)
 }
 
 // Generate unique IDs for orders, purchases, etc.

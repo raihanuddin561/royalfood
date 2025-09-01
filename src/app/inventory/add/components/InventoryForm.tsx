@@ -163,7 +163,7 @@ export default function InventoryForm({ categories, suppliers }: InventoryFormPr
             <SmartPriceInput
               value={costPrice}
               onChange={setCostPrice}
-              currency="৳"
+              currency="BDT"
               placeholder="0.00"
               className="w-full"
             />

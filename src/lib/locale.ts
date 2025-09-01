@@ -1,6 +1,8 @@
 // Language configuration for the restaurant management system
 // Currently using English, but can be easily switched to Bengali or other languages
 
+import { currentCurrency, formatCurrency } from './currency-config'
+
 export type SupportedLocale = 'en' | 'bn'
 
 export const defaultLocale: SupportedLocale = 'en'
@@ -9,7 +11,7 @@ export const localeConfig = {
   en: {
     currency: {
       locale: 'en-US',
-      currency: 'BDT',
+      currency: currentCurrency.code,
       currencyDisplay: 'symbol' as const
     },
     date: {
@@ -23,7 +25,7 @@ export const localeConfig = {
   bn: {
     currency: {
       locale: 'bn-BD',
-      currency: 'BDT',
+      currency: currentCurrency.code,
       currencyDisplay: 'symbol' as const
     },
     date: {
@@ -41,16 +43,10 @@ export function getCurrentLocaleConfig() {
   return localeConfig[defaultLocale]
 }
 
-// Format currency with current locale
+// Format currency with current locale - now uses centralized currency config
 export function formatCurrencyWithLocale(amount: number, locale: SupportedLocale = defaultLocale): string {
-  const config = localeConfig[locale]
-  return new Intl.NumberFormat(config.currency.locale, {
-    style: 'currency',
-    currency: config.currency.currency,
-    currencyDisplay: config.currency.currencyDisplay,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount)
+  // Use the centralized currency formatting for consistency
+  return formatCurrency(amount)
 }
 
 // Format date with current locale

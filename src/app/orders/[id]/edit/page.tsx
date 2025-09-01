@@ -440,21 +440,21 @@ export default function EditOrderPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Subtotal:</span>
-                  <span>৳{subtotal.toFixed(2)}</span>
+                  <span>BDT {subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax (5%):</span>
-                  <span>৳{taxAmount.toFixed(2)}</span>
+                  <span>BDT {taxAmount.toFixed(2)}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount:</span>
-                    <span>-৳{discountAmount.toFixed(2)}</span>
+                    <span>-BDT {discountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-semibold text-lg border-t border-gray-200 pt-2">
                   <span>Total:</span>
-                  <span>৳{total.toFixed(2)}</span>
+                  <span>BDT {total.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -477,7 +477,7 @@ export default function EditOrderPage() {
                       <div className="flex-1">
                         <h3 className="text-sm font-medium text-gray-900">{item.name}</h3>
                         <p className="text-xs text-gray-500">{item.category.name}</p>
-                        <p className="text-sm font-medium text-green-600">৳{item.price}</p>
+                        <p className="text-sm font-medium text-green-600">BDT {item.price}</p>
                       </div>
                       <button
                         onClick={() => addToOrder(item)}
@@ -510,8 +510,8 @@ export default function EditOrderPage() {
                       >
                         <div className="flex-1">
                           <h3 className="text-sm font-medium text-gray-900">{item.name}</h3>
-                          <p className="text-sm text-gray-600">৳{item.unitPrice} each</p>
-                          <p className="text-sm font-medium text-green-600">৳{item.totalPrice.toFixed(2)}</p>
+                          <p className="text-sm text-gray-600">BDT {item.unitPrice} each</p>
+                          <p className="text-sm font-medium text-green-600">BDT {item.totalPrice.toFixed(2)}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <button

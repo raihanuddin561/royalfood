@@ -2,16 +2,19 @@
 
 import { useState } from 'react'
 import { Settings, Globe, DollarSign, Clock, Save, User, Bell } from 'lucide-react'
+import { AVAILABLE_CURRENCIES, currentCurrency } from '@/lib/currency-config'
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'bn', name: 'Bengali', flag: '🇧🇩' }
 ]
 
-const currencies = [
-  { code: 'BDT', name: 'Bangladesh Taka (BDT)', symbol: 'BDT' },
-  { code: 'USD', name: 'US Dollar ($)', symbol: '$' }
-]
+// Use centralized currency configuration
+const currencies = Object.values(AVAILABLE_CURRENCIES).map(currency => ({
+  code: currency.code,
+  name: `${currency.name} (${currency.code})`,
+  symbol: currency.displaySymbol
+}))
 
 const timezones = [
   { code: 'Asia/Dhaka', name: 'Asia/Dhaka (GMT+6)', offset: '+6:00' },
@@ -20,7 +23,7 @@ const timezones = [
 
 export default function SettingsPage() {
   const [selectedLanguage, setSelectedLanguage] = useState('en')
-  const [selectedCurrency, setSelectedCurrency] = useState('BDT')
+  const [selectedCurrency, setSelectedCurrency] = useState(currentCurrency.code)
   const [selectedTimezone, setSelectedTimezone] = useState('Asia/Dhaka')
   const [showSaveNotification, setShowSaveNotification] = useState(false)
 
@@ -136,7 +139,7 @@ export default function SettingsPage() {
                       />
                       <label htmlFor={`currency-${currency.code}`} className="ml-3 flex items-center">
                         <span className="text-sm text-gray-900">{currency.name}</span>
-                        {currency.code === 'BDT' && (
+                        {currency.code === currentCurrency.code && (
                           <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
                             Active
                           </span>
@@ -201,7 +204,7 @@ export default function SettingsPage() {
                   <div className="text-sm text-gray-900 space-y-1">
                     <div className="flex justify-between">
                       <span>Currency:</span>
-                      <span className="font-mono">BDT 1,234.50</span>
+                      <span className="font-mono">{currentCurrency.displaySymbol} 1,234.50</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Numbers:</span>
@@ -286,7 +289,7 @@ export default function SettingsPage() {
             <div className="mt-2 text-sm text-blue-700">
               <ul className="list-disc space-y-1 pl-5">
                 <li>Language: English (US)</li>
-                <li>Currency: Bangladesh Taka (BDT)</li>
+                <li>Currency: {currentCurrency.name} ({currentCurrency.code})</li>
                 <li>Timezone: Asia/Dhaka (GMT+6)</li>
                 <li>Number Format: English style (1,234.56)</li>
                 <li>Date Format: MM/DD/YYYY</li>
@@ -295,7 +298,7 @@ export default function SettingsPage() {
             <div className="mt-4">
               <p className="text-sm text-blue-600">
                 <strong>Note:</strong> Language settings will be implemented in future updates. 
-                Currently, all text displays in English while maintaining BDT currency and Dhaka timezone.
+                Currently, all text displays in English while maintaining {currentCurrency.code} currency and Dhaka timezone.
               </p>
             </div>
           </div>

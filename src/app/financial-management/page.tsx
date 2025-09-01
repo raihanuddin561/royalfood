@@ -2,17 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { Calendar, DollarSign, TrendingUp, TrendingDown, Package, Users, ShoppingCart, Receipt, BarChart3, PieChart, Plus, FileText, Calculator } from 'lucide-react'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency as formatCurrencyUtil, formatDate } from '@/lib/utils'
+import { formatCurrency } from '@/lib/currency-config'
 import { getComprehensiveFinancialData, recordStockInput, recordEmployeeExpense, type ComprehensiveFinancialData } from '@/app/actions/financial-analysis'
 import { toast } from '@/components/ui/Toast'
 
-// Safe currency formatting function
+// Safe currency formatting function using centralized config
 const safeCurrencyFormat = (amount: number | null | undefined): string => {
   try {
     return formatCurrency(amount || 0)
   } catch (error) {
     console.warn('Currency formatting error:', error)
-    return `৳${(amount || 0).toFixed(2)}`
+    return formatCurrency(amount || 0) // Fallback to centralized format
   }
 }
 

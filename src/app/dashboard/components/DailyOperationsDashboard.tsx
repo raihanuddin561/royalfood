@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Calendar, DollarSign, TrendingUp, TrendingDown, Package, Users, AlertTriangle, ChefHat } from 'lucide-react'
+import { formatCurrency } from '@/lib/currency-config'
 
 interface DailySummary {
   date: string
@@ -157,7 +158,7 @@ export default function DailyOperationsDashboard() {
     }
   }
 
-  const formatCurrency = (amount: number) => `৳${amount.toFixed(2)}`
+  // Using centralized currency formatting
   const formatPercentage = (percentage: number) => `${percentage.toFixed(1)}%`
 
   if (loading) {

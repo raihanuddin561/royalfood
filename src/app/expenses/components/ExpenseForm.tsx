@@ -203,7 +203,7 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
                 <SmartPriceInput
                   value={parseFloat(formData.amount) || 0}
                   onChange={(value: number) => handleInputChange('amount', value.toString())}
-                  currency="৳"
+                  currency="BDT"
                   placeholder="0.00"
                   className={`${
                     errors.amount ? 'border-red-300' : ''
@@ -221,7 +221,7 @@ export default function ExpenseForm({ isOpen, onClose, onSuccess }: ExpenseFormP
                 <SmartPriceInput
                   value={parseFloat(formData.taxAmount) || 0}
                   onChange={(value: number) => handleInputChange('taxAmount', value.toString())}
-                  currency="৳"
+                  currency="BDT"
                   placeholder="0.00"
                   className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />

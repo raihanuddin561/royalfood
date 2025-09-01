@@ -205,11 +205,11 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
               </div>
               
               <div className="w-32">
-                <label htmlFor={`price-${i}`} className="block text-sm font-medium text-gray-700 mb-1">Unit Price (₹)</label>
+                <label htmlFor={`price-${i}`} className="block text-sm font-medium text-gray-700 mb-1">Unit Price (BDT)</label>
                 <SmartPriceInput
                   value={l.unitPrice}
                   onChange={(value: number) => updateLine(i, { unitPrice: value })}
-                  currency="₹"
+                  currency="BDT"
                   placeholder="0.00"
                   className="w-full"
                 />
@@ -217,7 +217,7 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
               
               <div className="w-32 pt-6">
                 <div className="text-sm text-gray-600">
-                  Total: ₹{(l.quantity * l.unitPrice).toFixed(2)}
+                  Total: BDT {(l.quantity * l.unitPrice).toFixed(2)}
                 </div>
               </div>
               

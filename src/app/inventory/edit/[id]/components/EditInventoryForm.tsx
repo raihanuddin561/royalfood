@@ -301,7 +301,7 @@ export function EditInventoryForm({ item, categories, suppliers }: EditInventory
             <SmartPriceInput
               value={parseFloat(formData.costPrice) || 0}
               onChange={(value: number) => setFormData(prev => ({ ...prev, costPrice: value.toString() }))}
-              currency="৳"
+              currency="BDT"
               placeholder="0.00"
               className="w-full"
             />

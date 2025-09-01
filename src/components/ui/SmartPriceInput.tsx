@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { DollarSign, Plus, Minus } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { DollarSign } from 'lucide-react'
+import { currentCurrency } from '@/lib/currency-config'
 
 interface SmartPriceInputProps {
   value: number
@@ -11,166 +12,118 @@ interface SmartPriceInputProps {
   className?: string
   min?: number
   max?: number
+  label?: string
+  autoFocus?: boolean
 }
 
 export function SmartPriceInput({ 
   value, 
   onChange, 
-  currency = '₹',
+  currency = currentCurrency.code,
   placeholder = '0.00',
   className = '',
   min = 0,
-  max
+  max,
+  label,
+  autoFocus = false
 }: SmartPriceInputProps) {
-  const [inputValue, setInputValue] = useState(value.toString())
-  const [showFractions, setShowFractions] = useState(false)
+  const [inputValue, setInputValue] = useState(value > 0 ? value.toString() : '')
+  const [isFocused, setIsFocused] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Update input value when prop value changes, but only when not actively typing
+  useEffect(() => {
+    if (!isFocused && value !== parseFloat(inputValue)) {
+      setInputValue(value > 0 ? value.toString() : '')
+    }
+  }, [value, isFocused, inputValue])
 
   useEffect(() => {
-    setInputValue(value.toString())
-  }, [value])
+    if (autoFocus && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [autoFocus])
 
   const handleInputChange = (newValue: string) => {
-    setInputValue(newValue)
-    const numValue = parseFloat(newValue) || 0
-    if (!isNaN(numValue) && numValue >= min && (!max || numValue <= max)) {
-      onChange(numValue)
+    // Allow decimal input patterns and keep the raw input visible
+    const sanitizedValue = newValue.replace(/[^0-9.-]/g, '')
+    setInputValue(sanitizedValue)
+    
+    // Only update parent when we have a valid number
+    const numValue = parseFloat(sanitizedValue)
+    if (!isNaN(numValue)) {
+      const clampedValue = Math.max(min, Math.min(max || Infinity, numValue))
+      onChange(clampedValue)
+    } else if (sanitizedValue === '') {
+      onChange(0)
     }
   }
 
   const handleBlur = () => {
+    setIsFocused(false)
+    // Keep the input value as-is, don't auto-format
     const numValue = parseFloat(inputValue) || 0
-    const formattedValue = numValue.toFixed(2)
-    setInputValue(formattedValue)
-    onChange(numValue)
-  }
-
-  const addAmount = (amount: number) => {
-    const newValue = Math.max(min, (value || 0) + amount)
-    if (!max || newValue <= max) {
-      onChange(newValue)
+    const clampedValue = Math.max(min, Math.min(max || Infinity, numValue))
+    if (clampedValue !== numValue) {
+      onChange(clampedValue)
+      setInputValue(clampedValue > 0 ? clampedValue.toString() : '')
     }
   }
 
-  const addFraction = (fraction: number) => {
-    const newValue = Math.max(min, (value || 0) + fraction)
-    if (!max || newValue <= max) {
-      onChange(newValue)
-    }
+  const handleFocus = () => {
+    setIsFocused(true)
+    // Select all text for easy overwriting
+    setTimeout(() => {
+      inputRef.current?.select()
+    }, 0)
   }
-
-  const commonAmounts = [1, 5, 10, 25, 50, 100]
-  const fractions = [
-    { label: '+0.25', value: 0.25 },
-    { label: '+0.50', value: 0.5 },
-    { label: '+0.75', value: 0.75 }
-  ]
 
   return (
     <div className="relative">
+      {/* Label */}
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
+      )}
+
       <div className="relative">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <DollarSign className="h-4 w-4 text-gray-400" />
-          <span className="text-gray-500 text-sm">{currency}</span>
+          <span className="text-sm ml-1 text-gray-500">
+            {currency}
+          </span>
         </div>
+        
         <input
-          type="number"
-          step="0.01"
-          min={min}
-          max={max}
+          ref={inputRef}
+          type="text"
+          inputMode="decimal"
           value={inputValue}
           onChange={(e) => handleInputChange(e.target.value)}
           onBlur={handleBlur}
+          onFocus={handleFocus}
           placeholder={placeholder}
-          className={`block w-full pl-12 pr-20 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${className}`}
+          className={`
+            block w-full pl-16 pr-4 py-2.5 text-base
+            border border-gray-300 rounded-lg shadow-sm
+            focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+            transition-colors bg-white
+            ${className}
+          `}
         />
-        
-        {/* Quick Amount Buttons */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-          <button
-            type="button"
-            onClick={() => addAmount(-1)}
-            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-            disabled={value <= min}
-          >
-            <Minus className="h-3 w-3" />
-          </button>
-          <button
-            type="button"
-            onClick={() => addAmount(1)}
-            className="p-1 text-gray-400 hover:text-green-600 transition-colors ml-1"
-          >
-            <Plus className="h-3 w-3" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowFractions(!showFractions)}
-            className="ml-2 px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
-          >
-            ±
-          </button>
-        </div>
       </div>
-
-      {/* Quick Amount Buttons */}
-      <div className="mt-2 flex flex-wrap gap-1">
-        {commonAmounts.map((amount) => (
-          <button
-            key={amount}
-            type="button"
-            onClick={() => addAmount(amount)}
-            className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors"
-          >
-            +{currency}{amount}
-          </button>
-        ))}
-      </div>
-
-      {/* Fraction Buttons */}
-      {showFractions && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {fractions.map((frac) => (
-            <button
-              key={frac.value}
-              type="button"
-              onClick={() => addFraction(frac.value)}
-              className="px-2 py-1 text-xs bg-green-50 text-green-700 rounded hover:bg-green-100 transition-colors"
-            >
-              {frac.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => onChange(Math.floor(value || 0))}
-            className="px-2 py-1 text-xs bg-gray-50 text-gray-700 rounded hover:bg-gray-100 transition-colors"
-          >
-            Round Down
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange(Math.ceil(value || 0))}
-            className="px-2 py-1 text-xs bg-gray-50 text-gray-700 rounded hover:bg-gray-100 transition-colors"
-          >
-            Round Up
-          </button>
+      
+      {/* Validation feedback */}
+      {value < min && inputValue !== '' && (
+        <div className="mt-1 text-xs text-red-600">
+          Minimum amount: {currency} {min.toFixed(2)}
         </div>
       )}
       
-      {/* Current Value Display */}
-      {value > 0 && (
-        <div className="mt-1 text-xs text-gray-500">
-          Current: {currency}{value.toFixed(2)}
-          {value !== Math.floor(value) && (
-            <span className="ml-2 text-blue-600">
-              ≈ {value < 1 ? 
-                  value === 0.25 ? '1/4' : 
-                  value === 0.5 ? '1/2' : 
-                  value === 0.75 ? '3/4' : 
-                  value.toFixed(3) 
-                : 
-                `${Math.floor(value)} ${((value % 1) === 0.25 ? '1/4' : (value % 1) === 0.5 ? '1/2' : (value % 1) === 0.75 ? '3/4' : (value % 1).toFixed(2))}`
-              }
-            </span>
-          )}
+      {max && value > max && (
+        <div className="mt-1 text-xs text-red-600">
+          Maximum amount: {currency} {max.toFixed(2)}
         </div>
       )}
     </div>

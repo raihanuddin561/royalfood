@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/currency-config'
 
 type Breakdown = {
   totalRecordedExpenses: number
@@ -64,15 +65,15 @@ export default function FinancialBreakdownClient() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3 border rounded-lg">
           <p className="text-xs text-gray-600">COGS</p>
-          <p className="text-lg font-bold">{breakdown ? `৳${breakdown.cogs.toFixed(2)}` : '—'}</p>
+          <p className="text-lg font-bold">{breakdown ? formatCurrency(breakdown.cogs) : '—'}</p>
         </div>
         <div className="p-3 border rounded-lg">
           <p className="text-xs text-gray-600">Recorded Stock Purchases</p>
-          <p className="text-lg font-bold">{breakdown ? `৳${breakdown.recordedStockPurchases.toFixed(2)}` : '—'}</p>
+          <p className="text-lg font-bold">{breakdown ? formatCurrency(breakdown.recordedStockPurchases) : '—'}</p>
         </div>
         <div className="p-3 border rounded-lg">
           <p className="text-xs text-gray-600">Effective Total Expenses</p>
-          <p className="text-lg font-bold">{breakdown ? `৳${breakdown.effectiveTotalExpenses.toFixed(2)}` : '—'}</p>
+          <p className="text-lg font-bold">{breakdown ? formatCurrency(breakdown.effectiveTotalExpenses) : '—'}</p>
         </div>
       </div>
     </div>
