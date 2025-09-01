@@ -40,7 +40,10 @@ export async function createInventoryItem(formData: FormData) {
     })
 
     if (existingItem && existingItem.name.toLowerCase() === name.trim().toLowerCase()) {
-      throw new Error('An item with this name already exists')
+      return {
+        success: false,
+        message: `An item with name "${name}" already exists. If you want to add stock to an existing item, please use the Purchase Order system instead of creating a duplicate item.`
+      }
     }
 
     // Verify unit exists

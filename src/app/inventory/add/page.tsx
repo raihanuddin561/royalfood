@@ -53,6 +53,25 @@ export default async function AddInventoryItemPage() {
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">Add New Inventory Item</h1>
           <p className="mt-2 text-gray-600">Create a new inventory item with complete cost and stock tracking</p>
+          
+          {/* Important Warning */}
+          <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-amber-800">Important: Stock Management Best Practice</h3>
+                <div className="mt-2 text-sm text-amber-700">
+                  <p><strong>Use this form only for:</strong> Creating new inventory items with initial stock.</p>
+                  <p><strong>For adding stock to existing items:</strong> Use <Link href="/admin/purchases/new" className="font-medium underline">Purchase Orders</Link> instead to avoid double counting.</p>
+                  <p><strong>Current workflow:</strong> Purchase Order → Receive Stock → Stock Updates Automatically</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Unit Input Guide */}

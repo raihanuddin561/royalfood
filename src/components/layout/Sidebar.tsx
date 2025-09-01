@@ -43,6 +43,13 @@ const navigation: NavigationItem[] = [
     roles: [UserRole.ADMIN],
     description: 'System administration' 
   },
+  { 
+    name: 'Stock Reconciliation', 
+    href: '/admin/stock-reconciliation', 
+    icon: Activity, 
+    roles: [UserRole.ADMIN, UserRole.MANAGER],
+    description: 'Fix stock discrepancies' 
+  },
   { name: 'Inventory', href: '/inventory', icon: Package, description: 'Stock management' },
   { name: 'Purchases', href: '/admin/purchases', icon: ShoppingCart, roles: [UserRole.ADMIN, UserRole.MANAGER], description: 'Purchase orders' },
   { name: 'Stock Usage', href: '/inventory/usage', icon: Activity, description: 'Track ingredient usage' },

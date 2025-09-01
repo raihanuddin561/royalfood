@@ -197,7 +197,7 @@ export async function recordStockUsage(data: StockUsageData) {
         itemId: data.itemId,
         userId: adminUser.id,
         type: 'STOCK_OUT',
-        quantity: -data.quantity, // negative for stock out
+        quantity: data.quantity, // positive quantity - the type determines the direction
         previousStock: item.currentStock,
         newStock: item.currentStock - data.quantity,
         reason: `Stock usage: ${data.usageType}${stockUsage.menuItem?.name ? ` for ${stockUsage.menuItem.name}` : ''}`,

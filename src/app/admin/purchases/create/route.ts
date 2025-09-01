@@ -19,12 +19,57 @@ export async function POST(request: NextRequest) {
     const lines: Array<{ itemId: string; quantity: number; unitPrice?: number }> = Array.isArray(body?.lines) ? body.lines : []
     const receiveImmediately: boolean = body?.receiveImmediately === true
 
-  // supplierId may be omitted (optional)
+    // supplierId may be omitted (optional)
+    const supplierId: string | null = body?.supplierId ?? null
 
-  const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' }, select: { id: true } })
+    // Prevent duplicate submissions - check for recent similar purchase
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000)
+    const recentSimilarPurchase = await prisma.purchase.findFirst({
+      where: {
+        createdAt: { gte: oneMinuteAgo },
+        supplierId,
+        purchaseDate: {
+          gte: new Date(purchaseDate.getTime() - 24 * 60 * 60 * 1000), // Within 24 hours of specified date
+          lte: new Date(purchaseDate.getTime() + 24 * 60 * 60 * 1000)
+        },
+        purchaseItems: {
+          some: {
+            itemId: { in: lines.map(l => l.itemId) }
+          }
+        }
+      },
+      include: {
+        purchaseItems: true
+      }
+    })
+
+    if (recentSimilarPurchase) {
+      console.log('Potential duplicate purchase detected:', {
+        existingId: recentSimilarPurchase.id,
+        existingNumber: recentSimilarPurchase.purchaseNumber,
+        timeDiff: Date.now() - recentSimilarPurchase.createdAt.getTime(),
+        newLinesCount: lines.length,
+        existingLinesCount: recentSimilarPurchase.purchaseItems.length
+      })
+      
+      // If very similar (same supplier, same items, within 1 minute), likely duplicate
+      const hasMatchingItems = lines.some(newLine => 
+        recentSimilarPurchase.purchaseItems.some(existing => 
+          existing.itemId === newLine.itemId && 
+          Math.abs(existing.quantity - newLine.quantity) < 0.01
+        )
+      )
+      
+      if (hasMatchingItems) {
+        return NextResponse.json({ 
+          success: false, 
+          error: `Possible duplicate purchase detected. A similar purchase (${recentSimilarPurchase.purchaseNumber}) was created ${Math.round((Date.now() - recentSimilarPurchase.createdAt.getTime()) / 1000)} seconds ago. Please check existing purchases before creating a new one.`
+        }, { status: 400 })
+      }
+    }
+
+    const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' }, select: { id: true } })
     if (!adminUser) return NextResponse.json({ success: false, error: 'No ADMIN user found' }, { status: 500 })
-
-  const supplierId: string | null = body?.supplierId ?? null
 
     let purchaseId: string | null = null
 
@@ -50,9 +95,14 @@ export async function POST(request: NextRequest) {
           const newStock = prevStock + receivedQty
           const newCost = (prevStock * prevCost + receivedQty * unitPrice) / (newStock || 1)
 
-          await tx.item.update({ where: { id: pi.itemId }, data: { currentStock: { increment: receivedQty }, costPrice: newCost, updatedAt: new Date() } })
+          // Update item stock and cost atomically
+          const updatedItem = await tx.item.update({ 
+            where: { id: pi.itemId }, 
+            data: { currentStock: newStock, costPrice: newCost, updatedAt: new Date() },
+            select: { currentStock: true }
+          })
 
-          await tx.inventoryLog.create({ data: { itemId: pi.itemId, userId: adminUser.id, type: 'STOCK_IN', quantity: receivedQty, previousStock: prevStock, newStock, reason: `Purchase received: ${purchase.purchaseNumber}`, reference: purchase.id, createdAt: new Date() } })
+          await tx.inventoryLog.create({ data: { itemId: pi.itemId, userId: adminUser.id, type: 'STOCK_IN', quantity: receivedQty, previousStock: prevStock, newStock: updatedItem.currentStock, reason: `Purchase received: ${purchase.purchaseNumber}`, reference: purchase.id, createdAt: new Date() } })
 
           totalAmount += Number(pi.totalPrice ?? 0)
         }

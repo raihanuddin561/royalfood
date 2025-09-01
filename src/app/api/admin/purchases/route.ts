@@ -54,9 +54,14 @@ export async function POST(request: NextRequest) {
           const newStock = prevStock + receivedQty
           const newCost = (prevStock * prevCost + receivedQty * unitPrice) / (newStock || 1)
 
-          await tx.item.update({ where: { id: pi.itemId }, data: { currentStock: { increment: receivedQty }, costPrice: newCost, updatedAt: new Date() } })
+          // Update item stock and cost atomically
+          const updatedItem = await tx.item.update({ 
+            where: { id: pi.itemId }, 
+            data: { currentStock: newStock, costPrice: newCost, updatedAt: new Date() },
+            select: { currentStock: true }
+          })
 
-          await tx.inventoryLog.create({ data: { itemId: pi.itemId, userId: adminUser.id, type: 'STOCK_IN', quantity: receivedQty, previousStock: prevStock, newStock, reason: `Purchase received: ${purchase.purchaseNumber}`, reference: purchase.id, createdAt: new Date() } })
+          await tx.inventoryLog.create({ data: { itemId: pi.itemId, userId: adminUser.id, type: 'STOCK_IN', quantity: receivedQty, previousStock: prevStock, newStock: updatedItem.currentStock, reason: `Purchase received: ${purchase.purchaseNumber}`, reference: purchase.id, createdAt: new Date() } })
 
           totalAmount += Number(pi.totalPrice ?? 0)
         }

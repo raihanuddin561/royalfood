@@ -167,7 +167,7 @@ export async function createDailySale(data: CreateDailySaleData) {
               itemId: saleItem.itemId,
               userId: adminUser.id,
               type: 'STOCK_OUT',
-              quantity: -Math.abs(saleItem.quantity), // Negative for stock out
+              quantity: Math.abs(saleItem.quantity), // positive quantity - type determines direction
               previousStock: saleItem.item.currentStock,
               newStock: saleItem.item.currentStock - saleItem.quantity,
               reason: `Sale - ${sale.saleNumber}`,
@@ -397,32 +397,32 @@ export async function createAggregateSale(data: CreateAggregateSaleData) {
         }
       })
 
-      const inventoryLogs: Promise<any>[] = []
-      const stockUpdates: Promise<any>[] = []
-
+      // Process stock reductions and create inventory logs
       for (const usage of data.stockUsages) {
         const item = items.find(i => i.id === usage.itemId)!
+        const prevStock = item.currentStock
+        const newStock = prevStock - usage.quantity
 
-        stockUpdates.push(tx.item.update({
+        // Update stock atomically
+        await tx.item.update({
           where: { id: usage.itemId },
-          data: { currentStock: { decrement: usage.quantity }, updatedAt: new Date() }
-        }))
+          data: { currentStock: newStock, updatedAt: new Date() }
+        })
 
-        inventoryLogs.push(tx.inventoryLog.create({
+        // Create inventory log with correct stock values
+        await tx.inventoryLog.create({
           data: {
             itemId: usage.itemId,
             userId: adminUser.id,
             type: 'STOCK_OUT',
-            quantity: -Math.abs(usage.quantity),
-            previousStock: item.currentStock,
-            newStock: item.currentStock - usage.quantity,
+            quantity: Math.abs(usage.quantity), // positive quantity - type determines direction
+            previousStock: prevStock,
+            newStock: newStock,
             reason: `Aggregate Sale - ${sale.saleNumber}`,
             reference: sale.id
           }
-        }))
+        })
       }
-
-      await Promise.all([...stockUpdates, ...inventoryLogs])
 
       const grossProfit = data.totalAmount - totalCostPrice
 

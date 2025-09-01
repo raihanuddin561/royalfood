@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, DollarSign, TrendingUp, TrendingDown, Package, Users, ShoppingCart, Receipt, BarChart3, PieChart, Plus, FileText, Calculator } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { getComprehensiveFinancialData, recordStockInput, recordEmployeeExpense, type ComprehensiveFinancialData } from '@/app/actions/financial-analysis'
+import { toast } from '@/components/ui/Toast'
 
 // Safe currency formatting function
 const safeCurrencyFormat = (amount: number | null | undefined): string => {
@@ -36,8 +37,13 @@ export default function FinancialManagementPage() {
       
       if (result.success) {
         setFinancialData(result.data)
+        // No toast needed for successful data loading - only show on user actions
       } else {
         console.warn('Financial data loading warning:', result.error)
+        toast.warning(
+          'Partial Data Loaded',
+          'Some financial data may be incomplete. Please check your data and try again.'
+        )
         // Set default data if failed but don't crash the app
         if (result.data) {
           setFinancialData(result.data)
@@ -45,6 +51,10 @@ export default function FinancialManagementPage() {
       }
     } catch (error) {
       console.error('Error loading financial data:', error)
+      toast.error(
+        'Financial Data Error',
+        'Unable to load financial information. Please check your connection and refresh the page.'
+      )
       // Set safe default data to prevent crash
       setFinancialData({
         date: selectedDate,
@@ -77,18 +87,29 @@ export default function FinancialManagementPage() {
   }
 
   const handleQuickAction = (actionType: string) => {
-    // Navigate to respective pages or open modals
+    // Navigate to respective pages or show appropriate notifications
     switch (actionType) {
       case 'stock-input':
-        window.location.href = '/inventory/add'
+        // Show guidance notification and redirect to proper workflow
+        toast.info(
+          'Stock Management Best Practice',
+          'Redirecting to Purchase Orders. This is the recommended way to add inventory to prevent calculation errors.'
+        )
+        // Redirect to purchases instead of direct inventory addition to prevent double counting
+        setTimeout(() => {
+          window.location.href = '/admin/purchases/new'
+        }, 2000)
         break
       case 'stock-expense':
+        toast.info('Stock Expenses', 'View and manage all stock-related expenses')
         window.location.href = '/expenses?type=STOCK'
         break
       case 'employee-expense':
+        toast.info('Employee Expenses', 'Manage payroll and employee-related costs')
         window.location.href = '/expenses?type=PAYROLL'
         break
       case 'daily-sale':
+        toast.info('Daily Sales', 'Record and track daily sales revenue')
         window.location.href = '/sales/daily'
         break
       default:
@@ -156,7 +177,8 @@ export default function FinancialManagementPage() {
             className="flex flex-col items-center justify-center p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
           >
             <Package className="w-8 h-8 text-blue-600 mb-2" />
-            <span className="text-sm font-medium text-blue-800">Add Stock Input</span>
+            <span className="text-sm font-medium text-blue-800">Create Purchase Order</span>
+            <p className="text-xs text-blue-600">Proper way to add inventory stock</p>
             <span className="text-xs text-blue-600 mt-1">Receive Inventory</span>
           </button>
           
@@ -436,7 +458,7 @@ export default function FinancialManagementPage() {
           <div>
             <h4 className="font-semibold text-blue-800 mb-2">Operations:</h4>
             <ul className="space-y-1 text-sm text-blue-700">
-              <li>✓ Add stock input → Updates inventory & creates stock expenses</li>
+              <li>✓ Create purchase orders → Receive inventory → Updates stock & creates expenses automatically</li>
               <li>✓ Record employee expenses → Tracks payroll costs</li>
               <li>✓ Log daily sales → Calculates revenue & profit</li>
               <li>✓ All calculations happen automatically</li>

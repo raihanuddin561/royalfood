@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
+import { ToastContainer } from "@/components/ui/Toast";
 import "./globals.css";
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -60,6 +61,7 @@ export default async function RootLayout({
               </div>
             </SidebarProvider>
           </AuthProvider>
+          <ToastContainer />
         </ErrorBoundary>
       </body>
     </html>

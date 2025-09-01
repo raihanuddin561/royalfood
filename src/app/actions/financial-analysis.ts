@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { validateStockOperation } from '@/lib/stock-validation'
 import { computeExpenseBreakdown } from '@/app/actions/financial-breakdown'
 
 export interface FinancialDataInput {
@@ -288,6 +289,19 @@ export async function recordStockInput(data: {
         error: 'Invalid input data. Please check item ID, quantity, and cost price.'
       }
     }
+    
+    // Validate the stock operation to prevent double-counting
+    const validation = await validateStockOperation(itemId, 'PURCHASE', quantity)
+    
+    if (!validation.isValid) {
+      return { 
+        success: false, 
+        error: validation.warnings.join(', ') 
+      }
+    }
+    
+    // Show warnings but allow operation to continue
+    const warnings = validation.warnings
 
     // Check if item exists
     const existingItem = await prisma.item.findUnique({
@@ -370,7 +384,8 @@ export async function recordStockInput(data: {
     return {
       success: true,
       message: `Stock added successfully. ${quantity} ${updatedItem.unit} of ${updatedItem.name}`,
-      expense: totalCost
+      expense: totalCost,
+      warnings: warnings
     }
   } catch (error) {
     console.error('Error recording stock input:', error)

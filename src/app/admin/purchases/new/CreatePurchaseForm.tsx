@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { BaseModal } from '@/components/ui/Modal'
 import { useNotification } from '@/components/ui/Notification'
+import { toast } from '@/components/ui/Toast'
 
 type Supplier = { id: string; name: string }
 type Item = { id: string; name: string; sku?: string; currentStock?: number }
@@ -16,6 +17,7 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
   const [lines, setLines] = useState([{ itemId: items[0]?.id || '', quantity: 1, unitPrice: 0 }])
   const [receiveNow, setReceiveNow] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [lastSubmissionTime, setLastSubmissionTime] = useState(0)
 
   function updateLine(index: number, patch: Partial<{ itemId: string; quantity: number; unitPrice: number }>) {
     setLines(prev => prev.map((l, i) => i === index ? { ...l, ...patch } : l))
@@ -25,6 +27,24 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
 
   async function submit(e: any) {
     e.preventDefault()
+    
+    const now = Date.now()
+    
+    // Prevent double submission with 3-second cooldown
+    if (loading) {
+      console.log('Form already submitting, ignoring duplicate submission')
+      toast.warning('Please Wait', 'Purchase is being created. Please do not click multiple times.')
+      return
+    }
+    
+    if (now - lastSubmissionTime < 3000) {
+      console.log('Submission too fast, enforcing cooldown')
+      toast.warning('Too Fast', 'Please wait 3 seconds between submissions to prevent duplicates.')
+      return
+    }
+    
+    setLastSubmissionTime(now)
+    
     // Submit immediately (no confirmation)
     await doSubmit()
   }
@@ -34,17 +54,60 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
   const { showNotification } = useNotification()
 
   async function doSubmit() {
+    // Prevent double submission
+    if (loading) {
+      console.log('Already processing, ignoring duplicate submission')
+      return
+    }
+    
     setLoading(true)
     try {
       const body = { supplierId, purchaseDate, lines, receiveImmediately: receiveNow }
-      const res = await fetch('/admin/purchases/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      
+      console.log('Submitting purchase:', {
+        supplierId,
+        lineCount: lines.length,
+        totalQuantity: lines.reduce((sum, l) => sum + l.quantity, 0),
+        receiveNow
+      })
+      
+      const res = await fetch('/admin/purchases/create', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(body) 
+      })
+      
       const data = await res.json()
-  if (!data?.success) throw new Error(data?.error || 'Failed')
-  setCreatedPurchaseId(data.purchaseId)
-  setShowSuccess(true)
-  setLoading(false)
+      
+      if (!data?.success) throw new Error(data?.error || 'Failed')
+      
+      setCreatedPurchaseId(data.purchaseId)
+      setShowSuccess(true)
+      
+      // Show professional success notification
+      if (receiveNow) {
+        toast.success(
+          'Purchase Created & Stock Updated',
+          `Purchase order ${data.purchaseId} created and stock automatically updated. No double-counting occurred.`
+        )
+      } else {
+        toast.success(
+          'Purchase Order Created',
+          `Purchase order ${data.purchaseId} created successfully. Stock will update when you mark it as received.`
+        )
+      }
+      
     } catch (err: any) {
-      showNotification('error', err?.message || String(err))
+      console.error('Purchase creation error:', err)
+      const errorMessage = err?.message || String(err)
+      
+      // Show both notification types for maximum visibility
+      showNotification('error', errorMessage)
+      toast.error(
+        'Purchase Creation Failed',
+        errorMessage.includes('duplicate') ? 'This purchase may already exist. Please check recent purchases before trying again.' : 'Unable to create purchase order. Please verify your data and try again.'
+      )
+    } finally {
       setLoading(false)
     }
   }
@@ -134,9 +197,31 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
         </label>
       </div>
 
-  <div>
-  <button className="btn btn-primary" disabled={loading || noItems || invalidLine}>{loading ? 'Creating...' : 'Create Purchase'}</button>
-  </div>
+      <div>
+        <button 
+          type="submit"
+          className={`btn btn-primary ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+          disabled={loading || noItems || invalidLine}
+          style={{ pointerEvents: loading ? 'none' : 'auto' }} // Prevent any clicks while loading
+        >
+          {loading ? (
+            <span className="flex items-center">
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Creating Purchase...
+            </span>
+          ) : (
+            'Create Purchase'
+          )}
+        </button>
+        {loading && (
+          <p className="text-sm text-gray-600 mt-2">
+            ⏳ Please wait... Creating purchase order and updating stock levels.
+          </p>
+        )}
+      </div>
 
   <BaseModal isOpen={showSuccess} onClose={() => setShowSuccess(false)} title="Purchase created" description={createdPurchaseId ? `Purchase ${createdPurchaseId} was created successfully.` : 'Purchase created.'} type="success" size="sm">
     <div className="pt-2 flex justify-end gap-2">
