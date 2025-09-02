@@ -186,11 +186,16 @@ export default function CreatePurchaseForm({ suppliers, items }: { suppliers: Su
                   <option value="">Select item…</option>
                   {items.map(it => (
                     <option key={it.id} value={it.id}>
-                      {it.name}{it.sku ? ` (${it.sku})` : ''}
+                      {it.name}{it.sku ? ` (${it.sku})` : ''}{it.unit ? ` - Unit: ${it.unit}` : ''}
                       {it.currentStock !== undefined ? ` - Current: ${it.currentStock}` : ''}
                     </option>
                   ))}
                 </select>
+                {selectedItem && (
+                  <div className="mt-1 text-xs text-gray-600">
+                    Unit: <span className="font-medium text-blue-600">{selectedItem.unit || 'Not specified'}</span>
+                  </div>
+                )}
               </div>
               
               <div className="w-32">
