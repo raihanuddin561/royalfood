@@ -457,7 +457,7 @@ export async function getDailyCosts(date: Date) {
         },
         breakdown: {
           stockUsage: stockUsage.map(usage => ({
-            type: usage.usageType,
+            type: usage.reason,
             cost: usage._sum.totalCost || 0,
             count: usage._count.id
           })),

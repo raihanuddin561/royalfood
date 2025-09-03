@@ -334,20 +334,42 @@ export default function DailyOperationsDashboard() {
                 <h3 className="text-lg font-semibold text-gray-900">Stock Usage Details</h3>
               </div>
               <div className="p-6 space-y-4">
-                {dailySummary.breakdown.stockUsage.map((usage, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      {usage.type === 'RECIPE' && <ChefHat className="w-4 h-4 text-green-600 mr-2" />}
-                      {usage.type === 'WASTAGE' && <AlertTriangle className="w-4 h-4 text-red-600 mr-2" />}
-                      {usage.type === 'OTHER' && <Package className="w-4 h-4 text-gray-600 mr-2" />}
-                      <div>
-                        <span className="text-sm font-medium text-gray-700 capitalize">{usage.type ? usage.type.toLowerCase() : 'unknown'}</span>
-                        <p className="text-xs text-gray-500">{usage.count} transactions</p>
+                {dailySummary.breakdown.stockUsage.map((usage, index) => {
+                  // Handle different reason types and provide proper display
+                  const getUsageDisplay = (reason: string | undefined) => {
+                    if (!reason) return { type: 'unknown', label: 'Unknown', icon: Package, color: 'gray' }
+                    
+                    const reasonUpper = reason.toUpperCase()
+                    switch (reasonUpper) {
+                      case 'PRODUCTION':
+                      case 'RECIPE':
+                        return { type: 'production', label: 'Production', icon: ChefHat, color: 'green' }
+                      case 'WASTE':
+                      case 'WASTAGE':
+                        return { type: 'waste', label: 'Wastage', icon: AlertTriangle, color: 'red' }
+                      case 'SAMPLE':
+                        return { type: 'sample', label: 'Sample', icon: Package, color: 'blue' }
+                      default:
+                        return { type: 'other', label: reason.charAt(0).toUpperCase() + reason.slice(1).toLowerCase(), icon: Package, color: 'gray' }
+                    }
+                  }
+                  
+                  const display = getUsageDisplay(usage.type)
+                  const IconComponent = display.icon
+                  
+                  return (
+                    <div key={index} className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <IconComponent className={`w-4 h-4 text-${display.color}-600 mr-2`} />
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">{display.label}</span>
+                          <p className="text-xs text-gray-500">{usage.count} transactions</p>
+                        </div>
                       </div>
+                      <span className="text-sm font-semibold">{formatCurrency(usage.cost)}</span>
                     </div>
-                    <span className="text-sm font-semibold">{formatCurrency(usage.cost)}</span>
-                  </div>
-                ))}
+                  )
+                })}
                 {dailySummary.breakdown.stockUsage.length === 0 && (
                   <p className="text-center text-gray-500 text-sm py-4">No stock usage recorded today</p>
                 )}
