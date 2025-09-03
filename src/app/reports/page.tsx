@@ -32,6 +32,12 @@ interface BalanceSheetData {
     partner1Share: number
     partner2Share: number
     totalDistributable: number
+    partners?: Array<{
+      id: string
+      name: string
+      sharePercent: number
+      amount: number
+    }>
   }
   expenseBreakdown?: {
     totalRecordedExpenses: number
@@ -498,7 +504,12 @@ export default function FinancialReportsPage() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100">
             <div className="px-6 py-4 border-b border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900">Partnership Distribution</h3>
-              <p className="text-sm text-gray-500">40/60 Profit Sharing</p>
+              <p className="text-sm text-gray-500">
+                {balanceSheet.partnershipDistribution.partners && balanceSheet.partnershipDistribution.partners.length > 0
+                  ? `${balanceSheet.partnershipDistribution.partners.map(p => `${p.sharePercent}%`).join('/')} Profit Sharing`
+                  : '40/60 Profit Sharing'
+                }
+              </p>
             </div>
             <div className="p-6">
               <div className="space-y-6">
@@ -510,31 +521,52 @@ export default function FinancialReportsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h5 className="font-semibold text-gray-900 flex items-center">
-                        <Users className="w-4 h-4 mr-2 text-blue-600" />
-                        Partner 1 (40%)
-                      </h5>
-                    </div>
-                    <p className={`text-2xl font-bold ${balanceSheet.partnershipDistribution.partner1Share >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(balanceSheet.partnershipDistribution.partner1Share)}
-                    </p>
-                    <p className="text-sm text-gray-500">40% of total profits</p>
-                  </div>
+                  {balanceSheet.partnershipDistribution.partners && balanceSheet.partnershipDistribution.partners.length > 0 ? (
+                    // Display actual partners from database
+                    balanceSheet.partnershipDistribution.partners.map((partner, index) => (
+                      <div key={partner.id} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-semibold text-gray-900 flex items-center">
+                            <Users className={`w-4 h-4 mr-2 ${index === 0 ? 'text-blue-600' : 'text-purple-600'}`} />
+                            {partner.name} ({partner.sharePercent}%)
+                          </h5>
+                        </div>
+                        <p className={`text-2xl font-bold ${partner.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(partner.amount)}
+                        </p>
+                        <p className="text-sm text-gray-500">{partner.sharePercent}% of total profits</p>
+                      </div>
+                    ))
+                  ) : (
+                    // Fallback to legacy display if partners array is not available
+                    <>
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-semibold text-gray-900 flex items-center">
+                            <Users className="w-4 h-4 mr-2 text-blue-600" />
+                            Partner 1 (40%)
+                          </h5>
+                        </div>
+                        <p className={`text-2xl font-bold ${balanceSheet.partnershipDistribution.partner1Share >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(balanceSheet.partnershipDistribution.partner1Share)}
+                        </p>
+                        <p className="text-sm text-gray-500">40% of total profits</p>
+                      </div>
 
-                  <div className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h5 className="font-semibold text-gray-900 flex items-center">
-                        <Users className="w-4 h-4 mr-2 text-purple-600" />
-                        Partner 2 (60%)
-                      </h5>
-                    </div>
-                    <p className={`text-2xl font-bold ${balanceSheet.partnershipDistribution.partner2Share >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(balanceSheet.partnershipDistribution.partner2Share)}
-                    </p>
-                    <p className="text-sm text-gray-500">60% of total profits</p>
-                  </div>
+                      <div className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h5 className="font-semibold text-gray-900 flex items-center">
+                            <Users className="w-4 h-4 mr-2 text-purple-600" />
+                            Partner 2 (60%)
+                          </h5>
+                        </div>
+                        <p className={`text-2xl font-bold ${balanceSheet.partnershipDistribution.partner2Share >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatCurrency(balanceSheet.partnershipDistribution.partner2Share)}
+                        </p>
+                        <p className="text-sm text-gray-500">60% of total profits</p>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Balance Check */}

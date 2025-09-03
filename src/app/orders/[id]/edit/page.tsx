@@ -23,23 +23,21 @@ import { useNotification } from '@/components/ui/Notification'
 import { getOrderById, updateOrder, deleteOrder } from '@/app/actions/orders'
 import { OrderType, OrderStatus } from '@prisma/client'
 
-// Mock menu items (in real app, fetch from API)
-const mockMenuItems = [
-  { id: '1', name: 'Chicken Biryani', price: 180, category: { name: 'Main Course' } },
-  { id: '2', name: 'Beef Curry', price: 220, category: { name: 'Main Course' } },
-  { id: '3', name: 'Fish Fry', price: 200, category: { name: 'Main Course' } },
-  { id: '4', name: 'Mango Lassi', price: 80, category: { name: 'Beverages' } },
-  { id: '5', name: 'Samosa', price: 30, category: { name: 'Appetizers' } }
-]
+interface MenuItemType {
+  id: string
+  name: string
+  price: number
+  category: { name: string }
+}
 
 interface OrderItem {
   id?: string
-  menuItemId?: string
-  itemId?: string
+  menuItemId?: string | null
+  itemId?: string | null
   quantity: number
   unitPrice: number
   totalPrice: number
-  notes?: string
+  notes?: string | null
   name: string
 }
 
@@ -50,6 +48,8 @@ export default function EditOrderPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [menuItems, setMenuItems] = useState<MenuItemType[]>([])
+  const [menuLoading, setMenuLoading] = useState(true)
   const { showNotification } = useNotification()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
@@ -63,12 +63,36 @@ export default function EditOrderPage() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [discountAmount, setDiscountAmount] = useState(0)
 
-  // Load order data
+  // Load order data and menu items
   useEffect(() => {
     if (params.id) {
       loadOrder(params.id as string)
     }
+    loadMenuItems()
   }, [params.id])
+
+  const loadMenuItems = async () => {
+    try {
+      setMenuLoading(true)
+      const response = await fetch('/api/public/menu')
+      const data = await response.json()
+      
+      if (data.success && data.categories) {
+        // Flatten menu items from categories
+        const allItems = data.categories.flatMap((category: any) => 
+          category.items.map((item: any) => ({
+            ...item,
+            category: { name: category.name }
+          }))
+        )
+        setMenuItems(allItems)
+      }
+    } catch (error) {
+      console.error('Error loading menu items:', error)
+    } finally {
+      setMenuLoading(false)
+    }
+  }
 
   const loadOrder = async (orderId: string) => {
     try {
@@ -80,8 +104,8 @@ export default function EditOrderPage() {
         setOrderType(order.orderType as OrderType)
         setStatus(order.status as OrderStatus)
         setTableNumber(order.tableNumber || '')
-        setCustomerName(order.customerName || '')
-        setCustomerPhone(order.customerPhone || '')
+        setCustomerName(order.guestName || '')
+        setCustomerPhone(order.guestPhone || '')
         setNotes(order.notes || '')
         setDiscountAmount(order.discountAmount || 0)
         
@@ -115,7 +139,7 @@ export default function EditOrderPage() {
   const total = subtotal + taxAmount - discountAmount
 
   // Add item to order
-  const addToOrder = (menuItem: typeof mockMenuItems[0]) => {
+  const addToOrder = (menuItem: MenuItemType) => {
     const existingItem = orderItems.find(item => item.menuItemId === menuItem.id)
     
     if (existingItem) {
@@ -175,12 +199,12 @@ export default function EditOrderPage() {
         notes,
         orderItems: orderItems.map(item => ({
           id: item.id,
-          menuItemId: item.menuItemId,
-          itemId: item.itemId,
+          menuItemId: item.menuItemId || undefined,
+          itemId: item.itemId || undefined,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           totalPrice: item.totalPrice,
-          notes: item.notes
+          notes: item.notes || undefined
         }))
       }
 
@@ -469,25 +493,36 @@ export default function EditOrderPage() {
               <div>
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Available Items</h2>
                 <div className="max-h-96 overflow-y-auto space-y-3">
-                  {mockMenuItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50"
-                    >
-                      <div className="flex-1">
-                        <h3 className="text-sm font-medium text-gray-900">{item.name}</h3>
-                        <p className="text-xs text-gray-500">{item.category.name}</p>
-                        <p className="text-sm font-medium text-green-600">BDT {item.price}</p>
-                      </div>
-                      <button
-                        onClick={() => addToOrder(item)}
-                        className="ml-4 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add
-                      </button>
+                  {menuLoading ? (
+                    <div className="flex justify-center items-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                      <span className="ml-2 text-sm text-gray-600">Loading menu...</span>
                     </div>
-                  ))}
+                  ) : menuItems.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 text-sm">
+                      No menu items available
+                    </div>
+                  ) : (
+                    menuItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50"
+                      >
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-gray-900">{item.name}</h3>
+                          <p className="text-xs text-gray-500">{item.category.name}</p>
+                          <p className="text-sm font-medium text-green-600">BDT {item.price}</p>
+                        </div>
+                        <button
+                          onClick={() => addToOrder(item)}
+                          className="ml-4 inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 

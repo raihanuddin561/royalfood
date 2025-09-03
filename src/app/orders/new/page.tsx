@@ -28,57 +28,8 @@ interface OrderItem {
   notes?: string
 }
 
-// Mock menu items - In a real app, this would come from an API
-const mockMenuItems: MenuItem[] = [
-  {
-    id: '1',
-    name: 'Chicken Biriyani',
-    price: 250,
-    description: 'Aromatic basmati rice with tender chicken pieces',
-    category: { name: 'Main Course' },
-    isAvailable: true,
-    prepTime: 25
-  },
-  {
-    id: '2',
-    name: 'Beef Curry',
-    price: 280,
-    description: 'Spicy beef curry with traditional spices',
-    category: { name: 'Main Course' },
-    isAvailable: true,
-    prepTime: 30
-  },
-  {
-    id: '3',
-    name: 'Fish Fry',
-    price: 200,
-    description: 'Fresh fish marinated and fried to perfection',
-    category: { name: 'Main Course' },
-    isAvailable: true,
-    prepTime: 15
-  },
-  {
-    id: '4',
-    name: 'Mango Lassi',
-    price: 80,
-    description: 'Refreshing yogurt drink with mango',
-    category: { name: 'Beverages' },
-    isAvailable: true,
-    prepTime: 5
-  },
-  {
-    id: '5',
-    name: 'Samosa',
-    price: 30,
-    description: 'Crispy pastry filled with spiced vegetables',
-    category: { name: 'Appetizers' },
-    isAvailable: true,
-    prepTime: 10
-  }
-]
-
 export default function NewOrderPage() {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(mockMenuItems)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [orderItems, setOrderItems] = useState<OrderItem[]>([])
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchTerm, setSearchTerm] = useState('')
@@ -88,7 +39,40 @@ export default function NewOrderPage() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
+  const [menuLoading, setMenuLoading] = useState(true)
   const { showNotification, notification, clearNotification } = useNotification()
+
+  // Load menu items from API
+  useEffect(() => {
+    loadMenuItems()
+  }, [])
+
+  const loadMenuItems = async () => {
+    try {
+      setMenuLoading(true)
+      const response = await fetch('/api/public/menu')
+      const data = await response.json()
+      
+      if (data.success && data.categories) {
+        // Flatten menu items from categories
+        const allItems = data.categories.flatMap((category: any) => 
+          category.items.map((item: any) => ({
+            ...item,
+            category: { name: category.name },
+            isAvailable: true // Already filtered by API
+          }))
+        )
+        setMenuItems(allItems)
+      } else {
+        showNotification('error', 'Failed to load menu items', 'Menu Error')
+      }
+    } catch (error) {
+      console.error('Error loading menu items:', error)
+      showNotification('error', 'Failed to load menu items', 'Menu Error')
+    } finally {
+      setMenuLoading(false)
+    }
+  }
 
   // Filter menu items
   const filteredMenuItems = menuItems.filter(item => {
@@ -354,35 +338,46 @@ export default function NewOrderPage() {
             </div>
 
             {/* Menu Items Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {filteredMenuItems.map((item) => (
-                <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{item.name}</h4>
-                      <p className="text-sm text-gray-500 mt-1">{item.description}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-lg font-bold text-blue-600">
-                          {formatCurrency(item.price)}
-                        </span>
-                        {item.prepTime && (
-                          <span className="text-xs text-gray-500">
-                            {item.prepTime} min
+            {menuLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <span className="ml-2 text-gray-600">Loading menu items...</span>
+              </div>
+            ) : filteredMenuItems.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No menu items available
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {filteredMenuItems.map((item) => (
+                  <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{item.name}</h4>
+                        <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-lg font-bold text-blue-600">
+                            {formatCurrency(item.price)}
                           </span>
-                        )}
+                          {item.prepTime && (
+                            <span className="text-xs text-gray-500">
+                              {item.prepTime} min
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <button
+                      onClick={() => addToOrder(item)}
+                      className="w-full mt-3 bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add to Order
+                    </button>
                   </div>
-                  <button
-                    onClick={() => addToOrder(item)}
-                    className="w-full mt-3 bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 flex items-center justify-center"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add to Order
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

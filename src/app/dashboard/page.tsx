@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma'
 import ServerPartnershipSummary from './ServerPartnershipSummary'
 import FinancialBreakdownClient from './FinancialBreakdownClient'
 import CustomerNavigation from '@/components/CustomerNavigation'
+import PeriodCostSummary from './PeriodCostSummary'
 export const dynamic = 'force-dynamic'
 
 // Get dashboard data from database
@@ -174,7 +175,7 @@ export default async function DashboardPage() {
   const recentOrders = data.recentOrders.map(order => ({
     id: order.orderNumber,
     customer: order.customerId || order.user?.name || 'Walk-in',
-    amount: formatCurrency(order.finalAmount),
+    amount: formatCurrency(order.totalAmount),
     status: order.status.replace('_', ' '), // Convert DINE_IN to DINE IN
     time: formatDateTime(order.createdAt)
   }))
@@ -312,6 +313,14 @@ export default async function DashboardPage() {
             <ServerPartnershipSummary monthlyRevenue={data.monthlyRevenue} />
           </div>
         </div>
+        
+        {/* Period Analytics */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <PeriodCostSummary period="weekly" />
+          <PeriodCostSummary period="monthly" />  
+          <PeriodCostSummary period="yearly" />
+        </div>
+        
         <div className="overflow-hidden rounded-lg bg-white shadow mt-4">
           <div className="px-4 py-5 sm:p-6">
             <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Financial Breakdown (Audit)</h3>

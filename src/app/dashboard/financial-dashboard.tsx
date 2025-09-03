@@ -51,38 +51,127 @@ export default function FinancialDashboard() {
   const loadFinancialData = async () => {
     setLoading(true)
     try {
-      // Simulate loading financial data
-      // In real app, this would call your backend APIs
-      const mockData: DailyFinancialData = {
+      // Load real financial data based on selected period
+      const today = new Date(selectedDate)
+      const startDate = new Date(today)
+      
+      // Calculate date range based on selected period
+      switch (selectedPeriod) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0)
+          break
+        case 'week':
+          startDate.setDate(today.getDate() - 7)
+          break
+        case 'month':
+          startDate.setMonth(today.getMonth() - 1)
+          break
+        case 'year':
+          startDate.setFullYear(today.getFullYear() - 1)
+          break
+      }
+
+      // Load daily costs for selected date
+      const dailyCostsRes = await fetch(`/api/restaurant-operations/daily-costs?date=${selectedDate}`)
+      let dailyData: DailyFinancialData = {
         date: selectedDate,
-        dailySales: 25000,
-        totalOrders: 45,
-        averageOrderValue: 556,
-        stockExpenses: 8000,
-        employeeExpenses: 3500,
-        operationalExpenses: 2000,
-        totalExpenses: 13500,
-        stockValue: 45000,
-        stockMovement: -8000,
-        grossProfit: 17000,
-        netProfit: 11500,
-        profitMargin: 46
+        dailySales: 0,
+        totalOrders: 0,
+        averageOrderValue: 0,
+        stockExpenses: 0,
+        employeeExpenses: 0,
+        operationalExpenses: 0,
+        totalExpenses: 0,
+        stockValue: 0,
+        stockMovement: 0,
+        grossProfit: 0,
+        netProfit: 0,
+        profitMargin: 0
       }
 
-      const mockSummary: FinancialSummary = {
-        totalRevenue: 750000,
-        totalExpenses: 480000,
-        netProfit: 270000,
-        grossMargin: 36,
-        stockTurnover: 12.5,
-        employeeCosts: 105000,
-        operationalCosts: 60000
+      if (dailyCostsRes.ok) {
+        const costs = await dailyCostsRes.json()
+        if (costs.success) {
+          dailyData = {
+            date: selectedDate,
+            dailySales: costs.dailySummary?.revenue || 0,
+            totalOrders: costs.dailySummary?.transactions?.sales || 0,
+            averageOrderValue: costs.dailySummary?.transactions?.sales > 0 
+              ? (costs.dailySummary?.revenue || 0) / costs.dailySummary.transactions.sales 
+              : 0,
+            stockExpenses: costs.dailySummary?.costs?.stock || 0,
+            employeeExpenses: costs.dailySummary?.costs?.employee || 0,
+            operationalExpenses: costs.dailySummary?.costs?.operational || 0,
+            totalExpenses: costs.dailySummary?.costs?.total || 0,
+            stockValue: 0, // Would need inventory API
+            stockMovement: 0, // Would calculate from stock usage
+            grossProfit: costs.dailySummary?.profit?.gross || 0,
+            netProfit: (costs.dailySummary?.revenue || 0) - (costs.dailySummary?.costs?.total || 0),
+            profitMargin: costs.dailySummary?.profit?.margin || 0
+          }
+        }
       }
 
-      setFinancialData(mockData)
-      setSummary(mockSummary)
+      // Load period summary for comparison
+      const profitParams = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: today.toISOString()
+      })
+      
+      const profitRes = await fetch(`/api/profit-analysis?${profitParams}`)
+      let summaryData: FinancialSummary = {
+        totalRevenue: 0,
+        totalExpenses: 0,
+        netProfit: 0,
+        grossMargin: 0,
+        stockTurnover: 0,
+        employeeCosts: 0,
+        operationalCosts: 0
+      }
+
+      if (profitRes.ok) {
+        const profit = await profitRes.json()
+        summaryData = {
+          totalRevenue: profit.summary?.totalRevenue || 0,
+          totalExpenses: profit.summary?.effectiveTotalExpenses || 0,
+          netProfit: profit.summary?.netProfit || 0,
+          grossMargin: profit.summary?.grossProfitMargin || 0,
+          stockTurnover: 0, // Would calculate from inventory turnover
+          employeeCosts: profit.summary?.breakdown?.totalPayrollExpenses || 0,
+          operationalCosts: (profit.summary?.breakdown?.totalUtilitiesExpenses || 0) + 
+                           (profit.summary?.breakdown?.totalOperationalExpenses || 0)
+        }
+      }
+
+      setFinancialData(dailyData)
+      setSummary(summaryData)
     } catch (error) {
       console.error('Error loading financial data:', error)
+      // Set empty data instead of mock data
+      setFinancialData({
+        date: selectedDate,
+        dailySales: 0,
+        totalOrders: 0,
+        averageOrderValue: 0,
+        stockExpenses: 0,
+        employeeExpenses: 0,
+        operationalExpenses: 0,
+        totalExpenses: 0,
+        stockValue: 0,
+        stockMovement: 0,
+        grossProfit: 0,
+        netProfit: 0,
+        profitMargin: 0
+      })
+      setSummary({
+        totalRevenue: 0,
+        totalExpenses: 0,
+        netProfit: 0,
+        grossMargin: 0,
+        stockTurnover: 0,
+        employeeCosts: 0,
+        operationalCosts: 0
+      })
     } finally {
       setLoading(false)
     }
