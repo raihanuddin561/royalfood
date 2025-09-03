@@ -53,8 +53,13 @@ export default function FinancialReportsPage() {
   const [expenseAnalytics, setExpenseAnalytics] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
-  const [selectedPeriod, setSelectedPeriod] = useState('this_month')
-  const [selectedStartDate, setSelectedStartDate] = useState<string>(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0])
+  const [selectedPeriod, setSelectedPeriod] = useState('last_30_days')
+  // Default to last 30 days to show more diverse expense data
+  const [selectedStartDate, setSelectedStartDate] = useState<string>(() => {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    return thirtyDaysAgo.toISOString().split('T')[0]
+  })
   const [selectedEndDate, setSelectedEndDate] = useState<string>(new Date().toISOString().split('T')[0])
 
   useEffect(() => {
@@ -81,7 +86,7 @@ export default function FinancialReportsPage() {
         }
 
         // For custom or multi-day periods, prefer explicit selectedStartDate/selectedEndDate when set
-        if (period === 'custom' || period === 'this_week' || period === 'this_month') {
+        if (period === 'custom' || period === 'this_week' || period === 'this_month' || period === 'last_30_days') {
           const s = new Date(selectedStartDate)
           const e = new Date(selectedEndDate)
           s.setHours(0, 0, 0, 0)
@@ -101,7 +106,7 @@ export default function FinancialReportsPage() {
       if (selectedPeriod === 'custom') {
         const { start, end } = computeRangeFromSelected('custom', selectedDate)
         profitResult = await getComprehensiveProfitAnalysis({ startDate: start.toISOString(), endDate: end.toISOString() })
-      } else if (selectedPeriod === 'date' || selectedPeriod === 'today' || selectedPeriod === 'this_week' || selectedPeriod === 'this_month') {
+      } else if (selectedPeriod === 'date' || selectedPeriod === 'today' || selectedPeriod === 'this_week' || selectedPeriod === 'this_month' || selectedPeriod === 'last_30_days') {
         const { start, end } = computeRangeFromSelected(selectedPeriod, selectedDate)
         profitResult = await getComprehensiveProfitAnalysis({ startDate: start.toISOString(), endDate: end.toISOString() })
       } else {
@@ -195,7 +200,14 @@ export default function FinancialReportsPage() {
                 const val = e.target.value
                 setSelectedPeriod(val)
                 const today = new Date()
-                if (val === 'custom') {
+                if (val === 'last_30_days') {
+                  const end = today
+                  const start = new Date()
+                  start.setDate(end.getDate() - 30)
+                  setSelectedStartDate(start.toISOString().split('T')[0])
+                  setSelectedEndDate(end.toISOString().split('T')[0])
+                  setSelectedDate(end.toISOString().split('T')[0])
+                } else if (val === 'custom') {
                   const end = today
                   const start = new Date()
                   start.setDate(end.getDate() - 6)
@@ -222,6 +234,7 @@ export default function FinancialReportsPage() {
               <option value="today">Today</option>
               <option value="this_week">This Week</option>
               <option value="this_month">This Month</option>
+              <option value="last_30_days">Last 30 Days</option>
               <option value="date">Date</option>
               <option value="custom">Custom Range</option>
             </select>
@@ -295,7 +308,7 @@ export default function FinancialReportsPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Expenses</p>
                   <p className="text-2xl font-bold text-red-600">{formatCurrency(profitAnalysis.summary.effectiveTotalExpenses ?? profitAnalysis.summary.totalExpenses)}</p>
-                  <p className="text-xs text-gray-500 mt-1">All costs included</p>
+                  <p className="text-xs text-gray-500 mt-1">Operating expenses + COGS</p>
                 </div>
                 <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
                   <TrendingDown className="w-6 h-6 text-red-600" />
@@ -340,6 +353,10 @@ export default function FinancialReportsPage() {
       {profitAnalysis?.summary?.breakdown && (
         <div className="mt-6 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900">Complete Cost Breakdown</h3>
+          <p className="text-sm text-gray-600 mt-2 mb-4">
+            <strong>Total Expenses</strong> above includes: Operating expenses (payroll, utilities, operational, other) + COGS (actual cost of items sold). 
+            Stock purchases are excluded to avoid double-counting since they become COGS when items are sold.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
             <div className="p-3 border rounded-lg">
               <p className="text-sm text-gray-600">Cost of Goods Sold (COGS)</p>
