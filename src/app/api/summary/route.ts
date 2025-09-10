@@ -264,7 +264,6 @@ export async function GET(request: Request) {
             DATE(su."usageDate") as date,
             SUM(su."totalCost") as cogs
           FROM stock_usage su
-          WHERE su.reason = 'PRODUCTION'
           GROUP BY DATE(su."usageDate")
         ) usage_data ON usage_data.date = date_series.date
         LEFT JOIN (
@@ -273,7 +272,7 @@ export async function GET(request: Request) {
             SUM(e.amount) as expenses
           FROM expenses e
           JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
-          WHERE ec.type != 'STOCK' AND e.status IN ('APPROVED', 'PAID')
+          WHERE e.status IN ('APPROVED', 'PAID')
           GROUP BY DATE(e."expenseDate")
         ) expense_data ON expense_data.date = date_series.date
       )

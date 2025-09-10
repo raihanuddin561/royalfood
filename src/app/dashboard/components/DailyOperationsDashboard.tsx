@@ -8,13 +8,18 @@ interface DailySummary {
   date: string
   revenue: number
   costs: {
-    stock: number
-    employee: number
+    stockUsage: number
+    cogs: number
+    payroll: number
     operational: number
+    utilities: number
+    other: number
+    recordedStockPurchases: number
+    totalRecorded: number
     total: number
   }
   profit: {
-    gross: number
+    net: number
     margin: number
   }
   transactions: {
@@ -27,10 +32,14 @@ interface DailySummary {
       cost: number
       count: number
     }>
-    operationalCosts: Array<{
-      category: any
-      cost: number
-    }>
+    expenseBreakdown: {
+      payroll: number
+      operational: number
+      utilities: number
+      other: number
+      cogs: number
+      stockUsage: number
+    }
   }
 }
 
@@ -263,14 +272,14 @@ export default function DailyOperationsDashboard() {
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Gross Profit</p>
-                  <p className={`text-2xl font-bold ${dailySummary.profit.gross >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(dailySummary.profit.gross)}
+                  <p className="text-sm font-medium text-gray-600">Net Profit</p>
+                  <p className={`text-2xl font-bold ${dailySummary.profit.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatCurrency(dailySummary.profit.net)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">{formatPercentage(dailySummary.profit.margin)} margin</p>
                 </div>
-                <div className={`w-12 h-12 ${dailySummary.profit.gross >= 0 ? 'bg-green-100' : 'bg-red-100'} rounded-lg flex items-center justify-center`}>
-                  <TrendingUp className={`w-6 h-6 ${dailySummary.profit.gross >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                <div className={`w-12 h-12 ${dailySummary.profit.net >= 0 ? 'bg-green-100' : 'bg-red-100'} rounded-lg flex items-center justify-center`}>
+                  <TrendingUp className={`w-6 h-6 ${dailySummary.profit.net >= 0 ? 'text-green-600' : 'text-red-600'}`} />
                 </div>
               </div>
             </div>
@@ -279,8 +288,8 @@ export default function DailyOperationsDashboard() {
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Stock Costs</p>
-                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(dailySummary.costs.stock)}</p>
+                  <p className="text-sm font-medium text-gray-600">COGS & Stock</p>
+                  <p className="text-2xl font-bold text-blue-600">{formatCurrency(dailySummary.costs.cogs + dailySummary.costs.stockUsage)}</p>
                   <p className="text-xs text-gray-500 mt-1">{dailySummary.transactions.stockUsage} usages</p>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -301,16 +310,23 @@ export default function DailyOperationsDashboard() {
                 <div className="flex justify-between items-center">
                   <div className="flex items-center">
                     <Package className="w-4 h-4 text-blue-600 mr-2" />
+                    <span className="text-sm font-medium text-gray-700">COGS (Sales)</span>
+                  </div>
+                  <span className="text-sm font-semibold text-blue-600">{formatCurrency(dailySummary.costs.cogs)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <ChefHat className="w-4 h-4 text-green-600 mr-2" />
                     <span className="text-sm font-medium text-gray-700">Stock Usage</span>
                   </div>
-                  <span className="text-sm font-semibold text-blue-600">{formatCurrency(dailySummary.costs.stock)}</span>
+                  <span className="text-sm font-semibold text-green-600">{formatCurrency(dailySummary.costs.stockUsage)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center">
                     <Users className="w-4 h-4 text-purple-600 mr-2" />
-                    <span className="text-sm font-medium text-gray-700">Employee Costs</span>
+                    <span className="text-sm font-medium text-gray-700">Payroll</span>
                   </div>
-                  <span className="text-sm font-semibold text-purple-600">{formatCurrency(dailySummary.costs.employee)}</span>
+                  <span className="text-sm font-semibold text-purple-600">{formatCurrency(dailySummary.costs.payroll)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center">
@@ -318,6 +334,20 @@ export default function DailyOperationsDashboard() {
                     <span className="text-sm font-medium text-gray-700">Operational</span>
                   </div>
                   <span className="text-sm font-semibold text-orange-600">{formatCurrency(dailySummary.costs.operational)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <AlertTriangle className="w-4 h-4 text-yellow-600 mr-2" />
+                    <span className="text-sm font-medium text-gray-700">Utilities</span>
+                  </div>
+                  <span className="text-sm font-semibold text-yellow-600">{formatCurrency(dailySummary.costs.utilities)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center">
+                    <Package className="w-4 h-4 text-gray-600 mr-2" />
+                    <span className="text-sm font-medium text-gray-700">Other</span>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-600">{formatCurrency(dailySummary.costs.other)}</span>
                 </div>
                 <div className="border-t pt-4">
                   <div className="flex justify-between items-center">
@@ -419,8 +449,9 @@ export default function DailyOperationsDashboard() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Costs</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">COGS</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Usage</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payroll</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Operational</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Profit</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Margin</th>
@@ -436,13 +467,16 @@ export default function DailyOperationsDashboard() {
                         {formatCurrency(day.sales)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                        {formatCurrency(day.costs.stock)}
+                        {formatCurrency(day.costs.cogs || 0)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                        {formatCurrency(day.costs.stockUsage || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-purple-600">
-                        {formatCurrency(day.costs.employee)}
+                        {formatCurrency(day.costs.payroll || 0)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600">
-                        {formatCurrency(day.costs.operational)}
+                        {formatCurrency((day.costs.operational || 0) + (day.costs.utilities || 0) + (day.costs.other || 0))}
                       </td>
                       <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
                         day.profit.amount >= 0 ? 'text-green-600' : 'text-red-600'

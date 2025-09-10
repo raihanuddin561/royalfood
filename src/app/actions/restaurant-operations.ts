@@ -365,51 +365,51 @@ export async function getDailyCosts(date: Date) {
       }
     })
 
-    // Employee costs (payroll)
-    const employeeCosts = await prisma.expense.aggregate({
-      where: {
-        expenseDate: {
-          gte: startOfDay,
-          lte: endOfDay
-        },
-        expenseCategory: {
-          type: 'PAYROLL'
-        },
-        status: 'APPROVED'
-      },
-      _sum: {
-        amount: true
-      }
-    })
+    // Get comprehensive expense breakdown by category type
+    const expenseData = await prisma.$queryRaw`
+      SELECT 
+        SUM(e.amount)::FLOAT as total_expenses,
+        SUM(CASE WHEN ec.type = 'STOCK' THEN e.amount ELSE 0 END)::FLOAT as stock_expenses,
+        SUM(CASE WHEN ec.type = 'PAYROLL' THEN e.amount ELSE 0 END)::FLOAT as payroll_expenses,
+        SUM(CASE WHEN ec.type = 'OPERATIONAL' THEN e.amount ELSE 0 END)::FLOAT as operational_expenses,
+        SUM(CASE WHEN ec.type = 'UTILITIES' THEN e.amount ELSE 0 END)::FLOAT as utilities_expenses,
+        SUM(CASE WHEN ec.type IN ('RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') 
+             THEN e.amount ELSE 0 END)::FLOAT as other_expenses
+      FROM expenses e
+      JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
+      WHERE e."expenseDate" >= ${startOfDay}
+        AND e."expenseDate" <= ${endOfDay}
+        AND e.status IN ('APPROVED', 'PAID')
+    ` as Array<{
+      total_expenses: number
+      stock_expenses: number
+      payroll_expenses: number
+      operational_expenses: number
+      utilities_expenses: number
+      other_expenses: number
+    }>
 
-    // Other operational expenses
-    const operationalCosts = await prisma.expense.groupBy({
-      by: ['expenseCategoryId'],
-      where: {
-        expenseDate: {
-          gte: startOfDay,
-          lte: endOfDay
-        },
-        expenseCategory: {
-          type: {
-            not: 'PAYROLL'
-          }
-        },
-        status: 'APPROVED'
-      },
-      _sum: {
-        amount: true
-      }
-    })
+    // Calculate COGS (Cost of Goods Sold) from inventory logs
+    const cogsData = await prisma.$queryRaw`
+      SELECT SUM(ABS(il.quantity) * i."costPrice")::FLOAT as total_cogs
+      FROM inventory_logs il
+      JOIN items i ON il."itemId" = i.id
+      WHERE il."createdAt" >= ${startOfDay}
+        AND il."createdAt" <= ${endOfDay}
+        AND il.type = 'STOCK_OUT'
+        AND il.reason ILIKE '%Sale%'
+    ` as Array<{ total_cogs: number }>
 
-    // Get category names for operational costs
-    const operationalCategories = await prisma.expenseCategory.findMany({
-      where: {
-        id: {
-          in: operationalCosts.map(cost => cost.expenseCategoryId)
-        }
-      }
-    })
+    const expenses = expenseData[0] || {
+      total_expenses: 0,
+      stock_expenses: 0,
+      payroll_expenses: 0,
+      operational_expenses: 0,
+      utilities_expenses: 0,
+      other_expenses: 0
+    }
+    
+    const cogsAmount = cogsData[0]?.total_cogs || 0
 
     // Daily sales
     const dailySales = await prisma.sale.aggregate({
@@ -428,13 +428,21 @@ export async function getDailyCosts(date: Date) {
     })
 
     const stockCosts = stockUsage.reduce((total, usage) => total + (usage._sum.totalCost || 0), 0)
-    const totalEmployeeCosts = employeeCosts._sum.amount || 0
-    const totalOperationalCosts = operationalCosts.reduce((total, expense) => total + (expense._sum.amount || 0), 0)
+    
+    // Use comprehensive cost calculation (avoid double counting stock purchases vs COGS)
+    const totalRecordedExpenses = expenses.total_expenses || 0
+    const stockExpensesRecorded = expenses.stock_expenses || 0
+    const payrollExpenses = expenses.payroll_expenses || 0
+    const operationalExpenses = expenses.operational_expenses || 0
+    const utilitiesExpenses = expenses.utilities_expenses || 0
+    const otherExpenses = expenses.other_expenses || 0
+    
+    // Replace recorded stock expenses with actual COGS + stock usage to avoid double counting
+    const effectiveTotalExpenses = totalRecordedExpenses - stockExpensesRecorded + cogsAmount + stockCosts
+    
     const totalSales = dailySales._sum.totalAmount || 0
-
-    const totalCosts = stockCosts + totalEmployeeCosts + totalOperationalCosts
-    const grossProfit = totalSales - totalCosts
-    const profitMargin = totalSales > 0 ? (grossProfit / totalSales) * 100 : 0
+    const netProfit = totalSales - effectiveTotalExpenses
+    const profitMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0
 
     return {
       success: true,
@@ -442,13 +450,18 @@ export async function getDailyCosts(date: Date) {
         date: date.toISOString().split('T')[0],
         revenue: totalSales,
         costs: {
-          stock: stockCosts,
-          employee: totalEmployeeCosts,
-          operational: totalOperationalCosts,
-          total: totalCosts
+          stockUsage: stockCosts,
+          cogs: cogsAmount,
+          payroll: payrollExpenses,
+          operational: operationalExpenses,
+          utilities: utilitiesExpenses,
+          other: otherExpenses,
+          recordedStockPurchases: stockExpensesRecorded,
+          totalRecorded: totalRecordedExpenses,
+          total: effectiveTotalExpenses
         },
         profit: {
-          gross: grossProfit,
+          net: netProfit,
           margin: profitMargin
         },
         transactions: {
@@ -461,13 +474,14 @@ export async function getDailyCosts(date: Date) {
             cost: usage._sum.totalCost || 0,
             count: usage._count.id
           })),
-          operationalCosts: operationalCosts.map(expense => {
-            const category = operationalCategories.find(cat => cat.id === expense.expenseCategoryId)
-            return {
-              category: category?.name || 'Unknown',
-              cost: expense._sum.amount || 0
-            }
-          })
+          expenseBreakdown: {
+            payroll: payrollExpenses,
+            operational: operationalExpenses,
+            utilities: utilitiesExpenses,
+            other: otherExpenses,
+            cogs: cogsAmount,
+            stockUsage: stockCosts
+          }
         }
       }
     }
@@ -525,11 +539,15 @@ export async function getPeriodSummary(startDate: Date | string, endDate: Date |
       SELECT 
         dates.date::date as date,
         COALESCE(SUM(s."totalAmount"), 0)::FLOAT as daily_sales,
-        COALESCE(stock_costs.total_cost, 0)::FLOAT as stock_costs,
-        COALESCE(employee_costs.total_cost, 0)::FLOAT as employee_costs,
-        COALESCE(operational_costs.total_cost, 0)::FLOAT as operational_costs
-  FROM generate_series(date_trunc('day', ${startDate}::timestamp), date_trunc('day', ${endDate}::timestamp), '1 day'::interval) as dates(date)
-      LEFT JOIN sales s ON DATE(s."saleDate") = dates.date
+        COALESCE(stock_usage_costs.total_cost, 0)::FLOAT as stock_usage_costs,
+        COALESCE(cogs_costs.total_cost, 0)::FLOAT as cogs_costs,
+        COALESCE(expense_costs.payroll_expenses, 0)::FLOAT as payroll_expenses,
+        COALESCE(expense_costs.operational_expenses, 0)::FLOAT as operational_expenses,
+        COALESCE(expense_costs.utilities_expenses, 0)::FLOAT as utilities_expenses,
+        COALESCE(expense_costs.other_expenses, 0)::FLOAT as other_expenses,
+        COALESCE(expense_costs.stock_expenses, 0)::FLOAT as recorded_stock_expenses
+      FROM generate_series(date_trunc('day', ${startDate}::timestamp), date_trunc('day', ${endDate}::timestamp), '1 day'::interval) as dates(date)
+      LEFT JOIN sales s ON DATE(s."saleDate") = dates.date AND s.status = 'COMPLETED'
       LEFT JOIN (
         SELECT 
           DATE(su."usageDate") as date,
@@ -537,39 +555,45 @@ export async function getPeriodSummary(startDate: Date | string, endDate: Date |
         FROM stock_usage su
         WHERE su."usageDate" >= ${startDate} AND su."usageDate" <= ${endDate}
         GROUP BY DATE(su."usageDate")
-      ) stock_costs ON stock_costs.date = dates.date
+      ) stock_usage_costs ON stock_usage_costs.date = dates.date
+      LEFT JOIN (
+        SELECT
+          DATE(il."createdAt") as date,
+          SUM(ABS(il.quantity) * i."costPrice") as total_cost
+        FROM inventory_logs il
+        JOIN items i ON il."itemId" = i.id
+        WHERE il."createdAt" >= ${startDate} AND il."createdAt" <= ${endDate}
+          AND il.type = 'STOCK_OUT'
+          AND il.reason ILIKE '%Sale%'
+        GROUP BY DATE(il."createdAt")
+      ) cogs_costs ON cogs_costs.date = dates.date
       LEFT JOIN (
         SELECT 
           DATE(e."expenseDate") as date,
-          SUM(e.amount) as total_cost
+          SUM(CASE WHEN ec.type = 'PAYROLL' THEN e.amount ELSE 0 END) as payroll_expenses,
+          SUM(CASE WHEN ec.type = 'OPERATIONAL' THEN e.amount ELSE 0 END) as operational_expenses,
+          SUM(CASE WHEN ec.type = 'UTILITIES' THEN e.amount ELSE 0 END) as utilities_expenses,
+          SUM(CASE WHEN ec.type IN ('RENT', 'MAINTENANCE', 'INSURANCE', 'TAXES', 'MARKETING', 'OTHER') THEN e.amount ELSE 0 END) as other_expenses,
+          SUM(CASE WHEN ec.type = 'STOCK' THEN e.amount ELSE 0 END) as stock_expenses
         FROM expenses e
         JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
         WHERE e."expenseDate" >= ${startDate} 
           AND e."expenseDate" <= ${endDate}
-          AND ec.type = 'PAYROLL'
-          AND e.status = 'APPROVED'
+          AND e.status IN ('APPROVED', 'PAID')
         GROUP BY DATE(e."expenseDate")
-      ) employee_costs ON employee_costs.date = dates.date
-      LEFT JOIN (
-        SELECT 
-          DATE(e."expenseDate") as date,
-          SUM(e.amount) as total_cost
-        FROM expenses e
-        JOIN expense_categories ec ON e."expenseCategoryId" = ec.id
-        WHERE e."expenseDate" >= ${startDate} 
-          AND e."expenseDate" <= ${endDate}
-          AND ec.type != 'PAYROLL'
-          AND e.status = 'APPROVED'
-        GROUP BY DATE(e."expenseDate")
-      ) operational_costs ON operational_costs.date = dates.date
-      GROUP BY dates.date, stock_costs.total_cost, employee_costs.total_cost, operational_costs.total_cost
+      ) expense_costs ON expense_costs.date = dates.date
+      GROUP BY dates.date, stock_usage_costs.total_cost, cogs_costs.total_cost, expense_costs.payroll_expenses, expense_costs.operational_expenses, expense_costs.utilities_expenses, expense_costs.other_expenses, expense_costs.stock_expenses
       ORDER BY dates.date
     ` as Array<{
       date: Date
       daily_sales: number
-      stock_costs: number
-      employee_costs: number
-      operational_costs: number
+      stock_usage_costs: number
+      cogs_costs: number
+      payroll_expenses: number
+      operational_expenses: number
+      utilities_expenses: number
+      other_expenses: number
+      recorded_stock_expenses: number
     }>
 
     // Log summary size + sample for debugging
@@ -581,18 +605,33 @@ export async function getPeriodSummary(startDate: Date | string, endDate: Date |
     }
 
     const periodData = summary.map(day => {
-      const totalCosts = day.stock_costs + day.employee_costs + day.operational_costs
-      const profit = day.daily_sales - totalCosts
+      // Calculate comprehensive costs using the same logic as daily costs
+      const stockUsageCosts = day.stock_usage_costs || 0
+      const cogsCosts = day.cogs_costs || 0
+      const payrollExpenses = day.payroll_expenses || 0
+      const operationalExpenses = day.operational_expenses || 0
+      const utilitiesExpenses = day.utilities_expenses || 0
+      const otherExpenses = day.other_expenses || 0
+      const recordedStockExpenses = day.recorded_stock_expenses || 0
+      
+      // Replace recorded stock expenses with actual COGS + stock usage to avoid double counting
+      const totalRecordedExpenses = payrollExpenses + operationalExpenses + utilitiesExpenses + otherExpenses + recordedStockExpenses
+      const effectiveTotalCosts = totalRecordedExpenses - recordedStockExpenses + cogsCosts + stockUsageCosts
+      
+      const profit = day.daily_sales - effectiveTotalCosts
       const profitMargin = day.daily_sales > 0 ? (profit / day.daily_sales) * 100 : 0
 
       return {
         date: day.date.toISOString().split('T')[0],
         sales: day.daily_sales,
         costs: {
-          stock: day.stock_costs,
-          employee: day.employee_costs,
-          operational: day.operational_costs,
-          total: totalCosts
+          stockUsage: stockUsageCosts,
+          cogs: cogsCosts,
+          payroll: payrollExpenses,
+          operational: operationalExpenses,
+          utilities: utilitiesExpenses,
+          other: otherExpenses,
+          total: effectiveTotalCosts
         },
         profit: {
           amount: profit,

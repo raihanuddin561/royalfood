@@ -474,9 +474,6 @@ export default function ComprehensiveSummary() {
                         const revenue = Number(day.revenue || 0)
                         const cogs = Number(day.cogs || 0)
                         const expenses = Number(day.expenses || 0)
-                        const grossProfit = revenue - cogs
-                        const netProfit = revenue - cogs - expenses
-                        const netMargin = revenue > 0 ? ((netProfit / revenue) * 100) : 0
                         
                         // Calculate total costs including all categories
                         const payrollCost = Number(expenseData.payroll_expenses || 0)
@@ -486,7 +483,12 @@ export default function ComprehensiveSummary() {
                         const operationalCost = Number(expenseData.operational_expenses || 0)
                         const otherCosts = Number(expenseData.other_expenses || 0)
                         const purchaseCost = Number(purchaseData.total_purchase_amount || 0)
+                        
+                        // CORRECT PROFIT CALCULATION: Sales - ALL COSTS
                         const totalDailyCosts = payrollCost + utilitiesCost + rentCost + stockCost + operationalCost + otherCosts
+                        const grossProfit = revenue - stockCost // Revenue minus stock usage cost
+                        const netProfit = revenue - totalDailyCosts // Revenue minus ALL costs (including stock)
+                        const netMargin = revenue > 0 ? ((netProfit / revenue) * 100) : 0
                         
                         return (
                           <div key={index} className="lg:grid lg:grid-cols-8 gap-2 p-3 bg-white rounded-lg border hover:bg-gray-50 transition-colors">

@@ -55,7 +55,7 @@ export default function CostTrackingDashboard() {
           dailyData = {
             revenue: daily.dailySummary?.revenue || 0,
             expenses: daily.dailySummary?.costs?.total || 0,
-            profit: daily.dailySummary?.profit?.gross || 0,
+            profit: daily.dailySummary?.profit?.net || 0,
             orders: daily.dailySummary?.transactions?.sales || 0
           }
         }
