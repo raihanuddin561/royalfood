@@ -1281,10 +1281,10 @@ export async function getComprehensiveProfitAnalysis(
         ? expenses.total_expenses
         : ((expenses?.stock_expenses || 0) + (expenses?.payroll_expenses || 0) + (expenses?.operational_expenses || 0) + (expenses?.utilities_expenses || 0) + (expenses?.other_expenses || 0))
 
-      const effectiveTotalForDay = (totalRecordedForDay || 0) - (expenses?.stock_expenses || 0) + cogsAmount
+      const effectiveTotalForDay = (totalRecordedForDay || 0) - (expenses?.stock_expenses || 0) + cogsAmount + stockUsageAmount
       const totalExpenses = effectiveTotalForDay
 
-      const grossProfit = (sale as any).total_revenue - cogsAmount
+      const grossProfit = (sale as any).total_revenue - directCosts
       const netProfit = (sale as any).total_revenue - totalExpenses
 
       return {
