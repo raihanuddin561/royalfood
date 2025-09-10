@@ -310,8 +310,9 @@ export default function ComprehensiveSummary() {
 
       {/* Detailed Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-7">
           <TabsTrigger value="overview">📊 Overview</TabsTrigger>
+          <TabsTrigger value="daily">📅 Daily View</TabsTrigger>
           <TabsTrigger value="sales">💰 Sales</TabsTrigger>
           <TabsTrigger value="purchases">🛒 Purchases</TabsTrigger>
           <TabsTrigger value="expenses">💸 Expenses</TabsTrigger>
@@ -401,6 +402,258 @@ export default function ComprehensiveSummary() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Daily Comprehensive View Tab */}
+        <TabsContent value="daily" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>📅 Daily Operations Overview - Complete Business Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-4">
+                Complete daily business operations in a single view. See sales, purchases, expenses, stock usage, and profit calculations for each date.
+                This comprehensive view helps you understand the complete business flow and profitability day by day.
+              </p>
+              
+              {/* Table Header */}
+              <div className="overflow-x-auto">
+                <div className="min-w-full bg-gray-50 rounded-lg p-2">
+                  <div className="hidden xl:grid xl:grid-cols-12 gap-1 font-semibold text-xs text-gray-700 p-2 border-b">
+                    <div>📅 Date</div>
+                    <div className="text-center">💰 Sales</div>
+                    <div className="text-center">👥 Payroll</div>
+                    <div className="text-center">⚡ Utilities</div>
+                    <div className="text-center">🏢 Rent</div>
+                    <div className="text-center">📦 Stock Cost</div>
+                    <div className="text-center">⚙️ Operations</div>
+                    <div className="text-center">🛒 Purchases</div>
+                    <div className="text-center">💸 Total Costs</div>
+                    <div className="text-center">🏆 Gross Profit</div>
+                    <div className="text-center">📊 Net Profit</div>
+                    <div className="text-center">📈 Margin %</div>
+                  </div>
+                  
+                  {/* Simplified header for smaller screens */}
+                  <div className="xl:hidden grid grid-cols-5 gap-2 font-semibold text-xs text-gray-700 p-2 border-b">
+                    <div>📅 Date</div>
+                    <div className="text-center">💰 Sales</div>
+                    <div className="text-center">💸 Total Costs</div>
+                    <div className="text-center">📊 Net Profit</div>
+                    <div className="text-center">📈 Margin</div>
+                  </div>
+                  
+                  {/* Daily Data Rows */}
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {data.dailyData.profits.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No daily data found for the selected period
+                      </div>
+                    ) : (
+                      data.dailyData.profits.map((day: any, index: number) => {
+                        // Find corresponding data from other arrays
+                        const salesData = data.dailyData.sales.find((s: any) => 
+                          formatDate(s.date) === formatDate(day.date)
+                        ) || { transaction_count: 0, final_amount: 0, cash_amount: 0, card_amount: 0, digital_amount: 0 }
+                        
+                        const purchaseData = data.dailyData.purchases.find((p: any) => 
+                          formatDate(p.date) === formatDate(day.date)
+                        ) || { purchase_count: 0, total_purchase_amount: 0 }
+                        
+                        const expenseData = data.dailyData.expenses.find((e: any) => 
+                          formatDate(e.date) === formatDate(day.date)
+                        ) || { expense_count: 0, total_expenses: 0 }
+                        
+                        const stockData = data.dailyData.stockUsage.find((su: any) => 
+                          formatDate(su.date) === formatDate(day.date)
+                        ) || { usage_entries: 0, total_usage_cost: 0 }
+                        
+                        const revenue = Number(day.revenue || 0)
+                        const cogs = Number(day.cogs || 0)
+                        const expenses = Number(day.expenses || 0)
+                        const grossProfit = revenue - cogs
+                        const netProfit = revenue - cogs - expenses
+                        const netMargin = revenue > 0 ? ((netProfit / revenue) * 100) : 0
+                        
+                        // Calculate total costs including all categories
+                        const payrollCost = Number(expenseData.payroll_expenses || 0)
+                        const utilitiesCost = Number(expenseData.utilities_expenses || 0)
+                        const rentCost = Number(expenseData.rent_expenses || 0)
+                        const stockCost = Number(stockData.total_usage_cost || 0)
+                        const operationalCost = Number(expenseData.operational_expenses || 0)
+                        const otherCosts = Number(expenseData.other_expenses || 0)
+                        const purchaseCost = Number(purchaseData.total_purchase_amount || 0)
+                        const totalDailyCosts = payrollCost + utilitiesCost + rentCost + stockCost + operationalCost + otherCosts
+                        
+                        return (
+                          <div key={index} className="lg:grid lg:grid-cols-8 gap-2 p-3 bg-white rounded-lg border hover:bg-gray-50 transition-colors">
+                            {/* Mobile Layout - Detailed Card */}
+                            <div className="xl:hidden space-y-3">
+                              <div className="flex justify-between items-center border-b pb-2">
+                                <h4 className="font-medium text-lg">{formatDate(day.date)}</h4>
+                                <div className="text-right">
+                                  <p className="text-lg font-bold text-green-600">{formatCurrency(netProfit)}</p>
+                                  <p className="text-xs text-gray-500">{netMargin.toFixed(1)}% margin</p>
+                                </div>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 gap-2 text-sm">
+                                <div className="flex justify-between bg-green-50 p-2 rounded">
+                                  <span className="text-gray-600">💰 Sales Revenue:</span>
+                                  <span className="font-bold text-green-600">
+                                    {formatCurrency(revenue)} ({salesData.transaction_count} transactions)
+                                  </span>
+                                </div>
+                                
+                                <div className="text-xs text-gray-700 bg-gray-50 p-2 rounded">
+                                  <div className="font-medium mb-1">📊 Daily Cost Breakdown:</div>
+                                  <div className="grid grid-cols-2 gap-1">
+                                    <div>👥 Payroll: <strong>{formatCurrency(payrollCost)}</strong></div>
+                                    <div>⚡ Utilities: <strong>{formatCurrency(utilitiesCost)}</strong></div>
+                                    <div>🏢 Rent: <strong>{formatCurrency(rentCost)}</strong></div>
+                                    <div>📦 Stock Used: <strong>{formatCurrency(stockCost)}</strong></div>
+                                    <div>⚙️ Operations: <strong>{formatCurrency(operationalCost)}</strong></div>
+                                    <div>🛒 Purchases: <strong>{formatCurrency(purchaseCost)}</strong></div>
+                                  </div>
+                                  <div className="border-t mt-1 pt-1 font-medium">
+                                    💸 Total Costs: <strong>{formatCurrency(totalDailyCosts)}</strong>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex justify-between bg-blue-50 p-2 rounded">
+                                  <span className="text-gray-600">🏆 Gross Profit (Revenue - COGS):</span>
+                                  <span className="font-medium text-emerald-600">{formatCurrency(grossProfit)}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Desktop Layout - Detailed View */}
+                            <div className="hidden xl:contents">
+                              <div className="flex items-center">
+                                <span className="font-medium text-sm">{formatDate(day.date)}</span>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className="font-bold text-green-600 text-sm">{formatCurrency(revenue)}</p>
+                                <p className="text-xs text-gray-500">{salesData.transaction_count} trans</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className="font-bold text-blue-600 text-sm">{formatCurrency(payrollCost)}</p>
+                                <p className="text-xs text-gray-500">Staff costs</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className="font-bold text-yellow-600 text-sm">{formatCurrency(utilitiesCost)}</p>
+                                <p className="text-xs text-gray-500">Electric/Gas</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className="font-bold text-purple-600 text-sm">{formatCurrency(rentCost)}</p>
+                                <p className="text-xs text-gray-500">Facility</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className="font-bold text-orange-600 text-sm">{formatCurrency(stockCost)}</p>
+                                <p className="text-xs text-gray-500">{stockData.usage_entries} uses</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className="font-bold text-indigo-600 text-sm">{formatCurrency(operationalCost)}</p>
+                                <p className="text-xs text-gray-500">Operations</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className="font-bold text-cyan-600 text-sm">{formatCurrency(purchaseCost)}</p>
+                                <p className="text-xs text-gray-500">{purchaseData.purchase_count} orders</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className="font-bold text-red-600 text-sm">{formatCurrency(totalDailyCosts)}</p>
+                                <p className="text-xs text-gray-500">All costs</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className="font-bold text-emerald-600 text-sm">{formatCurrency(grossProfit)}</p>
+                                <p className="text-xs text-gray-500">Revenue-COGS</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className={`font-bold text-sm ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {formatCurrency(netProfit)}
+                                </p>
+                                <p className="text-xs text-gray-500">After all costs</p>
+                              </div>
+                              
+                              <div className="text-center">
+                                <p className={`font-bold text-sm ${netMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {netMargin.toFixed(1)}%
+                                </p>
+                                <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                                  <div 
+                                    className={`h-1 rounded-full ${netMargin >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
+                                    style={{ width: `${Math.min(Math.abs(netMargin), 100)}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Simplified Layout for smaller screens */}
+                            <div className="xl:hidden grid grid-cols-5 gap-2 text-center items-center">
+                              <div className="text-left">
+                                <span className="font-medium text-sm">{formatDate(day.date)}</span>
+                              </div>
+                              <div>
+                                <p className="font-bold text-green-600 text-sm">{formatCurrency(revenue)}</p>
+                                <p className="text-xs text-gray-500">{salesData.transaction_count}</p>
+                              </div>
+                              <div>
+                                <p className="font-bold text-red-600 text-sm">{formatCurrency(totalDailyCosts)}</p>
+                                <p className="text-xs text-gray-500">Total</p>
+                              </div>
+                              <div>
+                                <p className={`font-bold text-sm ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {formatCurrency(netProfit)}
+                                </p>
+                              </div>
+                              <div>
+                                <p className={`font-bold text-sm ${netMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {netMargin.toFixed(1)}%
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Summary Footer */}
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-semibold text-blue-800 mb-2">📊 Period Summary</h4>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                  <div className="text-center">
+                    <p className="text-blue-600 font-medium">Total Revenue</p>
+                    <p className="text-xl font-bold text-green-600">{formatCurrency(data.summary.totalSales)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-blue-600 font-medium">Total Expenses</p>
+                    <p className="text-xl font-bold text-red-600">{formatCurrency(data.summary.totalExpenses)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-blue-600 font-medium">Net Profit</p>
+                    <p className="text-xl font-bold text-green-600">{formatCurrency(data.summary.totalProfit)}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-blue-600 font-medium">Profit Margin</p>
+                    <p className="text-xl font-bold text-blue-600">{data.summary.profitMargin.toFixed(1)}%</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
