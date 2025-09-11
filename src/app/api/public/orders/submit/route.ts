@@ -22,6 +22,11 @@ const submitOrderSchema = z.object({
   guestEmail: z.string().optional(),
   guestAddress: z.string().optional(),
   
+  // Pre-order functionality
+  isPreOrder: z.boolean().default(false),
+  scheduledDate: z.string().optional(), // ISO date string
+  scheduledTime: z.string().optional(), // "breakfast", "lunch", "dinner", or "HH:MM"
+  
   // Order details
   tableNumber: z.string().optional(),
   deliveryAddressId: z.string().optional(),
@@ -38,10 +43,10 @@ export async function POST(request: NextRequest) {
     const validatedData = submitOrderSchema.parse(body)
     
     // Validate customer information
-    if (!validatedData.customerId && !validatedData.guestName) {
+    if (!validatedData.customerId && (!validatedData.guestName || !validatedData.guestPhone)) {
       return NextResponse.json({
         success: false,
-        error: 'Customer information is required'
+        error: 'Customer name and phone are required'
       }, { status: 400 })
     }
     
@@ -52,6 +57,24 @@ export async function POST(request: NextRequest) {
         success: false,
         error: 'Delivery address is required for delivery orders'
       }, { status: 400 })
+    }
+    
+    // Validate pre-order data
+    if (validatedData.isPreOrder) {
+      if (!validatedData.scheduledDate) {
+        return NextResponse.json({
+          success: false,
+          error: 'Scheduled date is required for pre-orders'
+        }, { status: 400 })
+      }
+      
+      const scheduledDate = new Date(validatedData.scheduledDate)
+      if (scheduledDate <= new Date()) {
+        return NextResponse.json({
+          success: false,
+          error: 'Scheduled date must be in the future'
+        }, { status: 400 })
+      }
     }
     
     // Get menu items to calculate pricing
@@ -138,6 +161,11 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
         tableNumber: validatedData.tableNumber || null,
         
+        // Pre-order fields
+        isPreOrder: validatedData.isPreOrder || false,
+        scheduledDate: validatedData.scheduledDate ? new Date(validatedData.scheduledDate) : null,
+        scheduledTime: validatedData.scheduledTime || null,
+        
         // Pricing
         subtotal,
         taxAmount,
@@ -203,7 +231,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Validation failed',
-        details: error.errors
+        details: error.issues
       }, { status: 400 })
     }
     

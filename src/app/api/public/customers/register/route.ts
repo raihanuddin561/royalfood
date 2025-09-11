@@ -9,7 +9,9 @@ const registerCustomerSchema = z.object({
   phone: z.string().min(10, 'Valid phone number is required'),
   address: z.string().min(10, 'Address must be at least 10 characters'),
   city: z.string().optional(),
-  zipCode: z.string().optional()
+  zipCode: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  preferences: z.string().optional() // JSON string for allergies, dietary preferences
 })
 
 // POST /api/public/customers/register - Customer registration
@@ -47,7 +49,9 @@ export async function POST(request: NextRequest) {
         phone: validatedData.phone,
         address: validatedData.address,
         city: validatedData.city || null,
-        zipCode: validatedData.zipCode || null
+        zipCode: validatedData.zipCode || null,
+        dateOfBirth: validatedData.dateOfBirth ? new Date(validatedData.dateOfBirth) : null,
+        preferences: validatedData.preferences || null
       },
       select: {
         id: true,
@@ -57,6 +61,8 @@ export async function POST(request: NextRequest) {
         address: true,
         city: true,
         zipCode: true,
+        dateOfBirth: true,
+        preferences: true,
         createdAt: true
       }
     })

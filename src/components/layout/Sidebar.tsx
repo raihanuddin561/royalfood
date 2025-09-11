@@ -18,7 +18,10 @@ import {
   Activity,
   Shield,
   Building2,
-  User
+  User,
+  Globe,
+  Search,
+  ClipboardList
 } from 'lucide-react'
 import { UserRole } from '@prisma/client'
 import { RoleGuard } from '@/components/auth/RoleGuard'
@@ -54,6 +57,13 @@ const navigation: NavigationItem[] = [
   { name: 'Purchases', href: '/admin/purchases', icon: ShoppingCart, roles: [UserRole.ADMIN, UserRole.MANAGER], description: 'Purchase orders' },
   { name: 'Stock Usage', href: '/inventory/usage', icon: Activity, description: 'Track ingredient usage' },
   { name: 'Orders', href: '/orders', icon: ShoppingCart, description: 'Customer orders' },
+  { 
+    name: 'Admin Orders', 
+    href: '/admin/orders', 
+    icon: ClipboardList, 
+    roles: [UserRole.ADMIN, UserRole.MANAGER],
+    description: 'Manage all orders' 
+  },
   { name: 'Menu', href: '/menu', icon: ChefHat, description: 'Menu management' },
   { 
     name: 'Employees', 
@@ -249,6 +259,47 @@ export default function Sidebar() {
               )
             })}
           </ul>
+
+          {/* Role-specific sections */}
+          
+          {/* Public Services section */}
+          <div className="mt-6 pt-6 border-t border-gray-700">
+            <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Public Services
+            </p>
+            <ul className="space-y-1">
+              <li>
+                <Link
+                  href="/public/order"
+                  className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
+                  onClick={handleMenuClick}
+                >
+                  <Globe className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-white" />
+                  Public Ordering
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/public/order/track"
+                  className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
+                  onClick={handleMenuClick}
+                >
+                  <Search className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-white" />
+                  Track Orders
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/public/my-orders"
+                  className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
+                  onClick={handleMenuClick}
+                >
+                  <ClipboardList className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-white" />
+                  My Orders
+                </Link>
+              </li>
+            </ul>
+          </div>
 
           {/* Role-specific sections */}
           {/* Administration section: render immediately if server/user role shows ADMIN (fast fallback),

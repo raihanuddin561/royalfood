@@ -21,6 +21,8 @@ model User {
   password     String
   name         String
   role         UserRole @default(EMPLOYEE)
+  phone        String?  // Add phone field
+  address      String?  // Add address field  
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -54,6 +56,8 @@ model Customer {
   address   String
   city      String?
   zipCode   String?
+  dateOfBirth DateTime?
+  preferences String? // JSON string for food preferences, allergies, etc.
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -442,6 +446,11 @@ model Order {
   status            OrderStatus @default(PENDING)
   tableNumber       String?
   
+  // Pre-order functionality
+  isPreOrder        Boolean     @default(false)
+  scheduledDate     DateTime?   // When the customer wants the order
+  scheduledTime     String?     // "breakfast", "lunch", "dinner", or specific time
+  
   // Pricing - with defaults for migration
   subtotal          Float       @default(0)
   taxAmount         Float       @default(0)
@@ -470,6 +479,7 @@ model Order {
   deliveryAddress   DeliveryAddress? @relation(fields: [deliveryAddressId], references: [id])
   user              User             @relation(fields: [userId], references: [id])
   orderItems        OrderItem[]
+  orderTracking     OrderTracking[]  // Track status changes
   sale              Sale?
   stockUsage        StockUsage[]     // Track ingredient usage for this order
 
@@ -502,6 +512,22 @@ model OrderItem {
   @@map("order_items")
 }
 
+// Order Tracking for customer notifications and status updates
+model OrderTracking {
+  id          String      @id @default(cuid())
+  orderId     String
+  status      OrderStatus
+  message     String?     // Custom message for this status update
+  updatedBy   String?     // User ID who made this status change
+  timestamp   DateTime    @default(now())
+  estimatedTime Int?      // Estimated time for next status (in minutes)
+  
+  // Relations
+  order       Order       @relation(fields: [orderId], references: [id])
+  
+  @@map("order_tracking")
+}
+
 enum OrderType {
   DINE_IN
   TAKEAWAY
@@ -509,13 +535,15 @@ enum OrderType {
 }
 
 enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PREPARING
-  READY
-  SERVED
-  COMPLETED
-  CANCELLED
+  PENDING         // Order placed, waiting for confirmation
+  CONFIRMED       // Order confirmed by restaurant
+  PREPARING       // Kitchen started preparing
+  READY           // Food is ready for pickup/delivery
+  OUT_FOR_DELIVERY // For delivery orders
+  SERVED          // Customer received the order
+  COMPLETED       // Order fully completed
+  CANCELLED       // Order cancelled
+  REFUNDED        // Order refunded
 }
 
 // Sales & Revenue Management
