@@ -31,7 +31,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [cart, setCart] = useState<{id: string, quantity: number}[]>([])
+  const [cart, setCart] = useState<(MenuItem & {quantity: number})[]>([])
 
   // Load menu items
   useEffect(() => {
@@ -406,15 +406,7 @@ export default function HomePage() {
             </Button>
           </Link>
         </div>
-      </div>
-    </div>
-  )
-}
-          </div>
-        </div>
-      </div>
 
-      <div className="container mx-auto px-4 py-8">
         {/* Popular Items Section */}
         {popularItems.length > 0 && (
           <section className="mb-12">
@@ -592,6 +584,39 @@ export default function HomePage() {
                         <span className="text-sm text-gray-600 ml-2">({item.rating})</span>
                       </div>
                     )}
+                    
+                    {/* Prominent Order Buttons */}
+                    <div className="flex gap-2 mt-4">
+                      <Button 
+                        className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg"
+                        disabled={!item.isAvailable}
+                        onClick={() => {
+                          const cartItem = cart.find(cartItem => cartItem.id === item.id);
+                          if (cartItem) {
+                            setCart(cart.map(cartItem => 
+                              cartItem.id === item.id 
+                                ? {...cartItem, quantity: cartItem.quantity + 1}
+                                : cartItem
+                            ));
+                          } else {
+                            setCart([...cart, {...item, quantity: 1}]);
+                          }
+                        }}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Add to Cart
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        className="border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold"
+                        disabled={!item.isAvailable}
+                        asChild
+                      >
+                        <Link href={`/public/order?item=${item.id}`}>
+                          Order Now
+                        </Link>
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -608,7 +633,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Call to Action */}
+        {/* Final Call to Action */}
         <section className="mt-16 text-center">
           <Card className="bg-gradient-to-r from-blue-500 to-purple-600 border-0 text-white">
             <CardContent className="py-12">
