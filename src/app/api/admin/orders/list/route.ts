@@ -27,15 +27,15 @@ export async function GET() {
         },
         deliveryAddress: {
           select: {
-            streetAddress: true,
+            address: true,
             city: true,
-            state: true,
-            zipCode: true
+            zipCode: true,
+            landmark: true
           }
         },
         orderTracking: {
           orderBy: {
-            createdAt: 'desc'
+            timestamp: 'desc'
           },
           take: 5 // Limit to last 5 status changes
         }
@@ -75,11 +75,11 @@ export async function GET() {
         })),
         customer: order.customer,
         deliveryAddress: order.deliveryAddress,
-        orderTracking: order.orderTracking.map(tracking => ({
+        orderTracking: order.orderTracking.map((tracking: any) => ({
           id: tracking.id,
           status: tracking.status,
-          notes: tracking.notes,
-          createdAt: tracking.createdAt.toISOString()
+          message: tracking.message,
+          timestamp: tracking.timestamp.toISOString()
         }))
       }))
     })

@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 const updateStatusSchema = z.object({
   orderId: z.string(),
-  status: z.enum(['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED']),
+  status: z.enum(['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'SERVED', 'COMPLETED', 'CANCELLED']),
   notes: z.string().optional()
 })
 
@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
       case 'READY':
         updateData.readyAt = new Date()
         break
-      case 'DELIVERED':
+      case 'SERVED':
+      case 'COMPLETED':
         updateData.deliveredAt = new Date()
         break
     }
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       data: {
         orderId: validatedData.orderId,
         status: validatedData.status,
-        notes: validatedData.notes
+        message: validatedData.notes
       }
     })
 

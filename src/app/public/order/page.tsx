@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Minus, ShoppingCart, User, MapPin, Clock, Calendar, LogIn, UserPlus } from 'lucide-react'
+import Image from 'next/image'
 import { toast } from 'sonner'
 import CustomerAuthModal from '@/components/auth/CustomerAuthModal'
 

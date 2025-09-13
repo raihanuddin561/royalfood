@@ -37,90 +37,32 @@ export interface MultipleStockUsageData {
   usageDate?: Date | string
 }
 
-// Recipe Management
+// Recipe Management - DISABLED: Using MenuItem with RecipeItem instead
 export async function createRecipe(data: RecipeFormData) {
   try {
-    const recipe = await prisma.recipe.create({
-      data: {
-        menuItemId: data.menuItemId,
-        name: data.name,
-        description: data.description,
-        servingSize: data.servingSize,
-        ingredients: {
-          create: data.ingredients.map(ingredient => ({
-            itemId: ingredient.itemId,
-            quantity: ingredient.quantity,
-            unit: ingredient.unit
-          }))
-        }
-      },
-      include: {
-        ingredients: {
-          include: {
-            item: true
-          }
-        },
-        menuItem: true
-      }
-    })
-
-    // Calculate and update recipe cost
-    await updateRecipeCost(recipe.id)
-
-  return { success: true, recipe }
+    // This functionality has been moved to MenuItem management
+    console.log('Recipe creation moved to MenuItem management')
+    return { success: false, message: 'Use MenuItem management for recipes' }
   } catch (error) {
     console.error('Error creating recipe:', error)
-  const msg = error instanceof Error ? error.message : 'Failed to create recipe'
-  const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
-  const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset')
-  return { success: false, errorCode: transient ? 'TRANSIENT' : 'UNKNOWN', message: msg }
+    const msg = error instanceof Error ? error.message : 'Failed to create recipe'
+    const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+    const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset')
+    return { success: false, errorCode: transient ? 'TRANSIENT' : 'UNKNOWN', message: msg }
   }
 }
 
 export async function updateRecipeCost(recipeId: string) {
   try {
-    const recipe = await prisma.recipe.findUnique({
-      where: { id: recipeId },
-      include: {
-        ingredients: {
-          include: {
-            item: true
-          }
-        }
-      }
-    })
-
-  if (!recipe) return { success: false, errorCode: 'NOT_FOUND', message: 'Recipe not found' }
-
-    let totalCost = 0
-
-    for (const ingredient of recipe.ingredients) {
-      // Get latest purchase price for the item
-      const latestPurchase = await prisma.purchaseItem.findFirst({
-        where: { itemId: ingredient.itemId },
-        orderBy: { purchase: { purchaseDate: 'desc' } },
-        include: { purchase: true }
-      })
-
-      if (latestPurchase) {
-        const costPerUnit = latestPurchase.unitPrice
-        const ingredientCost = ingredient.quantity * costPerUnit
-        totalCost += ingredientCost
-      }
-    }
-
-    await prisma.recipe.update({
-      where: { id: recipeId },
-      data: { totalCost: totalCost }
-    })
-
-  return { success: true, totalCost }
+    // This functionality has been moved to MenuItem management
+    console.log('Recipe cost update moved to MenuItem management')
+    return { success: false, message: 'Use MenuItem management for recipes' }
   } catch (error) {
     console.error('Error updating recipe cost:', error)
-  const msg = error instanceof Error ? error.message : 'Failed to update recipe cost'
-  const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
-  const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset')
-  return { success: false, errorCode: transient ? 'TRANSIENT' : 'UNKNOWN', message: msg }
+    const msg = error instanceof Error ? error.message : 'Failed to update recipe cost'
+    const lower = typeof msg === 'string' ? msg.toLowerCase() : ''
+    const transient = lower.includes('deadlock') || lower.includes('timeout') || lower.includes('connection') || lower.includes('econnreset')
+    return { success: false, errorCode: transient ? 'TRANSIENT' : 'UNKNOWN', message: msg }
   }
 }
 
@@ -670,20 +612,16 @@ export async function getMenuItemProfitability() {
   try {
     const menuItems = await prisma.menuItem.findMany({
       include: {
-        recipe: {
+        recipeItems: {
           include: {
-            ingredients: {
-              include: {
-                item: true
-              }
-            }
+            item: true
           }
         },
         orderItems: {
           include: {
             order: {
               include: {
-                sales: true
+                sale: true
               }
             }
           }
@@ -692,15 +630,17 @@ export async function getMenuItemProfitability() {
     })
 
     const profitability = menuItems.map(menuItem => {
-      const recipe = menuItem.recipe
-      const recipeCost = recipe?.totalCost || 0
+      // Calculate recipe cost from recipeItems
+      const recipeCost = menuItem.recipeItems.reduce((sum, recipeItem) => 
+        sum + (recipeItem.quantity * recipeItem.item.costPrice), 0
+      )
       
       // Calculate total sales for this menu item
-      const totalSales = menuItem.orderItems.reduce((sum, orderItem) => 
+      const totalSales = menuItem.orderItems.reduce((sum: number, orderItem: any) => 
         sum + (orderItem.unitPrice * orderItem.quantity), 0
       )
       
-      const totalQuantitySold = menuItem.orderItems.reduce((sum, orderItem) => 
+      const totalQuantitySold = menuItem.orderItems.reduce((sum: number, orderItem: any) => 
         sum + orderItem.quantity, 0
       )
 
@@ -716,7 +656,7 @@ export async function getMenuItemProfitability() {
         },
         recipe: {
           cost: recipeCost,
-          ingredients: recipe?.ingredients.length || 0
+          ingredients: menuItem.recipeItems.length || 0
         },
         performance: {
           quantitySold: totalQuantitySold,

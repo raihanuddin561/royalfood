@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         deliveryAddress: true,
         orderTracking: {
           orderBy: {
-            createdAt: 'desc'
+            timestamp: 'desc'
           }
         }
       }
@@ -84,11 +84,11 @@ export async function GET(request: NextRequest) {
           totalPrice: item.totalPrice,
           menuItem: item.menuItem
         })),
-        orderTracking: order.orderTracking.map(tracking => ({
+        orderTracking: order.orderTracking.map((tracking: any) => ({
           id: tracking.id,
           status: tracking.status,
-          notes: tracking.notes,
-          createdAt: tracking.createdAt.toISOString()
+          message: tracking.message,
+          timestamp: tracking.timestamp.toISOString()
         }))
       }
     })
