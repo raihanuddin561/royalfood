@@ -16,6 +16,7 @@ export async function GET() {
           name: true,
           description: true,
           price: true,
+          deliveryCharge: true,
           image: true,
           prepTime: true,
           categoryId: true,
@@ -60,8 +61,21 @@ export async function GET() {
       items: menuItems.filter(item => item.categoryId === category.id)
     })).filter(category => category.items.length > 0)
 
+    // Format menu items for the order page
+    const formattedMenuItems = menuItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      price: item.price,
+      image: item.image,
+      category: item.category.name,
+      prepTime: item.prepTime,
+      isAvailable: true
+    }))
+
     return NextResponse.json({
       success: true,
+      menuItems: formattedMenuItems, // Add this for the order page
       categories: menuByCategory,
       totalItems: menuItems.length,
       totalCategories: categories.length

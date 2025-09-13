@@ -152,7 +152,7 @@ export default function HomePage() {
               <div className="hidden lg:flex items-center space-x-4">
                 <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-bold px-3 py-2 shadow-md">
                   <Star className="h-4 w-4 fill-current mr-2" />
-                  4.9★ • 50K+ Orders
+                  4.9★ Rating
                 </Badge>
                 <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold px-3 py-2 shadow-md">
                   <Zap className="h-4 w-4 mr-2" />
@@ -612,7 +612,7 @@ export default function HomePage() {
                         disabled={!item.isAvailable}
                         asChild
                       >
-                        <Link href={`/public/order?item=${item.id}`}>
+                        <Link href="/public/order">
                           Order Now
                         </Link>
                       </Button>

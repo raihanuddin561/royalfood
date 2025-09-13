@@ -94,6 +94,41 @@ export default function OrderTrackingPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userOrders, setUserOrders] = useState<Order[]>([])
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+
+  // Check if user is logged in
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/session')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.customer) {
+            setIsLoggedIn(true)
+            loadUserOrders()
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error)
+      }
+    }
+    
+    checkAuthStatus()
+  }, [])
+
+  const loadUserOrders = async () => {
+    try {
+      const response = await fetch('/api/public/orders/my-orders')
+      if (response.ok) {
+        const data = await response.json()
+        setUserOrders(data.orders || [])
+      }
+    } catch (error) {
+      console.error('Failed to load user orders:', error)
+    }
+  }
 
   const searchOrder = async () => {
     if (!orderNumber.trim() || !phoneNumber.trim()) {
@@ -146,49 +181,90 @@ export default function OrderTrackingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-orange-50/20 to-yellow-50/20">
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Track Your Order</h1>
-          <p className="text-lg text-gray-600">Enter your order details to track status</p>
+          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">Track Your Order</h1>
+          <p className="text-base lg:text-lg text-gray-600">
+            {isLoggedIn ? 'View your order history and track current orders' : 'Enter your order details to track status'}
+          </p>
         </div>
 
-        {/* Search Form */}
-        <Card className="max-w-md mx-auto mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Search className="w-5 h-5 mr-2" />
-              Find Your Order
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="orderNumber">Order Number</Label>
-              <Input
-                id="orderNumber"
-                value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
-                placeholder="e.g., ORD-12345"
-              />
+        {/* User Orders Section (for logged in users) */}
+        {isLoggedIn && userOrders.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Recent Orders</h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {userOrders.slice(0, 6).map((userOrder) => (
+                <Card 
+                  key={userOrder.id} 
+                  className={`cursor-pointer transition-all hover:shadow-lg ${
+                    selectedOrderId === userOrder.id ? 'ring-2 ring-orange-500 border-orange-300' : ''
+                  }`}
+                  onClick={() => {
+                    setOrder(userOrder)
+                    setSelectedOrderId(userOrder.id)
+                  }}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-semibold text-sm">#{userOrder.orderNumber}</p>
+                        <p className="text-xs text-gray-500">{formatDate(userOrder.orderDate)}</p>
+                      </div>
+                      <Badge className={`${getStatusColor(userOrder.status)} text-white text-xs`}>
+                        {userOrder.status}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">{formatCurrency(userOrder.totalAmount)}</span>
+                      <span className="text-xs text-gray-500 capitalize">{userOrder.orderType.replace('_', ' ')}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter your phone number"
-              />
-            </div>
-            <Button 
-              onClick={searchOrder} 
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Searching...' : 'Track Order'}
-            </Button>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+
+        {/* Search Form for Guest Users or Manual Search */}
+        {!isLoggedIn && (
+          <Card className="max-w-md mx-auto mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center text-lg">
+                <Search className="w-5 h-5 mr-2" />
+                Find Your Order
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="orderNumber">Order Number</Label>
+                <Input
+                  id="orderNumber"
+                  value={orderNumber}
+                  onChange={(e) => setOrderNumber(e.target.value)}
+                  placeholder="e.g., ORD-12345"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="Enter your phone number"
+                />
+              </div>
+              <Button 
+                onClick={searchOrder} 
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Searching...' : 'Track Order'}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Error Message */}
         {error && (

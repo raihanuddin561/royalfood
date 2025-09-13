@@ -36,6 +36,7 @@ export default function AddMenuItemPage() {
     categoryId: '',
     description: '',
     price: '',
+    deliveryCharge: '',
     prepTime: '',
     image: '',
     isAvailable: true
@@ -135,6 +136,7 @@ export default function AddMenuItemPage() {
         body: JSON.stringify({
           ...formData,
           price: parseFloat(formData.price),
+          deliveryCharge: parseFloat(formData.deliveryCharge) || 0,
           prepTime: parseInt(formData.prepTime),
       ingredients: noIngredients ? [] : selectedIngredients
         })
@@ -261,6 +263,25 @@ export default function AddMenuItemPage() {
                     className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
                   />
                 </div>
+              </div>
+
+              {/* Delivery Charge */}
+              <div className="sm:col-span-2">
+                <label htmlFor="deliveryCharge" className="block text-sm font-medium text-gray-700">
+                  Delivery Charge (BDT)
+                </label>
+                <div className="mt-1">
+                  <SmartPriceInput
+                    value={parseFloat(formData.deliveryCharge) || 0}
+                    onChange={(value: number) => setFormData({ ...formData, deliveryCharge: value.toString() })}
+                    currency="BDT"
+                    placeholder="0.00"
+                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                  />
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Optional delivery charge for this specific item. Leave as 0 for no delivery charge.
+                </p>
               </div>
 
               <div className="sm:col-span-2">

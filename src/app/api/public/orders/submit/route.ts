@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import crypto from 'crypto'
 
 // Validation schema for order submission
 const orderItemSchema = z.object({
@@ -89,7 +90,8 @@ export async function POST(request: NextRequest) {
         id: true,
         name: true,
         price: true,
-        prepTime: true
+        prepTime: true,
+        deliveryCharge: true
       }
     })
     
@@ -117,9 +119,38 @@ export async function POST(request: NextRequest) {
     })
     
     // Calculate fees and taxes
-    const taxRate = 0.05 // 5% tax (configurable)
+    // Get tax settings from database
+    const taxSettings = await prisma.taxSettings.findFirst()
+    const taxRate = taxSettings?.isTaxActive ? (taxSettings.taxRate || 0) : 0
     const taxAmount = subtotal * taxRate
-    const deliveryFee = validatedData.orderType === 'DELIVERY' ? 50 : 0 // BDT 50 delivery fee
+    
+    // Get global delivery settings
+    const deliverySettings = await prisma.deliverySettings.findFirst()
+    
+    // Calculate delivery fee based on items' delivery charges and global settings
+    let deliveryFee = 0
+    if (validatedData.orderType === 'DELIVERY') {
+      // Calculate item-specific delivery charges (only if they are set above 0)
+      const itemDeliveryCharges = validatedData.items.reduce((total, item) => {
+        const menuItem = menuItems.find(mi => mi.id === item.menuItemId)!
+        const itemDeliveryCharge = menuItem.deliveryCharge || 0
+        // Only add delivery charge if it's explicitly set (greater than 0)
+        return total + (itemDeliveryCharge > 0 ? itemDeliveryCharge * item.quantity : 0)
+      }, 0)
+      
+      // Use global delivery charge if no item-specific charges and global is active
+      if (itemDeliveryCharges === 0 && deliverySettings?.isGlobalChargeActive && deliverySettings?.globalDeliveryCharge > 0) {
+        deliveryFee = deliverySettings.globalDeliveryCharge
+      } else {
+        deliveryFee = itemDeliveryCharges
+      }
+      
+      // Apply free delivery threshold
+      if (deliverySettings?.freeDeliveryThreshold > 0 && subtotal >= deliverySettings.freeDeliveryThreshold) {
+        deliveryFee = 0
+      }
+    }
+    
     const totalAmount = subtotal + taxAmount + deliveryFee
     
     // Generate order number
@@ -132,24 +163,20 @@ export async function POST(request: NextRequest) {
       return total + (menuItem.prepTime || 15) * item.quantity
     }, 0)
     
-    // Create order (we'll use a system user for now, or create a special "CUSTOMER_ORDERS" user)
+    // Create order (try to find a system user, but proceed even if none exists)
     const systemUser = await prisma.user.findFirst({
       where: { role: 'ADMIN' }
     })
     
-    if (!systemUser) {
-      return NextResponse.json({
-        success: false,
-        error: 'System configuration error'
-      }, { status: 500 })
-    }
+    // Note: We'll proceed with order creation even if no admin user exists
+    // This allows public orders to work without requiring admin setup
     
     const newOrder = await prisma.order.create({
       data: {
         orderNumber,
         customerId: validatedData.customerId || null,
         deliveryAddressId: validatedData.deliveryAddressId || null,
-        userId: systemUser.id,
+        ...(systemUser?.id ? { userId: systemUser.id } : {}),
         
         // Guest customer data
         guestName: validatedData.guestName || null,
@@ -206,21 +233,37 @@ export async function POST(request: NextRequest) {
       }
     })
     
+    // Generate guest access token for success page (for guest orders)
+    let guestToken = null
+    if (!validatedData.customerId) {
+      guestToken = crypto
+        .createHash('sha256')
+        .update(`${newOrder.id}-${newOrder.guestPhone || newOrder.guestEmail || newOrder.guestName}-${process.env.GUEST_TOKEN_SECRET || 'default-secret'}`)
+        .digest('hex')
+        .substring(0, 16)
+    }
+    
+    // Prepare success page URL
+    const successUrl = validatedData.customerId 
+      ? `/order/success?orderId=${newOrder.id}`
+      : `/order/success?orderId=${newOrder.id}&token=${guestToken}`
+    
     return NextResponse.json({
       success: true,
       message: 'Order submitted successfully',
+      redirectUrl: successUrl,
       order: {
         id: newOrder.id,
         orderNumber: newOrder.orderNumber,
         status: newOrder.status,
         totalAmount: newOrder.totalAmount,
         estimatedTime: newOrder.estimatedTime,
-        items: newOrder.orderItems.map(item => ({
+        items: (newOrder as any).orderItems?.map((item: any) => ({
           name: item.menuItem?.name,
           quantity: item.quantity,
           price: item.unitPrice,
           total: item.totalPrice
-        }))
+        })) || []
       }
     }, { status: 201 })
     

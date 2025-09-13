@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -81,6 +82,20 @@ type OrderData = {
 }
 
 export default function OrderPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading order page...</p>
+      </div>
+    </div>}>
+      <OrderPageContent />
+    </Suspense>
+  )
+}
+
+function OrderPageContent() {
+  const searchParams = useSearchParams()
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [categories, setCategories] = useState<string[]>([])
@@ -88,12 +103,12 @@ export default function OrderPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [loading, setLoading] = useState(true)
-  const [orderType, setOrderType] = useState<'DINE_IN' | 'TAKEAWAY' | 'DELIVERY'>('DINE_IN')
+  const [orderType, setOrderType] = useState<'DINE_IN' | 'TAKEAWAY' | 'DELIVERY'>('DELIVERY')
   const [tableNumber, setTableNumber] = useState('')
   const [notes, setNotes] = useState('')
   const [isPreOrder, setIsPreOrder] = useState(false)
   const [scheduledDate, setScheduledDate] = useState('')
-  const [scheduledTime, setScheduledTime] = useState('')
+  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner'>('lunch')
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [currentCustomer, setCurrentCustomer] = useState<CustomerInfo | null>(null)
   const [guestInfo, setGuestInfo] = useState({
@@ -108,10 +123,109 @@ export default function OrderPage() {
   const deliveryFee = orderType === 'DELIVERY' ? 50 : 0
   const total = subtotal + deliveryFee
 
+  // Helper functions for pre-order time restrictions
+  const getCurrentTime = () => new Date()
+  
+  const canOrderBreakfast = (selectedDate: string) => {
+    const now = getCurrentTime()
+    const selected = new Date(selectedDate)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const selectedDay = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate())
+    
+    // Breakfast: Must order previous day before 11:59 PM
+    if (selectedDay.getTime() === today.getTime()) {
+      return false // Can't order breakfast for today
+    }
+    
+    const previousDay = new Date(selectedDay)
+    previousDay.setDate(previousDay.getDate() - 1)
+    
+    if (previousDay.getTime() === today.getTime()) {
+      // Ordering for tomorrow's breakfast, check if it's before 11:59 PM today
+      return now.getHours() < 24
+    }
+    
+    return selectedDay > today // Future dates are allowed
+  }
+  
+  const canOrderLunchOrDinner = (selectedDate: string) => {
+    const now = getCurrentTime()
+    const selected = new Date(selectedDate)
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const selectedDay = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate())
+    
+    // Lunch/Dinner: Must order same day before 10 AM
+    if (selectedDay.getTime() === today.getTime()) {
+      return now.getHours() < 10
+    }
+    
+    return selectedDay > today // Future dates are allowed
+  }
+  
+  const isValidPreOrder = () => {
+    if (!isPreOrder || !scheduledDate) return true
+    
+    if (mealType === 'breakfast') {
+      return canOrderBreakfast(scheduledDate)
+    } else {
+      return canOrderLunchOrDinner(scheduledDate)
+    }
+  }
+  
+  const getPreOrderMessage = () => {
+    if (!isPreOrder) return ''
+    
+    if (mealType === 'breakfast') {
+      return 'Breakfast orders must be placed the day before by 11:59 PM'
+    } else {
+      return 'Lunch and dinner orders must be placed by 10:00 AM on the same day'
+    }
+  }
+
   // Fetch menu items
   useEffect(() => {
     fetchMenuItems()
   }, [])
+
+  // Handle reorder items from session storage
+  useEffect(() => {
+    const reorderItems = sessionStorage.getItem('reorderItems')
+    if (reorderItems) {
+      try {
+        const items = JSON.parse(reorderItems)
+        setCart(items)
+        sessionStorage.removeItem('reorderItems')
+        toast.success('Previous order items loaded for reordering!')
+      } catch (error) {
+        console.error('Error loading reorder items:', error)
+        sessionStorage.removeItem('reorderItems')
+      }
+    }
+  }, [])
+
+  // Handle item parameter from URL (when clicking "Order Now" from home page)
+  useEffect(() => {
+    const itemId = searchParams.get('item')
+    if (itemId && menuItems.length > 0) {
+      const item = menuItems.find(menuItem => menuItem.id === itemId)
+      if (item && item.isAvailable) {
+        // Check if item is already in cart
+        const existingItem = cart.find(cartItem => cartItem.menuItemId === itemId)
+        if (!existingItem) {
+          // Add item to cart
+          const newCartItem: CartItem = {
+            menuItemId: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: 1,
+            image: item.image
+          }
+          setCart(prevCart => [...prevCart, newCartItem])
+          toast.success(`${item.name} added to cart!`)
+        }
+      }
+    }
+  }, [searchParams, menuItems, cart])
 
   const fetchMenuItems = async () => {
     try {
@@ -120,9 +234,12 @@ export default function OrderPage() {
       const data = await response.json()
       
       if (data.success) {
-        setMenuItems(data.menuItems)
-        const uniqueCategories = ['all', ...Array.from(new Set(data.menuItems.map((item: MenuItem) => item.category)))] as string[]
+        setMenuItems(data.menuItems || [])
+        const uniqueCategories = ['all', ...Array.from(new Set((data.menuItems || []).map((item: MenuItem) => item.category)))] as string[]
         setCategories(uniqueCategories)
+      } else {
+        console.error('API Error:', data.error)
+        toast.error(data.error || 'Failed to load menu items')
       }
     } catch (error) {
       console.error('Error fetching menu:', error)
@@ -208,6 +325,19 @@ export default function OrderPage() {
       return
     }
 
+    // Validate pre-order restrictions
+    if (isPreOrder) {
+      if (!scheduledDate) {
+        toast.error('Please select a date for your pre-order')
+        return
+      }
+      
+      if (!isValidPreOrder()) {
+        toast.error(`Invalid time for ${mealType} order. ${getPreOrderMessage()}`)
+        return
+      }
+    }
+
     try {
       const orderData: OrderData = {
         items: cart.map(item => ({
@@ -219,7 +349,7 @@ export default function OrderPage() {
         notes,
         isPreOrder,
         scheduledDate: isPreOrder && scheduledDate ? new Date(scheduledDate).toISOString() : undefined,
-        scheduledTime: isPreOrder ? scheduledTime : undefined,
+        scheduledTime: isPreOrder ? mealType : undefined,
         ...(currentCustomer ? {
           customerId: currentCustomer.id
         } : {
@@ -240,14 +370,21 @@ export default function OrderPage() {
       
       if (result.success) {
         toast.success(`Order placed successfully! Order #${result.order.orderNumber}`)
+        
+        // Clear cart and form data
         setCart([])
         setNotes('')
         setTableNumber('')
         setIsPreOrder(false)
         setScheduledDate('')
-        setScheduledTime('')
+        setMealType('lunch')
         if (!currentCustomer) {
           setGuestInfo({ name: '', phone: '', email: '', address: '' })
+        }
+        
+        // Redirect to success page
+        if (result.redirectUrl) {
+          window.location.href = result.redirectUrl
         }
       } else {
         toast.error(result.error || 'Failed to place order')
@@ -300,7 +437,7 @@ export default function OrderPage() {
                 <div className="hidden lg:flex items-center space-x-4">
                   <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-bold px-3 py-2 shadow-md">
                     <Star className="h-4 w-4 fill-current mr-2" />
-                    4.9★ • 50K+ Orders
+                    4.9★ Rating
                   </Badge>
                   <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold px-3 py-2 shadow-md">
                     <Zap className="h-4 w-4 mr-2" />
@@ -356,24 +493,24 @@ export default function OrderPage() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
             {/* Main Content - Menu Items */}
             <div className="lg:col-span-3">
               {/* Premium Search and Filters - Amazon Style */}
-              <div className="bg-gradient-to-r from-white via-orange-50/50 to-white rounded-3xl shadow-2xl border-2 border-orange-200 p-8 mb-10">
+              <div className="bg-gradient-to-r from-white via-orange-50/50 to-white rounded-xl lg:rounded-3xl shadow-xl border-2 border-orange-200 p-4 lg:p-8 mb-6 lg:mb-10">
                 {/* Main Search Bar */}
-                <div className="flex flex-col lg:flex-row gap-6 items-stretch lg:items-center mb-8">
+                <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-center mb-6 lg:mb-8">
                   <div className="flex-1 max-w-2xl">
                     <div className="relative">
-                      <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-orange-500 h-6 w-6" />
+                      <Search className="absolute left-4 lg:left-6 top-1/2 transform -translate-y-1/2 text-orange-500 h-5 w-5 lg:h-6 lg:w-6" />
                       <Input
-                        placeholder="Search for delicious food, cuisines, restaurants..."
+                        placeholder="Search for delicious food..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-16 h-16 text-lg border-3 border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-2xl bg-white shadow-lg font-medium"
+                        className="pl-12 lg:pl-16 h-12 lg:h-16 text-base lg:text-lg border-2 lg:border-3 border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-xl lg:rounded-2xl bg-white shadow-lg font-medium"
                       />
-                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                        <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl">
+                      <div className="absolute right-2 lg:right-4 top-1/2 transform -translate-y-1/2">
+                        <Button className="bg-orange-500 hover:bg-orange-600 text-white px-3 lg:px-6 py-1.5 lg:py-2 rounded-lg lg:rounded-xl text-sm lg:text-base">
                           Search
                         </Button>
                       </div>
@@ -478,7 +615,7 @@ export default function OrderPage() {
 
               {/* Menu Items Grid - Amazon/Alibaba Style */}
               {!loading && (
-                <div className={`grid gap-8 ${
+                <div className={`grid gap-4 md:gap-6 lg:gap-8 ${
                   viewMode === 'grid' 
                     ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
                     : 'grid-cols-1'
@@ -488,11 +625,11 @@ export default function OrderPage() {
                     
                     return (
                       <Card key={item.id} className={`group hover:shadow-2xl transition-all duration-300 border-2 border-gray-200 hover:border-orange-400 bg-white overflow-hidden hover:scale-[1.02] transform ${
-                        viewMode === 'list' ? 'flex flex-row' : ''
+                        viewMode === 'list' ? 'flex flex-col sm:flex-row' : ''
                       }`}>
                         {/* Product Image Section */}
                         <div className={`relative ${
-                          viewMode === 'list' ? 'w-64 flex-shrink-0' : 'aspect-[4/3]'
+                          viewMode === 'list' ? 'w-full sm:w-64 sm:flex-shrink-0 h-48 sm:h-auto' : 'aspect-[4/3]'
                         } overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100`}>
                           {item.image ? (
                             <Image
@@ -682,17 +819,34 @@ export default function OrderPage() {
                   <p className="text-gray-500">Try adjusting your search or filter criteria</p>
                 </div>
               )}
+
+              {/* Error State */}
+              {!loading && menuItems.length === 0 && (
+                <div className="text-center py-16">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-8">
+                    <div className="text-red-400 text-6xl mb-4">⚠️</div>
+                    <h3 className="text-xl font-medium text-red-900 mb-2">Something went wrong</h3>
+                    <p className="text-red-700 mb-4">We're having trouble loading the menu. Please try refreshing the page.</p>
+                    <Button 
+                      onClick={() => window.location.reload()} 
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Refresh Page
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Sidebar - Cart & Order Details */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24 space-y-6">
+            <div className="lg:col-span-1 order-first lg:order-last">
+              <div className="lg:sticky lg:top-24 space-y-4 lg:space-y-6">
                 {/* Cart Summary */}
-                <Card className="bg-gradient-to-br from-white to-orange-50/50 shadow-2xl border-2 border-orange-100 backdrop-blur-sm">
-                  <CardContent className="p-8">
-                    <div className="flex items-center justify-between mb-8">
-                      <h3 className="text-2xl font-bold text-gray-900">🛒 Your Cart</h3>
-                      <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-sm px-3 py-1">
+                <Card className="bg-gradient-to-br from-white to-orange-50/50 shadow-xl lg:shadow-2xl border-2 border-orange-100 backdrop-blur-sm">
+                  <CardContent className="p-4 lg:p-8">
+                    <div className="flex items-center justify-between mb-4 lg:mb-8">
+                      <h3 className="text-xl lg:text-2xl font-bold text-gray-900">🛒 Your Cart</h3>
+                      <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-sm px-2 lg:px-3 py-1">
                         {cart.length} items
                       </Badge>
                     </div>
@@ -708,18 +862,18 @@ export default function OrderPage() {
                       ) : (
                         cart.map((item) => (
                           <div key={item.menuItemId} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 rounded-lg px-2 transition-colors">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-sm text-gray-900 leading-tight">{item.name}</h4>
+                            <div className="flex-1 min-w-0 pr-2">
+                              <h4 className="font-medium text-sm text-gray-900 leading-tight truncate">{item.name}</h4>
                               <p className="text-orange-600 font-semibold text-sm">
                                 {formatCurrency(item.price)} × {item.quantity}
                               </p>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1 lg:space-x-2 flex-shrink-0">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
-                                className="h-6 w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                className="h-7 w-7 lg:h-6 lg:w-6 p-0 hover:bg-red-100 hover:text-red-600"
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
@@ -791,33 +945,63 @@ export default function OrderPage() {
                               onChange={(e) => setIsPreOrder(e.target.checked)}
                               className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
                             />
-                            <Label htmlFor="preorder" className="text-sm text-gray-700">Schedule for later</Label>
+                            <Label htmlFor="preorder" className="text-sm text-gray-700">Schedule for later (Pre-order)</Label>
                           </div>
 
                           {isPreOrder && (
-                            <div className="mt-3 space-y-3">
-                              <div>
-                                <Label className="text-xs text-gray-600">Date</Label>
-                                <Input
-                                  type="date"
-                                  value={scheduledDate}
-                                  onChange={(e) => setScheduledDate(e.target.value)}
-                                  min={new Date().toISOString().split('T')[0]}
-                                  className="mt-1 text-sm border-gray-200"
-                                />
+                            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                              <div className="mb-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                  <span className="text-sm font-medium text-amber-800">Pre-order Information</span>
+                                </div>
+                                <p className="text-xs text-amber-700 mb-3">{getPreOrderMessage()}</p>
                               </div>
-                              <div>
-                                <Label className="text-xs text-gray-600">Time</Label>
-                                <Select value={scheduledTime} onValueChange={setScheduledTime}>
-                                  <SelectTrigger className="mt-1 text-sm border-gray-200">
-                                    <SelectValue placeholder="Select time" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="breakfast">Breakfast (8-11 AM)</SelectItem>
-                                    <SelectItem value="lunch">Lunch (12-3 PM)</SelectItem>
-                                    <SelectItem value="dinner">Dinner (6-10 PM)</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                              
+                              <div className="space-y-3">
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Meal Type</Label>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                      { value: 'breakfast', label: 'Breakfast', time: '8-11 AM', restriction: 'Order by 11:59 PM previous day' },
+                                      { value: 'lunch', label: 'Lunch', time: '12-3 PM', restriction: 'Order by 10 AM same day' },
+                                      { value: 'dinner', label: 'Dinner', time: '6-10 PM', restriction: 'Order by 10 AM same day' }
+                                    ].map(({ value, label, time, restriction }) => (
+                                      <Button
+                                        key={value}
+                                        type="button"
+                                        variant={mealType === value ? 'default' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setMealType(value as any)}
+                                        className={`flex flex-col items-center p-3 h-auto text-xs ${
+                                          mealType === value 
+                                            ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                                            : 'border-gray-200 hover:border-orange-300'
+                                        }`}
+                                        title={restriction}
+                                      >
+                                        <span className="font-medium">{label}</span>
+                                        <span className="text-xs opacity-75">{time}</span>
+                                      </Button>
+                                    ))}
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Select Date</Label>
+                                  <Input
+                                    type="date"
+                                    value={scheduledDate}
+                                    onChange={(e) => setScheduledDate(e.target.value)}
+                                    min={new Date().toISOString().split('T')[0]}
+                                    className={`text-sm border-gray-200 ${!isValidPreOrder() ? 'border-red-300 bg-red-50' : ''}`}
+                                  />
+                                  {!isValidPreOrder() && scheduledDate && (
+                                    <p className="text-xs text-red-600 mt-1">
+                                      This date is not available for {mealType} orders. {getPreOrderMessage()}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           )}
@@ -834,6 +1018,22 @@ export default function OrderPage() {
                             className="mt-1 text-sm border-gray-200 focus:border-orange-500"
                             rows={3}
                           />
+                        </div>
+
+                        {/* Order Type Information */}
+                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <span className="text-white text-xs font-bold">i</span>
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-medium text-blue-900 mb-2">Order Types Available</h4>
+                              <div className="text-sm text-blue-800 space-y-1">
+                                <p><strong>Regular Order:</strong> Immediate preparation and delivery</p>
+                                <p><strong>Pre-order:</strong> Schedule for specific meal times with advance notice</p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}

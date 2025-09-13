@@ -53,6 +53,7 @@ model Customer {
   email     String   @unique
   phone     String   @unique
   name      String
+  password  String   // Added for proper authentication
   address   String
   city      String?
   zipCode   String?
@@ -391,6 +392,7 @@ model MenuItem {
   description  String?
   price        Float
   costPrice    Float    @default(0) // Auto-calculated from recipe ingredients
+  deliveryCharge Float  @default(0) // Admin-configurable delivery charge for this item
   isAvailable  Boolean  @default(true)
   isActive     Boolean  @default(true)
   image        String?
@@ -434,7 +436,7 @@ model Order {
   orderNumber       String      @unique
   customerId        String?     // For registered customers
   deliveryAddressId String?     // For delivery orders
-  userId            String      // Staff who created the order
+  userId            String?     // Staff who created the order (optional for public orders)
   
   // Customer contact info (for walk-in/guest orders)
   guestName         String?
@@ -477,7 +479,7 @@ model Order {
   // Relations
   customer          Customer?        @relation(fields: [customerId], references: [id])
   deliveryAddress   DeliveryAddress? @relation(fields: [deliveryAddressId], references: [id])
-  user              User             @relation(fields: [userId], references: [id])
+  user              User?            @relation(fields: [userId], references: [id])
   orderItems        OrderItem[]
   orderTracking     OrderTracking[]  // Track status changes
   sale              Sale?
@@ -706,4 +708,31 @@ model SecurityLog {
   user        User?    @relation(fields: [userId], references: [id])
 
   @@map("security_logs")
+}
+
+// Global Delivery Settings
+model DeliverySettings {
+  id                    String   @id @default(cuid())
+  globalDeliveryCharge  Float    @default(0) // Default delivery charge for all items
+  freeDeliveryThreshold Float    @default(0) // Free delivery above this order amount
+  isGlobalChargeActive  Boolean  @default(false) // Use global charge when item charge is 0
+  maxDeliveryDistance   Float    @default(10) // Maximum delivery distance in km
+  deliveryTimeSlots     Json?    // Available delivery time slots
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("delivery_settings")
+}
+
+// Tax Configuration
+model TaxSettings {
+  id                String   @id @default(cuid())
+  taxRate           Float    @default(0) // Tax rate as decimal (0.05 = 5%)
+  isTaxActive       Boolean  @default(false) // Enable/disable tax calculation
+  taxLabel          String   @default("Tax") // Display label for tax
+  includeInPrice    Boolean  @default(false) // Whether tax is included in menu prices
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("tax_settings")
 }

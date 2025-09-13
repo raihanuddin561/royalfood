@@ -159,6 +159,9 @@ export default async function MenuPage() {
                 <div>
                   <p className="text-lg font-bold text-gray-900">{formatCurrency(item.price)}</p>
                   <p className="text-sm text-gray-500">Cost: {formatCurrency(item.costPrice)}</p>
+                  {item.deliveryCharge > 0 && (
+                    <p className="text-sm text-blue-600">Delivery: {formatCurrency(item.deliveryCharge)}</p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-green-600">

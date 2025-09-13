@@ -25,10 +25,11 @@ type AuthModalProps = {
 }
 
 export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {
-  const [loginData, setLoginData] = useState({ email: '', phone: '' })
+  const [loginData, setLoginData] = useState({ email: '', password: '' })
   const [registerData, setRegisterData] = useState({
     name: '',
     email: '',
+    password: '',
     phone: '',
     address: '',
     dateOfBirth: '',
@@ -39,8 +40,8 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
   if (!isOpen) return null
 
   const handleLogin = async () => {
-    if (!loginData.email || !loginData.phone) {
-      toast.error('Please enter both email and phone number')
+    if (!loginData.email || !loginData.password) {
+      toast.error('Please enter both email and password')
       return
     }
 
@@ -67,7 +68,7 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
   }
 
   const handleRegister = async () => {
-    if (!registerData.name || !registerData.email || !registerData.phone) {
+    if (!registerData.name || !registerData.email || !registerData.password || !registerData.phone) {
       toast.error('Please fill in all required fields')
       return
     }
@@ -132,15 +133,16 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
                 />
               </div>
               <div>
-                <Label htmlFor="login-phone" className="flex items-center">
-                  <Phone className="w-4 h-4 mr-1" />
-                  Phone Number
+                <Label htmlFor="login-password" className="flex items-center">
+                  <User className="w-4 h-4 mr-1" />
+                  Password
                 </Label>
                 <Input
-                  id="login-phone"
-                  value={loginData.phone}
-                  onChange={(e) => setLoginData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Enter your phone number"
+                  id="login-password"
+                  type="password"
+                  value={loginData.password}
+                  onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Enter your password"
                 />
               </div>
               <Button 
@@ -151,7 +153,7 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
                 {isLoading ? 'Logging in...' : 'Login'}
               </Button>
               <p className="text-sm text-gray-600 text-center">
-                Login with your registered email and phone number
+                Login with your registered email and password
               </p>
             </TabsContent>
             
@@ -179,6 +181,19 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
                   value={registerData.email}
                   onChange={(e) => setRegisterData(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Enter your email"
+                />
+              </div>
+              <div>
+                <Label htmlFor="register-password" className="flex items-center">
+                  <User className="w-4 h-4 mr-1" />
+                  Password *
+                </Label>
+                <Input
+                  id="register-password"
+                  type="password"
+                  value={registerData.password}
+                  onChange={(e) => setRegisterData(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Create a password"
                 />
               </div>
               <div>

@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Settings, Globe, DollarSign, Clock, Save, User, Bell } from 'lucide-react'
+import { Settings, Globe, DollarSign, Clock, Save, User, Bell, Truck } from 'lucide-react'
 import { AVAILABLE_CURRENCIES, currentCurrency } from '@/lib/currency-config'
+import Link from 'next/link'
 
 const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -43,13 +44,21 @@ export default function SettingsPage() {
             Configure system preferences and regional settings
           </p>
         </div>
-        <button
-          onClick={handleSaveSettings}
-          className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-        >
-          <Save className="h-4 w-4 mr-2" />
-          Save Settings
-        </button>
+        <div className="flex gap-2">
+          <Link href="/settings/delivery">
+            <button className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+              <Truck className="h-4 w-4 mr-2" />
+              Delivery Settings
+            </button>
+          </Link>
+          <button
+            onClick={handleSaveSettings}
+            className="inline-flex items-center rounded-md bg-gray-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Save Settings
+          </button>
+        </div>
       </div>
 
       {/* Save Notification */}

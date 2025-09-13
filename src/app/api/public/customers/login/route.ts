@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import bcrypt from 'bcryptjs'
 
 const loginSchema = z.object({
   email: z.string().email(),
-  phone: z.string().min(1)
+  password: z.string().min(1, 'Password is required')
 })
 
 export async function POST(request: NextRequest) {
@@ -12,19 +13,38 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = loginSchema.parse(body)
 
-    // Find customer by email and phone
-    const customer = await prisma.customer.findFirst({
+    // Find customer by email
+    const customer = await prisma.customer.findUnique({
       where: {
-        email: validatedData.email,
-        phone: validatedData.phone
+        email: validatedData.email
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        password: true,
+        address: true,
+        dateOfBirth: true,
+        preferences: true
       }
     })
 
     if (!customer) {
       return NextResponse.json({
         success: false,
-        error: 'Customer not found. Please check your email and phone number or register a new account.'
-      }, { status: 404 })
+        error: 'Invalid email or password'
+      }, { status: 401 })
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(validatedData.password, customer.password)
+    
+    if (!isPasswordValid) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid email or password'
+      }, { status: 401 })
     }
 
     return NextResponse.json({

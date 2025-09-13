@@ -77,8 +77,10 @@ const statusOptions: { value: OrderStatus; label: string; color: string }[] = [
   { value: 'PREPARING', label: 'Preparing', color: 'bg-orange-500' },
   { value: 'READY', label: 'Ready', color: 'bg-green-500' },
   { value: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', color: 'bg-purple-500' },
-  { value: 'DELIVERED', label: 'Delivered', color: 'bg-green-600' },
-  { value: 'CANCELLED', label: 'Cancelled', color: 'bg-red-500' }
+  { value: 'SERVED', label: 'Served', color: 'bg-green-600' },
+  { value: 'COMPLETED', label: 'Completed', color: 'bg-green-700' },
+  { value: 'CANCELLED', label: 'Cancelled', color: 'bg-red-500' },
+  { value: 'REFUNDED', label: 'Refunded', color: 'bg-red-600' }
 ]
 
 const getStatusColor = (status: OrderStatus): string => {

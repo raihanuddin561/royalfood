@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import bcrypt from 'bcryptjs'
 
 // Validation schema for customer registration
 const registerCustomerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Valid email is required'),
   phone: z.string().min(10, 'Valid phone number is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   address: z.string().min(10, 'Address must be at least 10 characters'),
   city: z.string().optional(),
   zipCode: z.string().optional(),
@@ -41,12 +43,17 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
+    // Hash the password before storing
+    const saltRounds = 12
+    const hashedPassword = await bcrypt.hash(validatedData.password, saltRounds)
+    
     // Create new customer
     const newCustomer = await prisma.customer.create({
       data: {
         name: validatedData.name,
         email: validatedData.email,
         phone: validatedData.phone,
+        password: hashedPassword,
         address: validatedData.address,
         city: validatedData.city || null,
         zipCode: validatedData.zipCode || null,

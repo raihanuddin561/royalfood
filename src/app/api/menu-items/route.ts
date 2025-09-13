@@ -29,7 +29,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, categoryId, description, price, prepTime, image, isAvailable, ingredients } = body
+    const { name, categoryId, description, price, deliveryCharge, prepTime, image, isAvailable, ingredients } = body
 
     if (!name || !categoryId || !price) {
       return NextResponse.json(
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
         categoryId,
         description: description || '',
         price: parseFloat(price),
+        deliveryCharge: deliveryCharge ? parseFloat(deliveryCharge) : 0,
         costPrice,
         prepTime: prepTime ? parseInt(prepTime) : null,
         image: image || null,
