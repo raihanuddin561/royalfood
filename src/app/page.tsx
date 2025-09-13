@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ShoppingCart, Clock, Star, Filter, Search, ArrowRight } from 'lucide-react'
+import { ShoppingCart, Clock, Star, Filter, Search, ArrowRight, Plus, Minus, Heart, Shield, Award, Zap, Truck, ChefHat } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import Link from 'next/link'
@@ -31,6 +31,7 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [cart, setCart] = useState<{id: string, quantity: number}[]>([])
 
   // Load menu items
   useEffect(() => {
@@ -75,6 +76,35 @@ export default function HomePage() {
     }
   }
 
+  // Cart functions
+  const addToCart = (itemId: string) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === itemId)
+      if (existing) {
+        return prev.map(item =>
+          item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
+        )
+      }
+      return [...prev, { id: itemId, quantity: 1 }]
+    })
+  }
+
+  const getCartQuantity = (itemId: string) => {
+    return cart.find(item => item.id === itemId)?.quantity || 0
+  }
+
+  const updateQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      setCart(prev => prev.filter(item => item.id !== itemId))
+      return
+    }
+    setCart(prev =>
+      prev.map(item =>
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      )
+    )
+  }
+
   // Get unique categories
   const categories = ['all', ...Array.from(new Set(menuItems.map(item => item.category)))]
 
@@ -93,36 +123,293 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 text-white">
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-6">
-              <div className="h-16 w-16 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center mr-4">
-                <span className="text-white font-bold text-2xl">R</span>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/20 to-yellow-50/20">
+      {/* Premium Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-orange-200/30 to-yellow-200/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl animate-pulse"></div>
+      </div>
+
+      {/* Premium Header - Amazon Style */}
+      <div className="bg-gradient-to-r from-white via-orange-50 to-white shadow-xl border-b-2 border-orange-200 sticky top-0 z-50 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            <div className="flex items-center space-x-6">
+              {/* Logo Section */}
+              <div className="flex items-center space-x-4">
+                <div className="bg-gradient-to-br from-orange-500 to-red-500 p-3 rounded-2xl shadow-lg">
+                  <ChefHat className="h-10 w-10 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-500 to-orange-700 bg-clip-text text-transparent">
+                    Royal Food
+                  </h1>
+                  <p className="text-sm text-gray-600 font-medium">Premium Food Delivery Platform</p>
+                </div>
               </div>
-              <h1 className="text-5xl font-bold">Royal Food</h1>
+              
+              {/* Trust Badges */}
+              <div className="hidden lg:flex items-center space-x-4">
+                <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-bold px-3 py-2 shadow-md">
+                  <Star className="h-4 w-4 fill-current mr-2" />
+                  4.9★ • 50K+ Orders
+                </Badge>
+                <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold px-3 py-2 shadow-md">
+                  <Zap className="h-4 w-4 mr-2" />
+                  Express Delivery
+                </Badge>
+                <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold px-3 py-2 shadow-md">
+                  <Shield className="h-4 w-4 mr-2" />
+                  100% Safe
+                </Badge>
+              </div>
             </div>
-            <p className="text-xl mb-8 text-blue-100">Authentic flavors, royal treatment, delivered fresh to your door</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            
+            {/* Right Section */}
+            <div className="flex items-center space-x-6">
               <Link href="/public/order">
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 text-lg">
-                  <ShoppingCart className="w-5 h-5 mr-2" />
+                <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold px-8 py-3 rounded-xl shadow-lg text-lg">
+                  <ShoppingCart className="h-5 w-5 mr-2" />
                   Order Now
                 </Button>
               </Link>
-              <div className="flex items-center space-x-4 text-blue-100">
-                <span className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  15-30 min delivery
-                </span>
-                <span className="flex items-center">
-                  <Star className="w-4 h-4 mr-1" />
-                  4.8 rating
-                </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero Section - Amazon Style */}
+      <div className="bg-gradient-to-r from-orange-500 via-red-500 to-orange-600 text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 py-20">
+          <div className="text-center">
+            <h2 className="text-6xl font-bold mb-6 leading-tight">
+              Delicious Food<br />
+              <span className="text-yellow-300">Delivered Fast</span>
+            </h2>
+            <p className="text-2xl mb-8 text-orange-100">
+              Experience premium quality food with lightning-fast delivery
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/public/order">
+                <Button className="bg-white text-orange-600 hover:bg-orange-50 font-bold px-12 py-4 rounded-2xl shadow-xl text-xl">
+                  🛒 Order Now • Free Delivery
+                </Button>
+              </Link>
+              <Button variant="outline" className="border-white text-white hover:bg-white hover:text-orange-600 font-bold px-12 py-4 rounded-2xl text-xl">
+                📱 Download App
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Search Section - Amazon Style */}
+        <div className="bg-gradient-to-r from-white via-orange-50/50 to-white rounded-3xl shadow-2xl border-2 border-orange-200 p-8 mb-10">
+          <div className="flex flex-col lg:flex-row gap-6 items-stretch lg:items-center">
+            <div className="flex-1 max-w-2xl">
+              <div className="relative">
+                <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-orange-500 h-6 w-6" />
+                <Input
+                  placeholder="Search for delicious food, cuisines, restaurants..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-16 h-16 text-lg border-3 border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-2xl bg-white shadow-lg font-medium"
+                />
               </div>
             </div>
+            
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-56 h-16 border-3 border-gray-300 rounded-2xl bg-white shadow-lg text-lg font-medium">
+                <Filter className="h-5 w-5 mr-3 text-orange-500" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category} className="text-lg py-3">
+                    {category === 'all' ? '🍽️ All Categories' : `🍴 ${category}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Category Pills */}
+          <div className="mt-6 flex flex-wrap gap-4">
+            {categories.slice(0, 8).map(category => (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? 'default' : 'outline'}
+                onClick={() => setSelectedCategory(category)}
+                className={`h-12 px-6 font-bold transition-all duration-300 rounded-2xl ${
+                  selectedCategory === category 
+                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-xl' 
+                    : 'border-3 border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-700'
+                }`}
+              >
+                {category === 'all' ? '🍽️ All Items' : `🍴 ${category}`}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* All Menu Items - Amazon Style Grid */}
+        <section>
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-gray-900 mb-2">🍽️ Our Complete Menu</h2>
+            <p className="text-xl text-gray-600">Discover delicious dishes crafted with premium ingredients</p>
+          </div>
+          
+          {filteredItems.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {filteredItems.map((item) => {
+                const cartQuantity = getCartQuantity(item.id)
+                return (
+                  <Card key={item.id} className="group hover:shadow-2xl transition-all duration-300 border-2 border-gray-200 hover:border-orange-400 bg-white overflow-hidden hover:scale-[1.02] transform">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-yellow-100">
+                          <ChefHat className="h-16 w-16 text-orange-400" />
+                        </div>
+                      )}
+                      
+                      <div className="absolute top-4 left-4">
+                        <Badge className="bg-red-500 text-white text-xs font-bold px-2 py-1">
+                          25% OFF
+                        </Badge>
+                      </div>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-700 h-10 w-10 p-0 rounded-full shadow-md"
+                      >
+                        <Heart className="h-5 w-5" />
+                      </Button>
+                    </div>
+                    
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="font-bold text-lg text-gray-900 leading-tight mb-2 hover:text-orange-600 transition-colors cursor-pointer line-clamp-2">
+                            {item.name}
+                          </h3>
+                          <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
+                              ))}
+                            </div>
+                            <span className="text-sm font-medium text-gray-700">(4.8)</span>
+                          </div>
+                        </div>
+                        
+                        {item.description && (
+                          <p className="text-gray-600 text-sm leading-relaxed line-clamp-2">
+                            {item.description}
+                          </p>
+                        )}
+                        
+                        <div className="flex items-baseline space-x-2">
+                          <span className="text-2xl font-bold text-orange-600">
+                            {formatCurrency(item.price)}
+                          </span>
+                          <span className="text-sm text-gray-400 line-through">
+                            {formatCurrency(Math.round(item.price * 1.33))}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          {cartQuantity > 0 ? (
+                            <div className="flex items-center justify-center space-x-3 bg-orange-50 rounded-lg p-2 border border-orange-200">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuantity(item.id, cartQuantity - 1)}
+                                className="h-8 w-8 p-0 border-orange-300 hover:bg-orange-100 text-orange-600"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <span className="font-bold text-xl text-orange-700 min-w-[40px] text-center">
+                                {cartQuantity}
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuantity(item.id, cartQuantity + 1)}
+                                className="h-8 w-8 p-0 border-orange-300 hover:bg-orange-100 text-orange-600"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <Button
+                                onClick={() => addToCart(item.id)}
+                                className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg"
+                              >
+                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                Add to Cart
+                              </Button>
+                              
+                              <Link href="/public/order">
+                                <Button
+                                  variant="outline"
+                                  className="w-full h-10 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold rounded-lg"
+                                >
+                                  <Zap className="h-4 w-4 mr-2" />
+                                  Order Now
+                                </Button>
+                              </Link>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-16">
+              <ChefHat className="h-24 w-24 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-2xl font-medium text-gray-900 mb-2">No items found</h3>
+              <p className="text-gray-500 mb-6">Try adjusting your search or filter criteria</p>
+              <Button 
+                onClick={() => { setSearchQuery(''); setSelectedCategory('all') }} 
+                className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-xl"
+              >
+                Clear Filters
+              </Button>
+            </div>
+          )}
+        </section>
+
+        {/* CTA Section */}
+        <div className="mt-16 bg-gradient-to-r from-orange-500 via-red-500 to-orange-600 rounded-3xl p-12 text-white text-center">
+          <h3 className="text-4xl font-bold mb-4">Ready to Order?</h3>
+          <p className="text-xl mb-8 text-orange-100">
+            Experience our premium food delivery service today
+          </p>
+          <Link href="/public/order">
+            <Button className="bg-white text-orange-600 hover:bg-orange-50 font-bold px-12 py-4 rounded-2xl shadow-xl text-xl">
+              🛒 Start Ordering Now
+              <ArrowRight className="h-6 w-6 ml-3" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
           </div>
         </div>
       </div>
