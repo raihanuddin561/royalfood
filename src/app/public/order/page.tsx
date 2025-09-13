@@ -271,58 +271,85 @@ export default function OrderPage() {
         <link rel="canonical" href="/public/order" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/30 to-yellow-50/30">
-        {/* Decorative Background Elements */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/20 to-yellow-50/20">
+        {/* Premium Background Elements */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-orange-200/20 to-yellow-200/20 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full blur-3xl"></div>
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-orange-200/30 to-yellow-200/30 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-green-200/20 to-teal-200/20 rounded-full blur-3xl"></div>
         </div>
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-white via-orange-50 to-white shadow-lg border-b-2 border-orange-100 sticky top-0 z-40 backdrop-blur-sm">
+        {/* Premium Header Section - Amazon/Alibaba Style */}
+        <div className="bg-gradient-to-r from-white via-orange-50 to-white shadow-xl border-b-2 border-orange-200 sticky top-0 z-50 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-20">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-3">
-                  <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-2 rounded-xl shadow-lg">
-                    <ChefHat className="h-8 w-8 text-white" />
+              <div className="flex items-center space-x-6">
+                {/* Logo Section */}
+                <div className="flex items-center space-x-4">
+                  <div className="bg-gradient-to-br from-orange-500 to-red-500 p-3 rounded-2xl shadow-lg">
+                    <ChefHat className="h-10 w-10 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Royal Food</h1>
-                    <p className="text-sm text-gray-600">Premium Food Delivery</p>
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-500 to-orange-700 bg-clip-text text-transparent">
+                      Royal Food
+                    </h1>
+                    <p className="text-sm text-gray-600 font-medium">Premium Food Delivery Platform</p>
                   </div>
                 </div>
-                <div className="hidden sm:flex items-center space-x-3">
-                  <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-semibold">
-                    <Star className="h-3 w-3 text-white fill-current mr-1" />
-                    4.9 Rating • 50K+ Orders
+                
+                {/* Trust Badges */}
+                <div className="hidden lg:flex items-center space-x-4">
+                  <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-bold px-3 py-2 shadow-md">
+                    <Star className="h-4 w-4 fill-current mr-2" />
+                    4.9★ • 50K+ Orders
                   </Badge>
-                  <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold">
-                    <Zap className="h-3 w-3 mr-1" />
+                  <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white font-bold px-3 py-2 shadow-md">
+                    <Zap className="h-4 w-4 mr-2" />
                     Express Delivery
+                  </Badge>
+                  <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold px-3 py-2 shadow-md">
+                    <Shield className="h-4 w-4 mr-2" />
+                    100% Safe
                   </Badge>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-4">
+              {/* Right Section */}
+              <div className="flex items-center space-x-6">
+                {/* Contact Info */}
                 <div className="hidden md:flex items-center space-x-6 text-sm">
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Clock className="h-4 w-4 text-orange-500" />
-                    <span className="font-medium">15-30 min</span>
+                  <div className="flex items-center space-x-2 bg-orange-50 px-3 py-2 rounded-lg">
+                    <Clock className="h-5 w-5 text-orange-600" />
+                    <div>
+                      <span className="font-bold text-orange-700">15-30 min</span>
+                      <p className="text-xs text-gray-600">Average Delivery</p>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Phone className="h-4 w-4 text-green-500" />
-                    <span className="font-medium">+880-XXX-XXXX</span>
+                  <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg">
+                    <Phone className="h-5 w-5 text-green-600" />
+                    <div>
+                      <span className="font-bold text-green-700">+880-1234-5678</span>
+                      <p className="text-xs text-gray-600">24/7 Support</p>
+                    </div>
                   </div>
                 </div>
+                
+                {/* User Authentication */}
                 <Button
-                  variant="outline"
-                  size="sm"
                   onClick={() => setShowAuthModal(true)}
-                  className="hidden sm:flex border-orange-200 text-orange-700 hover:bg-orange-50 font-semibold"
+                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg"
                 >
-                  <User className="h-4 w-4 mr-2" />
-                  {currentCustomer ? currentCustomer.name : 'Sign In'}
+                  <User className="h-5 w-5 mr-2" />
+                  {currentCustomer ? currentCustomer.name : 'Sign In / Register'}
                 </Button>
+              </div>
+            </div>
+            
+            {/* Mobile Trust Badges */}
+            <div className="lg:hidden pb-4">
+              <div className="flex items-center justify-center space-x-3">
+                <Badge className="bg-yellow-500 text-white text-xs font-bold">4.9★ 50K+</Badge>
+                <Badge className="bg-green-500 text-white text-xs font-bold">Express</Badge>
+                <Badge className="bg-blue-500 text-white text-xs font-bold">100% Safe</Badge>
               </div>
             </div>
           </div>
@@ -332,74 +359,104 @@ export default function OrderPage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Main Content - Menu Items */}
             <div className="lg:col-span-3">
-              {/* Search and Filters */}
-              <div className="bg-gradient-to-r from-white to-orange-50 rounded-2xl shadow-lg border-2 border-orange-100 p-8 mb-8">
-                <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between mb-8">
-                  <div className="flex-1 max-w-lg">
+              {/* Premium Search and Filters - Amazon Style */}
+              <div className="bg-gradient-to-r from-white via-orange-50/50 to-white rounded-3xl shadow-2xl border-2 border-orange-200 p-8 mb-10">
+                {/* Main Search Bar */}
+                <div className="flex flex-col lg:flex-row gap-6 items-stretch lg:items-center mb-8">
+                  <div className="flex-1 max-w-2xl">
                     <div className="relative">
-                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-orange-400 h-5 w-5" />
+                      <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-orange-500 h-6 w-6" />
                       <Input
-                        placeholder="Search for delicious food, cuisines..."
+                        placeholder="Search for delicious food, cuisines, restaurants..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-12 h-12 border-2 border-gray-200 focus:border-orange-400 focus:ring-orange-400 text-lg rounded-xl bg-white/80 backdrop-blur-sm"
+                        className="pl-16 h-16 text-lg border-3 border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-2xl bg-white shadow-lg font-medium"
                       />
+                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                        <Button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl">
+                          Search
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   
+                  {/* Filter Controls */}
                   <div className="flex items-center space-x-4">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="w-48 h-12 border-2 border-gray-200 rounded-xl bg-white/80 backdrop-blur-sm">
-                        <Filter className="h-4 w-4 mr-2 text-orange-500" />
+                      <SelectTrigger className="w-56 h-16 border-3 border-gray-300 rounded-2xl bg-white shadow-lg text-lg font-medium">
+                        <Filter className="h-5 w-5 mr-3 text-orange-500" />
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map(category => (
-                          <SelectItem key={category} value={category}>
+                          <SelectItem key={category} value={category} className="text-lg py-3">
                             {category === 'all' ? '🍽️ All Categories' : `🍴 ${category}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     
-                    <div className="flex border-2 border-gray-200 rounded-xl overflow-hidden bg-white">
+                    {/* View Mode Toggle */}
+                    <div className="flex border-3 border-gray-300 rounded-2xl overflow-hidden bg-white shadow-lg">
                       <Button
                         variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                        size="sm"
+                        size="lg"
                         onClick={() => setViewMode('grid')}
-                        className={`rounded-none h-12 px-4 ${viewMode === 'grid' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
+                        className={`rounded-none h-16 px-6 ${viewMode === 'grid' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'text-gray-600'}`}
                       >
-                        <Grid className="h-4 w-4" />
+                        <Grid className="h-5 w-5" />
                       </Button>
                       <Button
                         variant={viewMode === 'list' ? 'default' : 'ghost'}
-                        size="sm"
+                        size="lg"
                         onClick={() => setViewMode('list')}
-                        className={`rounded-none h-12 px-4 ${viewMode === 'list' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
+                        className={`rounded-none h-16 px-6 ${viewMode === 'list' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'text-gray-600'}`}
                       >
-                        <List className="h-4 w-4" />
+                        <List className="h-5 w-5" />
                       </Button>
                     </div>
                   </div>
                 </div>
 
-                {/* Enhanced Category Pills */}
-                <div className="flex flex-wrap gap-3">
-                  {categories.slice(0, 8).map(category => (
-                    <Button
-                      key={category}
-                      variant={selectedCategory === category ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedCategory(category)}
-                      className={`h-10 px-6 font-semibold transition-all duration-200 rounded-full ${
-                        selectedCategory === category 
-                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg' 
-                          : 'border-2 border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-700'
-                      }`}
-                    >
-                      {category === 'all' ? '🍽️ All Items' : `🍴 ${category}`}
-                    </Button>
-                  ))}
+                {/* Enhanced Category Filters */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-gray-800">Browse by Category</h3>
+                  <div className="flex flex-wrap gap-4">
+                    {categories.slice(0, 10).map(category => (
+                      <Button
+                        key={category}
+                        variant={selectedCategory === category ? 'default' : 'outline'}
+                        size="lg"
+                        onClick={() => setSelectedCategory(category)}
+                        className={`h-14 px-8 font-bold text-lg transition-all duration-300 rounded-2xl ${
+                          selectedCategory === category 
+                            ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-xl transform scale-105' 
+                            : 'border-3 border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-700 hover:scale-105'
+                        }`}
+                      >
+                        {category === 'all' ? '🍽️ All Items' : `🍴 ${category}`}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Quick Filters */}
+                <div className="mt-6 pt-6 border-t border-orange-200">
+                  <h4 className="text-md font-semibold text-gray-700 mb-3">Quick Filters:</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <Badge className="bg-green-100 text-green-700 px-4 py-2 text-sm cursor-pointer hover:bg-green-200">
+                      ⚡ Fast Delivery
+                    </Badge>
+                    <Badge className="bg-blue-100 text-blue-700 px-4 py-2 text-sm cursor-pointer hover:bg-blue-200">
+                      💰 Under BDT 500
+                    </Badge>
+                    <Badge className="bg-purple-100 text-purple-700 px-4 py-2 text-sm cursor-pointer hover:bg-purple-200">
+                      ⭐ Highly Rated
+                    </Badge>
+                    <Badge className="bg-red-100 text-red-700 px-4 py-2 text-sm cursor-pointer hover:bg-red-200">
+                      🔥 Trending
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
@@ -419,9 +476,9 @@ export default function OrderPage() {
                 </div>
               )}
 
-              {/* Menu Items Grid */}
+              {/* Menu Items Grid - Amazon/Alibaba Style */}
               {!loading && (
-                <div className={`grid gap-6 ${
+                <div className={`grid gap-8 ${
                   viewMode === 'grid' 
                     ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
                     : 'grid-cols-1'
@@ -430,135 +487,184 @@ export default function OrderPage() {
                     const cartQuantity = getCartQuantity(item.id)
                     
                     return (
-                      <Card key={item.id} className={`group hover:shadow-2xl transition-all duration-300 border-2 border-gray-100 hover:border-orange-300 bg-white overflow-hidden hover:scale-[1.03] transform ${
+                      <Card key={item.id} className={`group hover:shadow-2xl transition-all duration-300 border-2 border-gray-200 hover:border-orange-400 bg-white overflow-hidden hover:scale-[1.02] transform ${
                         viewMode === 'list' ? 'flex flex-row' : ''
                       }`}>
+                        {/* Product Image Section */}
                         <div className={`relative ${
-                          viewMode === 'list' ? 'w-48 flex-shrink-0' : 'aspect-video'
-                        } overflow-hidden bg-gradient-to-br from-orange-50 to-yellow-50`}>
+                          viewMode === 'list' ? 'w-64 flex-shrink-0' : 'aspect-[4/3]'
+                        } overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100`}>
                           {item.image ? (
                             <Image
                               src={item.image}
                               alt={item.name}
                               fill
-                              className="object-cover group-hover:scale-110 transition-transform duration-500"
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 via-yellow-50 to-orange-100">
-                              <ChefHat className="h-16 w-16 text-orange-400" />
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-yellow-100">
+                              <ChefHat className="h-20 w-20 text-orange-400" />
                             </div>
                           )}
                           
                           {/* Premium Badges */}
-                          <div className="absolute top-3 left-3 flex flex-col gap-2">
-                            <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-semibold shadow-lg">
+                          <div className="absolute top-4 left-4 flex flex-col gap-2">
+                            <Badge className="bg-red-500 text-white text-xs font-bold px-2 py-1">
+                              25% OFF
+                            </Badge>
+                            <Badge className="bg-green-600 text-white text-xs font-semibold px-2 py-1">
                               <Zap className="h-3 w-3 mr-1" />
                               Fast Delivery
                             </Badge>
-                            {item.prepTime && (
-                              <Badge className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs shadow-md border border-gray-200">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {item.prepTime} min
-                              </Badge>
-                            )}
                           </div>
                           
+                          {/* Wishlist Button */}
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm hover:bg-white text-gray-700 h-9 w-9 p-0 shadow-md"
+                            className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-700 h-10 w-10 p-0 rounded-full shadow-md"
                           >
-                            <Heart className="h-4 w-4" />
+                            <Heart className="h-5 w-5" />
                           </Button>
-
-                          {/* Discount Badge */}
-                          <div className="absolute bottom-3 right-3">
-                            <Badge className="bg-red-500 text-white text-xs font-bold">
-                              20% OFF
-                            </Badge>
-                          </div>
                         </div>
                         
+                        {/* Product Details Section */}
                         <CardContent className={`p-6 flex-1 ${viewMode === 'list' ? 'flex flex-col justify-between' : ''}`}>
                           <div className="space-y-4">
-                            <div className="flex items-start justify-between">
-                              <h3 className="font-bold text-xl text-gray-900 leading-tight hover:text-orange-600 transition-colors cursor-pointer">
+                            {/* Product Title & Rating */}
+                            <div>
+                              <h3 className="font-bold text-xl text-gray-900 leading-tight mb-2 hover:text-orange-600 transition-colors cursor-pointer line-clamp-2">
                                 {item.name}
                               </h3>
-                              <div className="flex items-center space-x-1 ml-2 bg-yellow-50 px-2 py-1 rounded-full">
-                                <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                                <span className="text-sm font-semibold text-yellow-700">4.8</span>
-                                <span className="text-xs text-gray-500">(124)</span>
+                              <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                                  ))}
+                                </div>
+                                <span className="text-sm font-medium text-gray-700">(4.8)</span>
+                                <span className="text-sm text-gray-500">1,234 reviews</span>
                               </div>
                             </div>
                             
+                            {/* Product Description */}
                             {item.description && (
-                              <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
+                              <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
                                 {item.description}
                               </p>
                             )}
                             
-                            {/* Features */}
-                            <div className="flex items-center space-x-4 text-xs">
-                              <div className="flex items-center space-x-1 text-green-600">
-                                <Shield className="h-3 w-3" />
-                                <span>Fresh & Hygienic</span>
-                              </div>
-                              <div className="flex items-center space-x-1 text-blue-600">
-                                <Award className="h-3 w-3" />
-                                <span>Chef's Special</span>
+                            {/* Features & Benefits */}
+                            <div className="flex flex-wrap gap-2">
+                              <Badge variant="outline" className="text-xs border-green-200 text-green-700 bg-green-50">
+                                <Shield className="h-3 w-3 mr-1" />
+                                Fresh & Hygienic
+                              </Badge>
+                              <Badge variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50">
+                                <Award className="h-3 w-3 mr-1" />
+                                Chef's Special
+                              </Badge>
+                              {item.prepTime && (
+                                <Badge variant="outline" className="text-xs border-orange-200 text-orange-700 bg-orange-50">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {item.prepTime} min
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            {/* Price Section */}
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="flex items-baseline space-x-2">
+                                  <span className="text-3xl font-bold text-orange-600">
+                                    {formatCurrency(item.price)}
+                                  </span>
+                                  <span className="text-lg text-gray-400 line-through">
+                                    {formatCurrency(Math.round(item.price * 1.33))}
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-1 text-xs text-green-600 font-medium">
+                                  <Truck className="h-3 w-3" />
+                                  <span>Free delivery on orders over BDT 500</span>
+                                </div>
                               </div>
                             </div>
                             
-                            <div className="flex items-center justify-between pt-2">
-                              <div className="space-y-1">
-                                <div className="flex items-baseline space-x-2">
-                                  <div className="text-3xl font-bold text-orange-600">
-                                    {formatCurrency(item.price)}
-                                  </div>
-                                  <div className="text-lg text-gray-400 line-through">
-                                    {formatCurrency(item.price * 1.2)}
-                                  </div>
-                                </div>
-                                <div className="flex items-center space-x-2 text-xs text-gray-500">
-                                  <Truck className="h-3 w-3" />
-                                  <span>Free Delivery on orders above BDT 500</span>
-                                </div>
-                              </div>
-                              
+                            {/* Action Buttons - Amazon Style */}
+                            <div className="pt-4 space-y-3">
                               {cartQuantity > 0 ? (
-                                <div className="flex items-center space-x-2 bg-orange-50 rounded-lg p-1 border border-orange-200">
+                                <div className="space-y-3">
+                                  {/* Quantity Controls */}
+                                  <div className="flex items-center justify-center space-x-4 bg-orange-50 rounded-lg p-3 border border-orange-200">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => updateQuantity(item.id, cartQuantity - 1)}
+                                      className="h-10 w-10 p-0 border-orange-300 hover:bg-orange-100 text-orange-600"
+                                    >
+                                      <Minus className="h-5 w-5" />
+                                    </Button>
+                                    <span className="font-bold text-2xl text-orange-700 min-w-[60px] text-center">
+                                      {cartQuantity}
+                                    </span>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => updateQuantity(item.id, cartQuantity + 1)}
+                                      className="h-10 w-10 p-0 border-orange-300 hover:bg-orange-100 text-orange-600"
+                                    >
+                                      <Plus className="h-5 w-5" />
+                                    </Button>
+                                  </div>
+                                  
+                                  {/* Remove from Cart */}
                                   <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => updateQuantity(item.id, cartQuantity - 1)}
-                                    className="h-8 w-8 p-0 hover:bg-orange-100 text-orange-600"
+                                    variant="outline"
+                                    onClick={() => removeFromCart(item.id)}
+                                    className="w-full h-12 border-red-300 text-red-600 hover:bg-red-50 font-medium"
                                   >
-                                    <Minus className="h-4 w-4" />
-                                  </Button>
-                                  <span className="font-bold text-orange-700 min-w-[32px] text-center bg-white rounded px-2">
-                                    {cartQuantity}
-                                  </span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => updateQuantity(item.id, cartQuantity + 1)}
-                                    className="h-8 w-8 p-0 hover:bg-orange-100 text-orange-600"
-                                  >
-                                    <Plus className="h-4 w-4" />
+                                    Remove from Cart
                                   </Button>
                                 </div>
                               ) : (
-                                <Button
-                                  onClick={() => addToCart(item)}
-                                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 border-0"
-                                  size="sm"
-                                >
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Order Now
-                                </Button>
+                                <div className="space-y-2">
+                                  {/* Primary Add to Cart Button - Amazon Style */}
+                                  <Button
+                                    onClick={() => addToCart(item)}
+                                    className="w-full h-14 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg"
+                                  >
+                                    <ShoppingCart className="h-5 w-5 mr-3" />
+                                    Add to Cart
+                                  </Button>
+                                  
+                                  {/* Secondary Order Now Button - Alibaba Style */}
+                                  <Button
+                                    onClick={() => addToCart(item)}
+                                    variant="outline"
+                                    className="w-full h-12 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold rounded-lg"
+                                  >
+                                    <Zap className="h-4 w-4 mr-2" />
+                                    Order Now
+                                  </Button>
+                                </div>
                               )}
+                            </div>
+                            
+                            {/* Trust Indicators */}
+                            <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                              <div className="flex items-center space-x-1">
+                                <Shield className="h-3 w-3 text-green-500" />
+                                <span>Secure Payment</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Truck className="h-3 w-3 text-blue-500" />
+                                <span>Fast Shipping</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Award className="h-3 w-3 text-purple-500" />
+                                <span>Quality Guaranteed</span>
+                              </div>
                             </div>
                           </div>
                         </CardContent>
@@ -850,23 +956,38 @@ export default function OrderPage() {
                   </Card>
                 )}
 
-                {/* Place Order Button */}
+                {/* Premium Place Order Button - Amazon Style */}
                 {cart.length > 0 && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <Button
                       onClick={handleSubmitOrder}
-                      className="w-full bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 hover:from-orange-600 hover:via-orange-700 hover:to-red-600 text-white py-6 text-xl font-bold shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-2xl"
+                      className="w-full h-20 bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 hover:from-orange-600 hover:via-orange-700 hover:to-red-600 text-white text-2xl font-bold shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-3xl"
                       size="lg"
                     >
-                      <ShoppingCart className="h-6 w-6 mr-4" />
-                      🚀 Place Order Now ({formatCurrency(total)})
-                      <ArrowRight className="h-6 w-6 ml-4" />
+                      <ShoppingCart className="h-8 w-8 mr-4" />
+                      🚀 Place Order Now • {formatCurrency(total)}
+                      <ArrowRight className="h-8 w-8 ml-4" />
                     </Button>
                     
-                    {/* Additional Info */}
-                    <div className="text-center space-y-2">
-                      <p className="text-sm text-gray-600">💯 100% Money Back Guarantee</p>
-                      <p className="text-xs text-gray-500">Your order will be confirmed within 2 minutes</p>
+                    {/* Amazon-style guarantees */}
+                    <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 space-y-3">
+                      <div className="flex items-center justify-center space-x-8 text-sm">
+                        <div className="flex items-center space-x-2 text-green-700">
+                          <Shield className="h-5 w-5" />
+                          <span className="font-semibold">💯 Money Back Guarantee</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-blue-700">
+                          <Truck className="h-5 w-5" />
+                          <span className="font-semibold">⚡ Lightning Fast Delivery</span>
+                        </div>
+                        <div className="flex items-center space-x-2 text-purple-700">
+                          <Award className="h-5 w-5" />
+                          <span className="font-semibold">🏆 Premium Quality</span>
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-600 font-medium">Your order will be confirmed within 2 minutes • 24/7 Customer Support</p>
+                      </div>
                     </div>
                   </div>
                 )}
