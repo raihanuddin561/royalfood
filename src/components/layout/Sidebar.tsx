@@ -270,6 +270,16 @@ export default function Sidebar() {
             <ul className="space-y-1">
               <li>
                 <Link
+                  href="/"
+                  className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
+                  onClick={handleMenuClick}
+                >
+                  <Home className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-white" />
+                  Customer Home
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/public/order"
                   className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
                   onClick={handleMenuClick}
@@ -280,7 +290,7 @@ export default function Sidebar() {
               </li>
               <li>
                 <Link
-                  href="/public/order/track"
+                  href="/public/track"
                   className="group flex items-center gap-x-3 rounded-lg p-3 text-sm leading-6 font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 transition-all"
                   onClick={handleMenuClick}
                 >

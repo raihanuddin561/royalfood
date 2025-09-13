@@ -7,8 +7,11 @@ export async function GET() {
       where: {
         isActive: true
       },
+      include: {
+        category: true
+      },
       orderBy: {
-        category: 'asc'
+        name: 'asc'
       }
     })
 
@@ -20,7 +23,7 @@ export async function GET() {
         description: item.description,
         price: item.price,
         image: item.image,
-        category: item.category,
+        category: item.category?.name || 'Uncategorized',
         prepTime: item.prepTime,
         isAvailable: item.isAvailable
       }))

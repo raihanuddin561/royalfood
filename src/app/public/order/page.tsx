@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { Plus, Minus, ShoppingCart, User, MapPin, Clock, Calendar, LogIn, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
-// import CustomerAuthModal from '@/components/auth/CustomerAuthModal'
+import CustomerAuthModal from '@/components/auth/CustomerAuthModal'
 
 type MenuItem = {
   id: string
@@ -678,14 +678,14 @@ export default function PublicOrderPage() {
         </div>
 
         {/* Authentication Modal */}
-        {/* <CustomerAuthModal
+        <CustomerAuthModal
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
           onSuccess={(customer) => {
             setRegisteredCustomer(customer)
             setShowAuthModal(false)
           }}
-        /> */}
+        />
       </div>
     </div>
   )

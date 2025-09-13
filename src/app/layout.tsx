@@ -4,6 +4,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { SidebarProvider } from "@/components/layout/SidebarContext";
 import { ToastContainer } from "@/components/ui/Toast";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -62,6 +63,7 @@ export default async function RootLayout({
             </SidebarProvider>
           </AuthProvider>
           <ToastContainer />
+          <Toaster />
         </ErrorBoundary>
       </body>
     </html>
