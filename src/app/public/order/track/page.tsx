@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Search, Clock, MapPin, Phone, Mail, Calendar, CheckCircle, Circle, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatCurrency } from '@/lib/currency-config'
 
 type OrderStatus = 
   | 'PENDING' 
@@ -247,7 +248,7 @@ export default function OrderTrackingPage() {
                       {order.guestAddress && (
                         <p><strong>Address:</strong> {order.guestAddress}</p>
                       )}
-                      <p><strong>Total:</strong> ₹{order.totalAmount}</p>
+                      <p><strong>Total:</strong> {formatCurrency(order.totalAmount)}</p>
                     </div>
                   </div>
                 </div>
@@ -371,18 +372,18 @@ export default function OrderTrackingPage() {
                       <div className="flex-1">
                         <h3 className="font-medium">{item.menuItem?.name || 'Item'}</h3>
                         <p className="text-sm text-gray-600">
-                          Quantity: {item.quantity} × ₹{item.unitPrice}
+                          Quantity: {item.quantity} × {formatCurrency(item.unitPrice)}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">₹{item.totalPrice}</p>
+                        <p className="font-semibold">{formatCurrency(item.totalPrice)}</p>
                       </div>
                     </div>
                   ))}
                   <div className="border-t pt-4">
                     <div className="flex justify-between items-center font-bold text-lg">
                       <span>Total Amount:</span>
-                      <span className="text-orange-600">₹{order.totalAmount}</span>
+                      <span className="text-orange-600">{formatCurrency(order.totalAmount)}</span>
                     </div>
                   </div>
                 </div>

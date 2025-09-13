@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import Link from 'next/link'
 import Image from 'next/image'
+import { formatCurrency } from '@/lib/currency-config'
 
 type MenuItem = {
   id: string
@@ -167,7 +168,7 @@ export default function HomePage() {
                     )}
                     <div className="flex items-center justify-between">
                       <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        ₹{item.price}
+                        {formatCurrency(item.price)}
                       </span>
                       {item.prepTime && (
                         <Badge variant="outline" className="text-xs">
@@ -282,7 +283,7 @@ export default function HomePage() {
                     )}
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        ₹{item.price}
+                        {formatCurrency(item.price)}
                       </span>
                       {item.prepTime && (
                         <Badge variant="outline" className="text-xs border-green-200 text-green-700">

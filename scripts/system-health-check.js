@@ -36,7 +36,7 @@ async function systemHealthCheck() {
       return sum + (item.currentStock * item.costPrice)
     }, 0)
     
-    console.log(`💰 Total Stock Value: ₹${totalStockValue.toFixed(2)}`)
+    console.log(`💰 Total Stock Value: BDT ${totalStockValue.toFixed(2)}`)
     
     // Get monthly expenses
     const thisMonth = new Date()
@@ -49,7 +49,7 @@ async function systemHealthCheck() {
       _sum: { amount: true }
     })
     
-    console.log(`📉 This Month Expenses: ₹${(monthlyExpenses._sum.amount || 0).toFixed(2)}`)
+    console.log(`📉 This Month Expenses: BDT ${(monthlyExpenses._sum.amount || 0).toFixed(2)}`)
     
     // Check stock reconciliation
     console.log('\n🔍 STOCK RECONCILIATION CHECK:')

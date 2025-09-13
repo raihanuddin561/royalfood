@@ -271,32 +271,54 @@ export default function OrderPage() {
         <link rel="canonical" href="/public/order" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-orange-50/30 to-yellow-50/30">
+        {/* Decorative Background Elements */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-orange-200/20 to-yellow-200/20 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-blue-200/20 to-purple-200/20 rounded-full blur-3xl"></div>
+        </div>
         {/* Header Section */}
-        <div className="bg-white shadow-sm border-b sticky top-0 z-40">
+        <div className="bg-gradient-to-r from-white via-orange-50 to-white shadow-lg border-b-2 border-orange-100 sticky top-0 z-40 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
+            <div className="flex items-center justify-between h-20">
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <ChefHat className="h-8 w-8 text-orange-600" />
-                  <h1 className="text-2xl font-bold text-gray-900">Royal Food</h1>
+                <div className="flex items-center space-x-3">
+                  <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-2 rounded-xl shadow-lg">
+                    <ChefHat className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Royal Food</h1>
+                    <p className="text-sm text-gray-600">Premium Food Delivery</p>
+                  </div>
                 </div>
-                <Badge variant="secondary" className="hidden sm:flex items-center space-x-1">
-                  <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                  <span className="text-xs font-medium">4.8 Rating</span>
-                </Badge>
+                <div className="hidden sm:flex items-center space-x-3">
+                  <Badge className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-semibold">
+                    <Star className="h-3 w-3 text-white fill-current mr-1" />
+                    4.9 Rating • 50K+ Orders
+                  </Badge>
+                  <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white font-semibold">
+                    <Zap className="h-3 w-3 mr-1" />
+                    Express Delivery
+                  </Badge>
+                </div>
               </div>
               
               <div className="flex items-center space-x-4">
-                <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
-                  <Clock className="h-4 w-4" />
-                  <span>15-30 min delivery</span>
+                <div className="hidden md:flex items-center space-x-6 text-sm">
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Clock className="h-4 w-4 text-orange-500" />
+                    <span className="font-medium">15-30 min</span>
+                  </div>
+                  <div className="flex items-center space-x-2 text-gray-600">
+                    <Phone className="h-4 w-4 text-green-500" />
+                    <span className="font-medium">+880-XXX-XXXX</span>
+                  </div>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAuthModal(true)}
-                  className="hidden sm:flex"
+                  className="hidden sm:flex border-orange-200 text-orange-700 hover:bg-orange-50 font-semibold"
                 >
                   <User className="h-4 w-4 mr-2" />
                   {currentCustomer ? currentCustomer.name : 'Sign In'}
@@ -311,41 +333,41 @@ export default function OrderPage() {
             {/* Main Content - Menu Items */}
             <div className="lg:col-span-3">
               {/* Search and Filters */}
-              <div className="bg-white rounded-xl shadow-sm border p-6 mb-8">
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
-                  <div className="flex-1 max-w-md">
+              <div className="bg-gradient-to-r from-white to-orange-50 rounded-2xl shadow-lg border-2 border-orange-100 p-8 mb-8">
+                <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between mb-8">
+                  <div className="flex-1 max-w-lg">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-orange-400 h-5 w-5" />
                       <Input
-                        placeholder="Search delicious food..."
+                        placeholder="Search for delicious food, cuisines..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                        className="pl-12 h-12 border-2 border-gray-200 focus:border-orange-400 focus:ring-orange-400 text-lg rounded-xl bg-white/80 backdrop-blur-sm"
                       />
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-4">
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="w-40 border-gray-200">
-                        <Filter className="h-4 w-4 mr-2" />
+                      <SelectTrigger className="w-48 h-12 border-2 border-gray-200 rounded-xl bg-white/80 backdrop-blur-sm">
+                        <Filter className="h-4 w-4 mr-2 text-orange-500" />
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map(category => (
                           <SelectItem key={category} value={category}>
-                            {category === 'all' ? 'All Categories' : category}
+                            {category === 'all' ? '🍽️ All Categories' : `🍴 ${category}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     
-                    <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="flex border-2 border-gray-200 rounded-xl overflow-hidden bg-white">
                       <Button
                         variant={viewMode === 'grid' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setViewMode('grid')}
-                        className="rounded-none"
+                        className={`rounded-none h-12 px-4 ${viewMode === 'grid' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
                       >
                         <Grid className="h-4 w-4" />
                       </Button>
@@ -353,7 +375,7 @@ export default function OrderPage() {
                         variant={viewMode === 'list' ? 'default' : 'ghost'}
                         size="sm"
                         onClick={() => setViewMode('list')}
-                        className="rounded-none"
+                        className={`rounded-none h-12 px-4 ${viewMode === 'list' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}`}
                       >
                         <List className="h-4 w-4" />
                       </Button>
@@ -361,21 +383,21 @@ export default function OrderPage() {
                   </div>
                 </div>
 
-                {/* Category Pills */}
-                <div className="flex flex-wrap gap-2">
-                  {categories.slice(0, 6).map(category => (
+                {/* Enhanced Category Pills */}
+                <div className="flex flex-wrap gap-3">
+                  {categories.slice(0, 8).map(category => (
                     <Button
                       key={category}
                       variant={selectedCategory === category ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => setSelectedCategory(category)}
-                      className={`${
+                      className={`h-10 px-6 font-semibold transition-all duration-200 rounded-full ${
                         selectedCategory === category 
-                          ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                          : 'border-gray-200 hover:border-orange-300'
+                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg' 
+                          : 'border-2 border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-700'
                       }`}
                     >
-                      {category === 'all' ? 'All' : category}
+                      {category === 'all' ? '🍽️ All Items' : `🍴 ${category}`}
                     </Button>
                   ))}
                 </div>
@@ -408,34 +430,34 @@ export default function OrderPage() {
                     const cartQuantity = getCartQuantity(item.id)
                     
                     return (
-                      <Card key={item.id} className={`group hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-orange-300 bg-white overflow-hidden hover:scale-[1.02] ${
+                      <Card key={item.id} className={`group hover:shadow-2xl transition-all duration-300 border-2 border-gray-100 hover:border-orange-300 bg-white overflow-hidden hover:scale-[1.03] transform ${
                         viewMode === 'list' ? 'flex flex-row' : ''
                       }`}>
                         <div className={`relative ${
                           viewMode === 'list' ? 'w-48 flex-shrink-0' : 'aspect-video'
-                        } overflow-hidden bg-gradient-to-br from-orange-100 to-yellow-100`}>
+                        } overflow-hidden bg-gradient-to-br from-orange-50 to-yellow-50`}>
                           {item.image ? (
                             <Image
                               src={item.image}
                               alt={item.name}
                               fill
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              className="object-cover group-hover:scale-110 transition-transform duration-500"
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <ChefHat className="h-12 w-12 text-orange-400" />
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 via-yellow-50 to-orange-100">
+                              <ChefHat className="h-16 w-16 text-orange-400" />
                             </div>
                           )}
                           
-                          {/* Badges */}
-                          <div className="absolute top-3 left-3 flex flex-col gap-1">
-                            <Badge className="bg-green-600 text-white text-xs">
+                          {/* Premium Badges */}
+                          <div className="absolute top-3 left-3 flex flex-col gap-2">
+                            <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-semibold shadow-lg">
                               <Zap className="h-3 w-3 mr-1" />
-                              Fast
+                              Fast Delivery
                             </Badge>
                             {item.prepTime && (
-                              <Badge variant="secondary" className="bg-white/90 text-gray-700 text-xs">
+                              <Badge className="bg-white/95 backdrop-blur-sm text-gray-700 text-xs shadow-md border border-gray-200">
                                 <Clock className="h-3 w-3 mr-1" />
                                 {item.prepTime} min
                               </Badge>
@@ -445,21 +467,29 @@ export default function OrderPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="absolute top-3 right-3 bg-white/90 hover:bg-white text-gray-700 h-8 w-8 p-0"
+                            className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm hover:bg-white text-gray-700 h-9 w-9 p-0 shadow-md"
                           >
                             <Heart className="h-4 w-4" />
                           </Button>
+
+                          {/* Discount Badge */}
+                          <div className="absolute bottom-3 right-3">
+                            <Badge className="bg-red-500 text-white text-xs font-bold">
+                              20% OFF
+                            </Badge>
+                          </div>
                         </div>
                         
                         <CardContent className={`p-6 flex-1 ${viewMode === 'list' ? 'flex flex-col justify-between' : ''}`}>
-                          <div className="space-y-3">
+                          <div className="space-y-4">
                             <div className="flex items-start justify-between">
-                              <h3 className="font-semibold text-lg text-gray-900 leading-tight">
+                              <h3 className="font-bold text-xl text-gray-900 leading-tight hover:text-orange-600 transition-colors cursor-pointer">
                                 {item.name}
                               </h3>
-                              <div className="flex items-center space-x-1 ml-2">
-                                <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                                <span className="text-sm text-gray-600">4.5</span>
+                              <div className="flex items-center space-x-1 ml-2 bg-yellow-50 px-2 py-1 rounded-full">
+                                <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                                <span className="text-sm font-semibold text-yellow-700">4.8</span>
+                                <span className="text-xs text-gray-500">(124)</span>
                               </div>
                             </div>
                             
@@ -469,35 +499,52 @@ export default function OrderPage() {
                               </p>
                             )}
                             
-                            <div className="flex items-center justify-between">
+                            {/* Features */}
+                            <div className="flex items-center space-x-4 text-xs">
+                              <div className="flex items-center space-x-1 text-green-600">
+                                <Shield className="h-3 w-3" />
+                                <span>Fresh & Hygienic</span>
+                              </div>
+                              <div className="flex items-center space-x-1 text-blue-600">
+                                <Award className="h-3 w-3" />
+                                <span>Chef's Special</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-between pt-2">
                               <div className="space-y-1">
-                                <div className="text-2xl font-bold text-orange-600">
-                                  {formatCurrency(item.price)}
+                                <div className="flex items-baseline space-x-2">
+                                  <div className="text-3xl font-bold text-orange-600">
+                                    {formatCurrency(item.price)}
+                                  </div>
+                                  <div className="text-lg text-gray-400 line-through">
+                                    {formatCurrency(item.price * 1.2)}
+                                  </div>
                                 </div>
                                 <div className="flex items-center space-x-2 text-xs text-gray-500">
-                                  <Award className="h-3 w-3" />
-                                  <span>Quality Guaranteed</span>
+                                  <Truck className="h-3 w-3" />
+                                  <span>Free Delivery on orders above BDT 500</span>
                                 </div>
                               </div>
                               
                               {cartQuantity > 0 ? (
-                                <div className="flex items-center space-x-2 bg-orange-50 rounded-lg p-1">
+                                <div className="flex items-center space-x-2 bg-orange-50 rounded-lg p-1 border border-orange-200">
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => updateQuantity(item.id, cartQuantity - 1)}
-                                    className="h-8 w-8 p-0 hover:bg-orange-100"
+                                    className="h-8 w-8 p-0 hover:bg-orange-100 text-orange-600"
                                   >
                                     <Minus className="h-4 w-4" />
                                   </Button>
-                                  <span className="font-medium text-orange-700 min-w-[24px] text-center">
+                                  <span className="font-bold text-orange-700 min-w-[32px] text-center bg-white rounded px-2">
                                     {cartQuantity}
                                   </span>
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => updateQuantity(item.id, cartQuantity + 1)}
-                                    className="h-8 w-8 p-0 hover:bg-orange-100"
+                                    className="h-8 w-8 p-0 hover:bg-orange-100 text-orange-600"
                                   >
                                     <Plus className="h-4 w-4" />
                                   </Button>
@@ -505,11 +552,11 @@ export default function OrderPage() {
                               ) : (
                                 <Button
                                   onClick={() => addToCart(item)}
-                                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 border-0"
                                   size="sm"
                                 >
                                   <Plus className="h-4 w-4 mr-2" />
-                                  Add
+                                  Order Now
                                 </Button>
                               )}
                             </div>
@@ -535,11 +582,11 @@ export default function OrderPage() {
             <div className="lg:col-span-1">
               <div className="sticky top-24 space-y-6">
                 {/* Cart Summary */}
-                <Card className="bg-white shadow-lg border-orange-100">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-semibold text-gray-900">Your Order</h3>
-                      <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                <Card className="bg-gradient-to-br from-white to-orange-50/50 shadow-2xl border-2 border-orange-100 backdrop-blur-sm">
+                  <CardContent className="p-8">
+                    <div className="flex items-center justify-between mb-8">
+                      <h3 className="text-2xl font-bold text-gray-900">🛒 Your Cart</h3>
+                      <Badge className="bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-sm px-3 py-1">
                         {cart.length} items
                       </Badge>
                     </div>
@@ -805,15 +852,23 @@ export default function OrderPage() {
 
                 {/* Place Order Button */}
                 {cart.length > 0 && (
-                  <Button
-                    onClick={handleSubmitOrder}
-                    className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 text-lg font-semibold shadow-lg"
-                    size="lg"
-                  >
-                    <ShoppingCart className="h-5 w-5 mr-3" />
-                    Place Order ({formatCurrency(total)})
-                    <ArrowRight className="h-5 w-5 ml-3" />
-                  </Button>
+                  <div className="space-y-4">
+                    <Button
+                      onClick={handleSubmitOrder}
+                      className="w-full bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 hover:from-orange-600 hover:via-orange-700 hover:to-red-600 text-white py-6 text-xl font-bold shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-2xl"
+                      size="lg"
+                    >
+                      <ShoppingCart className="h-6 w-6 mr-4" />
+                      🚀 Place Order Now ({formatCurrency(total)})
+                      <ArrowRight className="h-6 w-6 ml-4" />
+                    </Button>
+                    
+                    {/* Additional Info */}
+                    <div className="text-center space-y-2">
+                      <p className="text-sm text-gray-600">💯 100% Money Back Guarantee</p>
+                      <p className="text-xs text-gray-500">Your order will be confirmed within 2 minutes</p>
+                    </div>
+                  </div>
                 )}
 
                 {/* Trust Badges */}

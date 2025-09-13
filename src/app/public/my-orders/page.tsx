@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Search, Clock, MapPin, Phone, Calendar, ShoppingBag, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/currency-config'
 
 type Order = {
   id: string
@@ -209,7 +210,7 @@ export default function MyOrdersPage() {
                           <div className="space-y-2 text-sm text-gray-600">
                             {order.orderItems.slice(0, 3).map((item, index) => (
                               <p key={index}>
-                                {item.quantity}× {item.menuItem?.name || 'Item'} - ₹{item.totalPrice}
+                                {item.quantity}× {item.menuItem?.name || 'Item'} - {formatCurrency(item.totalPrice)}
                               </p>
                             ))}
                             {order.orderItems.length > 3 && (
@@ -222,7 +223,7 @@ export default function MyOrdersPage() {
                         <div className="flex flex-col justify-between">
                           <div className="text-right">
                             <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                              ₹{order.totalAmount}
+                              {formatCurrency(order.totalAmount)}
                             </p>
                             <p className="text-sm text-gray-500">Total Amount</p>
                           </div>

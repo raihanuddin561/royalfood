@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { formatCurrency } from '@/lib/currency-config'
 import { 
   Clock, 
   MapPin, 
@@ -356,14 +357,14 @@ export default function AdminOrdersPage() {
                     <div className="space-y-1 text-sm text-gray-600">
                       {order.orderItems.slice(0, 3).map((item) => (
                         <p key={item.id}>
-                          {item.quantity}× {item.menuItem?.name || 'Item'} - ₹{item.totalPrice}
+                          {item.quantity}× {item.menuItem?.name || 'Item'} - {formatCurrency(item.totalPrice)}
                         </p>
                       ))}
                       {order.orderItems.length > 3 && (
                         <p className="text-gray-500">+{order.orderItems.length - 3} more items</p>
                       )}
                       <div className="font-semibold text-orange-600 mt-2">
-                        Total: ₹{order.totalAmount}
+                        Total: {formatCurrency(order.totalAmount)}
                       </div>
                     </div>
                   </div>
