@@ -138,11 +138,19 @@ export default function HomePage() {
               {popularItems.map((item) => (
                 <Card key={item.id} className="group hover:shadow-xl transition-all duration-300 border-0 overflow-hidden">
                   <div className="relative">
-                    {item.image && (
-                      <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                        <span className="text-gray-500">🍽️</span>
-                      </div>
-                    )}
+                    <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                        />
+                      ) : (
+                        <span className="text-gray-500 text-3xl">🍽️</span>
+                      )}
+                    </div>
                     <div className="absolute top-2 right-2 flex flex-col gap-1">
                       {item.isNew && (
                         <Badge className="bg-green-500 text-white border-0">New</Badge>
@@ -235,15 +243,21 @@ export default function HomePage() {
               {filteredItems.map((item) => (
                 <Card key={item.id} className="group hover:shadow-xl transition-all duration-300 border-0 overflow-hidden bg-white">
                   <div className="relative">
-                    {item.image ? (
-                      <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                        <span className="text-gray-500 text-3xl">🍽️</span>
-                      </div>
-                    ) : (
-                      <div className="h-48 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-                        <span className="text-blue-500 text-3xl">🍽️</span>
-                      </div>
-                    )}
+                    <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
+                      {item.image ? (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                        />
+                      ) : (
+                        <div className="h-48 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                          <span className="text-blue-500 text-3xl">🍽️</span>
+                        </div>
+                      )}
+                    </div>
                     <div className="absolute top-2 right-2 flex flex-col gap-1">
                       {item.isNew && (
                         <Badge className="bg-green-500 text-white border-0">New</Badge>

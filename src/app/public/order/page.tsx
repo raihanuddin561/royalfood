@@ -308,6 +308,31 @@ export default function PublicOrderPage() {
                     <div className="grid md:grid-cols-2 gap-4">
                       {items.map((item) => (
                         <div key={item.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-all duration-300 bg-white group hover:border-blue-200">
+                          {/* Item Image */}
+                          <div className="relative h-32 mb-3 rounded-lg overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+                            {item.image ? (
+                              <Image
+                                src={item.image}
+                                alt={item.name}
+                                fill
+                                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                              />
+                            ) : (
+                              <div className="h-full flex items-center justify-center">
+                                <span className="text-gray-400 text-2xl">🍽️</span>
+                              </div>
+                            )}
+                            {/* Availability indicator */}
+                            {!item.isAvailable && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                <Badge variant="destructive" className="bg-red-500 text-white">
+                                  Out of Stock
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                          
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex-1">
                               <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">{item.name}</h3>
@@ -363,11 +388,6 @@ export default function PublicOrderPage() {
                                 </Button>
                               )}
                             </div>
-                            {!item.isAvailable && (
-                              <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-200">
-                                Out of Stock
-                              </Badge>
-                            )}
                           </div>
                         </div>
                       ))}

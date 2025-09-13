@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useNotification } from '@/components/ui/Notification'
 import { SmartQuantityInput } from '@/components/ui/SmartQuantityInput'
 import { SmartPriceInput } from '@/components/ui/SmartPriceInput'
+import ImageUpload from '@/components/ui/ImageUpload'
 
 interface Ingredient {
   id: string
@@ -36,6 +37,7 @@ export default function AddMenuItemPage() {
     description: '',
     price: '',
     prepTime: '',
+    image: '',
     isAvailable: true
   })
 
@@ -230,6 +232,19 @@ export default function AddMenuItemPage() {
                     placeholder="Describe your menu item..."
                   />
                 </div>
+              </div>
+
+              {/* Image Upload */}
+              <div className="sm:col-span-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Menu Item Image
+                </label>
+                <ImageUpload
+                  value={formData.image}
+                  onChange={(imageUrl) => setFormData({ ...formData, image: imageUrl })}
+                  onRemove={() => setFormData({ ...formData, image: '' })}
+                  disabled={loading}
+                />
               </div>
 
               {/* Pricing */}
