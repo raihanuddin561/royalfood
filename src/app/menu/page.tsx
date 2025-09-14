@@ -133,10 +133,22 @@ export default async function MenuPage() {
             <div className="aspect-w-16 aspect-h-9 bg-gray-200">
               <div className="flex items-center justify-center h-48 bg-gray-100">
                 {item.image ? (
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                  <img 
+                    src={item.image} 
+                    alt={item.name} 
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('🖼️ [MENU_PAGE] Image failed to load:', item.image)
+                      e.currentTarget.style.display = 'none'
+                      e.currentTarget.nextElementSibling.style.display = 'flex'
+                    }}
+                  />
                 ) : (
                   <span className="text-gray-400 text-sm">No Image</span>
                 )}
+                <div className="hidden w-full h-full items-center justify-center bg-gray-100">
+                  <span className="text-gray-400 text-sm">Image Failed to Load</span>
+                </div>
               </div>
             </div>
             

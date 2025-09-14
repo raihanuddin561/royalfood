@@ -74,9 +74,18 @@ export default function ImageUpload({
 
       if (result.success) {
         console.log('✅ [IMAGE_UPLOAD_UI] Upload successful:', result.imageUrl)
+        console.log('🔗 [IMAGE_UPLOAD_UI] Setting image URL in form:', result.imageUrl)
         onChange(result.imageUrl)
         setPreview(result.imageUrl)
         toast.success('Image uploaded successfully')
+        
+        // Additional debug info
+        console.log('📋 [IMAGE_UPLOAD_UI] Image URL details:', {
+          url: result.imageUrl,
+          length: result.imageUrl?.length,
+          startsWithHttp: result.imageUrl?.startsWith('http'),
+          containsBlob: result.imageUrl?.includes('blob.vercel-storage.com')
+        })
       } else {
         throw new Error(result.error || 'Upload failed')
       }

@@ -171,6 +171,8 @@ export default function AddMenuItemPage() {
       deliveryCharge: formData.deliveryCharge,
       prepTime: formData.prepTime,
       image: formData.image ? 'provided' : 'empty',
+      imageUrl: formData.image,
+      imageLength: formData.image?.length,
       isAvailable: formData.isAvailable,
       ingredientsCount: selectedIngredients.length,
       noIngredients
