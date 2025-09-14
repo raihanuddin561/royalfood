@@ -505,8 +505,9 @@ export default function AddMenuItemPage() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Form Actions */}
+        {/* Form Actions */}
         <div className="pt-5">
           <div className="flex justify-end space-x-3">
             <Link
