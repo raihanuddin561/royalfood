@@ -38,44 +38,59 @@ function generateSafeFilename(originalName: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 [IMAGE_UPLOAD] Starting image upload request')
+  
   try {
     // Check if BLOB_READ_WRITE_TOKEN is configured
+    console.log('🔑 [IMAGE_UPLOAD] Checking blob token configuration...')
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('❌ [IMAGE_UPLOAD] BLOB_READ_WRITE_TOKEN not configured')
       return NextResponse.json({
         success: false,
         error: 'Blob storage not configured. Please set BLOB_READ_WRITE_TOKEN environment variable.'
       }, { status: 500 })
     }
+    console.log('✅ [IMAGE_UPLOAD] Blob token is configured')
 
+    console.log('📄 [IMAGE_UPLOAD] Parsing form data...')
     const formData = await request.formData()
     const file = formData.get('image') as File
 
     if (!file) {
+      console.error('❌ [IMAGE_UPLOAD] No image file provided in form data')
       return NextResponse.json({
         success: false,
         error: 'No image file provided'
       }, { status: 400 })
     }
 
+    console.log(`📋 [IMAGE_UPLOAD] File received: ${file.name}, size: ${file.size} bytes, type: ${file.type}`)
+
     // Validate the file
+    console.log('🔍 [IMAGE_UPLOAD] Validating file...')
     const validation = validateImageFile(file)
     if (!validation.valid) {
+      console.error(`❌ [IMAGE_UPLOAD] File validation failed: ${validation.error}`)
       return NextResponse.json({
         success: false,
         error: validation.error
       }, { status: 400 })
     }
+    console.log('✅ [IMAGE_UPLOAD] File validation passed')
 
     // Generate safe filename with folder structure
     const filename = generateSafeFilename(file.name)
+    console.log(`🏷️ [IMAGE_UPLOAD] Generated filename: ${filename}`)
     
     try {
+      console.log('☁️ [IMAGE_UPLOAD] Uploading to Vercel Blob...')
       // Upload to Vercel Blob
       const blob = await put(filename, file, {
         access: 'public',
         token: process.env.BLOB_READ_WRITE_TOKEN,
       })
 
+      console.log(`✅ [IMAGE_UPLOAD] Upload successful! URL: ${blob.url}`)
       return NextResponse.json({
         success: true,
         imageUrl: blob.url,
@@ -86,18 +101,28 @@ export async function POST(request: NextRequest) {
       })
 
     } catch (uploadError) {
-      console.error('Vercel Blob upload error:', uploadError)
+      console.error('💥 [IMAGE_UPLOAD] Vercel Blob upload error:', uploadError)
+      console.error('Upload error details:', {
+        message: uploadError instanceof Error ? uploadError.message : 'Unknown error',
+        stack: uploadError instanceof Error ? uploadError.stack : undefined
+      })
       return NextResponse.json({
         success: false,
-        error: 'Failed to upload image to blob storage'
+        error: 'Failed to upload image to blob storage',
+        details: uploadError instanceof Error ? uploadError.message : 'Unknown error'
       }, { status: 500 })
     }
 
   } catch (error) {
-    console.error('Image upload error:', error)
+    console.error('💥 [IMAGE_UPLOAD] General error in image upload:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json({
       success: false,
-      error: 'Failed to upload image'
+      error: 'Failed to upload image',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
 }

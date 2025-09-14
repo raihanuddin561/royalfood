@@ -30,15 +30,19 @@ export default function ImageUpload({
     const file = event.target.files?.[0]
     if (!file) return
 
+    console.log('🖼️ [IMAGE_UPLOAD_UI] File selected:', { name: file.name, size: file.size, type: file.type })
+
     // Show preview immediately
     const previewUrl = URL.createObjectURL(file)
     setPreview(previewUrl)
 
     try {
       setIsUploading(true)
+      console.log('📤 [IMAGE_UPLOAD_UI] Starting upload process...')
 
       // Validate file size and type on client side
       if (file.size > 5 * 1024 * 1024) {
+        console.error('❌ [IMAGE_UPLOAD_UI] File too large:', file.size)
         toast.error('File size must be less than 5MB')
         setPreview(value || null)
         return
@@ -46,23 +50,30 @@ export default function ImageUpload({
 
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
       if (!allowedTypes.includes(file.type)) {
+        console.error('❌ [IMAGE_UPLOAD_UI] Invalid file type:', file.type)
         toast.error('Only JPEG, PNG, and WebP images are allowed')
         setPreview(value || null)
         return
       }
 
+      console.log('✅ [IMAGE_UPLOAD_UI] Client-side validation passed')
+
       // Upload to server
       const formData = new FormData()
       formData.append('image', file)
 
+      console.log('☁️ [IMAGE_UPLOAD_UI] Sending upload request...')
       const response = await fetch('/api/upload/image', {
         method: 'POST',
         body: formData
       })
 
+      console.log('📥 [IMAGE_UPLOAD_UI] Upload response status:', response.status)
       const result = await response.json()
+      console.log('📋 [IMAGE_UPLOAD_UI] Upload response data:', result)
 
       if (result.success) {
+        console.log('✅ [IMAGE_UPLOAD_UI] Upload successful:', result.imageUrl)
         onChange(result.imageUrl)
         setPreview(result.imageUrl)
         toast.success('Image uploaded successfully')
@@ -71,9 +82,18 @@ export default function ImageUpload({
       }
 
     } catch (error) {
-      console.error('Upload error:', error)
-      toast.error('Failed to upload image')
+      console.error('💥 [IMAGE_UPLOAD_UI] Upload error:', error)
+      
+      // Show detailed error message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload image'
+      toast.error(`Upload failed: ${errorMessage}`)
+      
+      // Reset to previous state
       setPreview(value || null)
+      
+      // Don't throw the error - let the form continue to work without image
+      console.log('⚠️ [IMAGE_UPLOAD_UI] Image upload failed, but continuing without blocking form submission')
+      
     } finally {
       setIsUploading(false)
       // Clean up object URL

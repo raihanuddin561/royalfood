@@ -48,7 +48,42 @@ export default function AddMenuItemPage() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(false)
+  const [nameCheckLoading, setNameCheckLoading] = useState(false)
+  const [nameExists, setNameExists] = useState(false)
   const { showNotification } = useNotification()
+
+  // Check for duplicate names when name changes
+  const checkNameExists = async (name: string) => {
+    if (!name.trim()) {
+      setNameExists(false)
+      return
+    }
+
+    setNameCheckLoading(true)
+    try {
+      const response = await fetch('/api/menu-items')
+      if (response.ok) {
+        const menuItems = await response.json()
+        const exists = menuItems.some((item: any) => 
+          item.name.toLowerCase() === name.trim().toLowerCase()
+        )
+        setNameExists(exists)
+      }
+    } catch (error) {
+      console.error('Error checking name:', error)
+    } finally {
+      setNameCheckLoading(false)
+    }
+  }
+
+  // Debounced name check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkNameExists(formData.name)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [formData.name])
 
   // Fetch categories and inventory items
   useEffect(() => {
@@ -127,30 +162,69 @@ export default function AddMenuItemPage() {
     e.preventDefault()
     setLoading(true)
 
+    console.log('📤 [MENU_FORM] Starting form submission...')
+    console.log('📋 [MENU_FORM] Form data:', {
+      name: formData.name,
+      categoryId: formData.categoryId,
+      description: formData.description ? 'provided' : 'empty',
+      price: formData.price,
+      deliveryCharge: formData.deliveryCharge,
+      prepTime: formData.prepTime,
+      image: formData.image ? 'provided' : 'empty',
+      isAvailable: formData.isAvailable,
+      ingredientsCount: selectedIngredients.length,
+      noIngredients
+    })
+
     try {
-    const response = await fetch('/api/menu-items', {
+      const requestBody = {
+        ...formData,
+        price: parseFloat(formData.price),
+        deliveryCharge: parseFloat(formData.deliveryCharge) || 0,
+        prepTime: parseInt(formData.prepTime),
+        ingredients: noIngredients ? [] : selectedIngredients
+      }
+
+      console.log('🚀 [MENU_FORM] Sending API request...')
+      const response = await fetch('/api/menu-items', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          deliveryCharge: parseFloat(formData.deliveryCharge) || 0,
-          prepTime: parseInt(formData.prepTime),
-      ingredients: noIngredients ? [] : selectedIngredients
-        })
+        body: JSON.stringify(requestBody)
       })
 
+      console.log('📥 [MENU_FORM] API response status:', response.status)
+      const responseData = await response.json()
+      console.log('📋 [MENU_FORM] API response data:', responseData)
+
       if (response.ok) {
-        window.location.href = '/menu'
+        console.log('✅ [MENU_FORM] Menu item created successfully')
+        showNotification('success', 'Menu item created successfully!')
+        
+        // Wait a moment to show the success message
+        setTimeout(() => {
+          window.location.href = '/menu'
+        }, 1000)
       } else {
-        console.error('Failed to create menu item')
-        showNotification('error', 'Failed to create menu item. Please try again.')
+        console.error('❌ [MENU_FORM] API returned error:', responseData)
+        
+        // Handle specific error cases
+        if (response.status === 409 && responseData.duplicate) {
+          showNotification('error', `A menu item with the name "${formData.name}" already exists. Please choose a different name.`)
+        } else {
+          const errorMessage = responseData.details 
+            ? `Failed to create menu item: ${responseData.details}`
+            : responseData.error || 'Failed to create menu item. Please try again.'
+          showNotification('error', errorMessage)
+        }
       }
     } catch (error) {
-      console.error('Error creating menu item:', error)
-      showNotification('error', 'Error creating menu item. Please try again.')
+      console.error('💥 [MENU_FORM] Error during form submission:', error)
+      const errorMessage = error instanceof Error 
+        ? `Error creating menu item: ${error.message}`
+        : 'Error creating menu item. Please check your connection and try again.'
+      showNotification('error', errorMessage)
     } finally {
       setLoading(false)
     }
@@ -184,7 +258,7 @@ export default function AddMenuItemPage() {
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                   Menu Item Name *
                 </label>
-                <div className="mt-1">
+                <div className="mt-1 relative">
                   <input
                     type="text"
                     name="name"
@@ -192,10 +266,22 @@ export default function AddMenuItemPage() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    className={`shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md ${
+                      nameExists ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                    }`}
                     placeholder="Enter menu item name"
                   />
+                  {nameCheckLoading && (
+                    <div className="absolute right-2 top-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                    </div>
+                  )}
                 </div>
+                {nameExists && (
+                  <p className="mt-1 text-sm text-red-600">
+                    ⚠️ A menu item with this name already exists. Please choose a different name.
+                  </p>
+                )}
               </div>
 
               <div className="sm:col-span-2">
@@ -420,35 +506,7 @@ export default function AddMenuItemPage() {
             </div>
           </div>
 
-          {/* Image Upload */}
-          <div className="pt-8">
-            <div>
-              <h3 className="text-lg font-medium leading-6 text-gray-900">Menu Item Image</h3>
-              <p className="mt-1 text-sm text-gray-600">
-                Upload an image for your menu item (optional)
-              </p>
-            </div>
-
-            <div className="mt-6">
-              <div className="flex justify-center px-6 py-10 border-2 border-gray-300 border-dashed rounded-md">
-                <div className="text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="mt-4">
-                    <label htmlFor="file-upload" className="cursor-pointer">
-                      <span className="mt-2 block text-sm font-medium text-gray-900">
-                        Upload a file or drag and drop
-                      </span>
-                      <input id="file-upload" name="file-upload" type="file" className="sr-only" accept="image/*" />
-                    </label>
-                    <p className="mt-2 text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Form Actions */}
+          {/* Form Actions */}
         <div className="pt-5">
           <div className="flex justify-end space-x-3">
             <Link
@@ -459,10 +517,10 @@ export default function AddMenuItemPage() {
             </Link>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || nameExists || nameCheckLoading}
               className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating...' : 'Create Menu Item'}
+              {loading ? 'Creating...' : nameExists ? 'Name Already Exists' : 'Create Menu Item'}
             </button>
           </div>
         </div>
