@@ -44,7 +44,20 @@ export async function PUT(
   try {
     const { id } = params
     const body = await request.json()
-    const { name, categoryId, description, price, prepTime, isAvailable, ingredients } = body
+    const { name, categoryId, description, price, prepTime, image, isAvailable, ingredients } = body
+
+    console.log('📝 [MENU_ITEM_UPDATE] Updating menu item:', {
+      id,
+      name,
+      categoryId,
+      description: description ? 'provided' : 'empty',
+      price,
+      prepTime,
+      image: image ? 'provided' : 'empty',
+      imageUrl: image,
+      isAvailable,
+      ingredientsCount: ingredients?.length || 0
+    })
 
     if (!name || !categoryId || !price) {
       return NextResponse.json(
@@ -81,6 +94,7 @@ export async function PUT(
           price: parseFloat(price),
           costPrice,
           prepTime: prepTime ? parseInt(prepTime) : null,
+          image: image || null,
           isAvailable: isAvailable !== undefined ? isAvailable : true
         },
         include: {

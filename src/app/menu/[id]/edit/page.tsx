@@ -9,6 +9,7 @@ import { useNotification, Notification } from '@/components/ui/Notification'
 import { ConfirmModal } from '@/components/ui/Modal'
 import { SmartQuantityInput } from '@/components/ui/SmartQuantityInput'
 import { SmartPriceInput } from '@/components/ui/SmartPriceInput'
+import ImageUpload from '@/components/ui/ImageUpload'
 
 interface MenuItemData {
   id: string
@@ -19,6 +20,7 @@ interface MenuItemData {
   costPrice: number
   prepTime: number | null
   isAvailable: boolean
+  image?: string
   category: {
     id: string
     name: string
@@ -76,6 +78,7 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
     description: '',
     price: '',
     prepTime: '',
+    image: '',
     isAvailable: true
   })
 
@@ -112,6 +115,7 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
         description: menuItemData.description || '',
         price: menuItemData.price.toString(),
         prepTime: menuItemData.prepTime?.toString() || '',
+        image: menuItemData.image || '',
         isAvailable: menuItemData.isAvailable
       })
 
@@ -348,6 +352,21 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Brief description of the menu item"
+              />
+            </div>
+
+            {/* Image Upload */}
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Menu Item Image
+              </label>
+              <ImageUpload
+                value={formData.image}
+                onChange={(imageUrl) => setFormData({ ...formData, image: imageUrl })}
+                onRemove={() => setFormData({ ...formData, image: '' })}
+                disabled={saving}
+                itemName={formData.name} // Pass the current name for file naming
+                itemId={params.id} // Pass the item ID as fallback
               />
             </div>
 

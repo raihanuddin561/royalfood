@@ -13,6 +13,8 @@ interface ImageUploadProps {
   onRemove?: () => void
   disabled?: boolean
   className?: string
+  itemName?: string // For naming the uploaded file
+  itemId?: string   // For naming the uploaded file (fallback)
 }
 
 export default function ImageUpload({ 
@@ -20,7 +22,9 @@ export default function ImageUpload({
   onChange, 
   onRemove, 
   disabled = false,
-  className = '' 
+  className = '',
+  itemName,
+  itemId
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(value || null)
@@ -61,6 +65,16 @@ export default function ImageUpload({
       // Upload to server
       const formData = new FormData()
       formData.append('image', file)
+      
+      // Add item context for better file naming
+      if (itemName) {
+        formData.append('itemName', itemName)
+        console.log('📝 [IMAGE_UPLOAD_UI] Adding item name for filename:', itemName)
+      }
+      if (itemId) {
+        formData.append('itemId', itemId)
+        console.log('📝 [IMAGE_UPLOAD_UI] Adding item ID for filename:', itemId)
+      }
 
       console.log('☁️ [IMAGE_UPLOAD_UI] Sending upload request...')
       const response = await fetch('/api/upload/image', {

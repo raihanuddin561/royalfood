@@ -334,6 +334,7 @@ export default function AddMenuItemPage() {
                   onChange={(imageUrl) => setFormData({ ...formData, image: imageUrl })}
                   onRemove={() => setFormData({ ...formData, image: '' })}
                   disabled={loading}
+                  itemName={formData.name} // Pass the item name for file naming
                 />
               </div>
 

@@ -24,17 +24,30 @@ function validateImageFile(file: File): { valid: boolean; error?: string } {
   return { valid: true }
 }
 
-// Helper function to generate safe filename
-function generateSafeFilename(originalName: string): string {
+// Helper function to generate safe filename with item name/ID
+function generateSafeFilename(originalName: string, itemName?: string, itemId?: string): string {
   const extension = originalName.split('.').pop()
   const timestamp = Date.now()
   const uuid = uuidv4().split('-')[0]
-  const sanitizedName = originalName
-    .replace(/[^a-zA-Z0-9.]/g, '-')
-    .toLowerCase()
-    .substring(0, 20)
   
-  return `menu-items/${sanitizedName}-${timestamp}-${uuid}.${extension}`
+  // Create a base name from item name or ID if provided
+  let baseName = ''
+  if (itemName) {
+    baseName = itemName
+      .replace(/[^a-zA-Z0-9\s]/g, '') // Remove special characters except spaces
+      .replace(/\s+/g, '-') // Replace spaces with dashes
+      .toLowerCase()
+      .substring(0, 30) // Limit length
+  } else if (itemId) {
+    baseName = `item-${itemId}`
+  } else {
+    baseName = originalName
+      .replace(/[^a-zA-Z0-9.]/g, '-')
+      .toLowerCase()
+      .substring(0, 20)
+  }
+  
+  return `menu-items/${baseName}-${timestamp}-${uuid}.${extension}`
 }
 
 export async function POST(request: NextRequest) {
@@ -55,6 +68,13 @@ export async function POST(request: NextRequest) {
     console.log('📄 [IMAGE_UPLOAD] Parsing form data...')
     const formData = await request.formData()
     const file = formData.get('image') as File
+    const itemName = formData.get('itemName') as string
+    const itemId = formData.get('itemId') as string
+
+    console.log('📋 [IMAGE_UPLOAD] Upload context:', {
+      itemName: itemName || 'not provided',
+      itemId: itemId || 'not provided'
+    })
 
     if (!file) {
       console.error('❌ [IMAGE_UPLOAD] No image file provided in form data')
@@ -78,9 +98,10 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ [IMAGE_UPLOAD] File validation passed')
 
-    // Generate safe filename with folder structure
-    const filename = generateSafeFilename(file.name)
+    // Generate safe filename with item context
+    const filename = generateSafeFilename(file.name, itemName, itemId)
     console.log(`🏷️ [IMAGE_UPLOAD] Generated filename: ${filename}`)
+    console.log(`📝 [IMAGE_UPLOAD] Filename context: itemName="${itemName}", itemId="${itemId}"`)
     
     try {
       console.log('☁️ [IMAGE_UPLOAD] Uploading to Vercel Blob...')
@@ -97,7 +118,8 @@ export async function POST(request: NextRequest) {
         filename: filename,
         size: file.size,
         type: file.type,
-        downloadUrl: blob.downloadUrl
+        downloadUrl: blob.downloadUrl,
+        itemContext: { itemName, itemId } // Include context in response
       })
 
     } catch (uploadError) {
