@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(request: NextRequest) {
   try {
-    const headersList = headers()
+    const headersList = await headers()
     const session = headersList.get('x-customer-session')
     
     // For now, we'll check customer session from cookies or headers
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         },
         orderTracking: {
           orderBy: {
-            createdAt: 'desc'
+            timestamp: 'desc'
           }
         }
       },
@@ -74,8 +74,10 @@ export async function GET(request: NextRequest) {
         orderTracking: order.orderTracking.map(tracking => ({
           id: tracking.id,
           status: tracking.status,
-          notes: tracking.notes,
-          createdAt: tracking.createdAt.toISOString()
+          message: tracking.message,
+          timestamp: tracking.timestamp.toISOString(),
+          estimatedTime: tracking.estimatedTime,
+          updatedBy: tracking.updatedBy
         }))
       }))
     })

@@ -151,10 +151,10 @@ export async function GET(request: NextRequest) {
           unitPrice: item.unitPrice,
           totalPrice: item.totalPrice,
           notes: item.notes,
-          menuItem: {
+          menuItem: item.menuItem ? {
             name: item.menuItem.name,
             image: item.menuItem.image
-          }
+          } : null
         })),
         
         // Timestamps

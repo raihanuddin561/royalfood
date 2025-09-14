@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       }
       
       // Apply free delivery threshold
-      if (deliverySettings?.freeDeliveryThreshold > 0 && subtotal >= deliverySettings.freeDeliveryThreshold) {
+      if (deliverySettings?.freeDeliveryThreshold && deliverySettings.freeDeliveryThreshold > 0 && subtotal >= deliverySettings.freeDeliveryThreshold) {
         deliveryFee = 0
       }
     }

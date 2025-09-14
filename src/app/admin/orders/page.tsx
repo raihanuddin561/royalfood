@@ -23,15 +23,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
-
-type OrderStatus = 
-  | 'PENDING' 
-  | 'CONFIRMED' 
-  | 'PREPARING' 
-  | 'READY' 
-  | 'OUT_FOR_DELIVERY' 
-  | 'DELIVERED' 
-  | 'CANCELLED'
+import { OrderStatus } from '@prisma/client'
 
 type Order = {
   id: string
@@ -197,8 +189,8 @@ export default function AdminOrdersPage() {
   }
 
   const getNextStatus = (currentStatus: OrderStatus, orderType: string): OrderStatus | null => {
-    const deliveryFlow: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED']
-    const dineInTakeawayFlow: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERED']
+    const deliveryFlow: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'SERVED']
+    const dineInTakeawayFlow: OrderStatus[] = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED']
     
     const flow = orderType === 'DELIVERY' ? deliveryFlow : dineInTakeawayFlow
     const currentIndex = flow.indexOf(currentStatus)
@@ -374,7 +366,7 @@ export default function AdminOrdersPage() {
                   {/* Actions */}
                   <div className="flex flex-col space-y-2">
                     {/* Quick Status Update */}
-                    {getNextStatus(order.status, order.orderType) && order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
+                    {getNextStatus(order.status, order.orderType) && order.status !== 'SERVED' && order.status !== 'CANCELLED' && (
                       <Button
                         size="sm"
                         onClick={() => quickUpdateStatus(order)}
@@ -454,7 +446,7 @@ export default function AdminOrdersPage() {
                     </Dialog>
 
                     {/* Estimated Time */}
-                    {order.estimatedTime && order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
+                    {order.estimatedTime && order.status !== 'SERVED' && order.status !== 'CANCELLED' && (
                       <div className="text-xs text-gray-500 text-center">
                         <Clock className="w-3 h-3 inline mr-1" />
                         Est. {order.estimatedTime}min

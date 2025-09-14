@@ -56,6 +56,7 @@ type CartItem = {
   quantity: number
   name: string
   price: number
+  image?: string | null
 }
 
 type CustomerInfo = {

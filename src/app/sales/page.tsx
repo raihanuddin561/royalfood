@@ -1,242 +1,480 @@
-import { Plus, DollarSign, TrendingUp, Calendar, Search, Filter, Eye, Download, Receipt } from 'lucide-react';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { prisma } from '@/lib/prisma';
-export const dynamic = 'force-dynamic'
-import Link from 'next/link';
+'use client'
 
-// Get sales data from database
-async function getSalesData() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { 
+  Plus, 
+  DollarSign, 
+  TrendingUp, 
+  Calendar, 
+  Search, 
+  Filter, 
+  Download, 
+  Receipt,
+  CreditCard,
+  Users,
+  AlertTriangle,
+  RefreshCw,
+  BarChart3,
+  PieChart,
+  Eye
+} from 'lucide-react'
+import { formatCurrency } from '@/lib/currency-config'
+import { toast } from 'sonner'
+import Link from 'next/link'
 
-  try {
-    const [sales, todayStats] = await Promise.all([
-      // Get recent sales with related data
-      prisma.sale.findMany({
-        include: {
-          user: {
-            select: {
-              name: true
-            }
-          },
-          order: {
-            select: {
-              orderNumber: true,
-              orderType: true,
-              customerId: true,
-              orderItems: {
-                include: {
-                  menuItem: {
-                    select: {
-                      name: true,
-                      price: true
-                    }
-                  },
-                  item: {
-                    select: {
-                      name: true,
-                      sellingPrice: true
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        orderBy: {
-          saleDate: 'desc'
-        },
-        take: 50
-      }),
-      // Get today's statistics
-      prisma.sale.aggregate({
-        where: {
-          saleDate: {
-            gte: today,
-            lt: tomorrow
-          },
-          status: 'COMPLETED'
-        },
-        _count: {
-          id: true
-        },
-        _sum: {
-          finalAmount: true
-        }
-      })
-    ]);
-
-    // Calculate additional stats
-    const todaySales = sales.filter(sale => 
-      sale.saleDate >= today && sale.saleDate < tomorrow && sale.status === 'COMPLETED'
-    );
-    
-    const paymentMethodStats = todaySales.reduce((acc, sale) => {
-      acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + sale.finalAmount;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const totalSales = todayStats._sum.finalAmount || 0;
-    const totalOrders = todayStats._count.id || 0;
-    const averageOrder = totalOrders > 0 ? totalSales / totalOrders : 0;
-
-    return {
-      sales,
-      dailyStats: {
-        totalSales,
-        totalOrders,
-        averageOrder,
-        cashSales: paymentMethodStats.CASH || 0,
-        cardSales: paymentMethodStats.CARD || 0,
-        digitalWalletSales: paymentMethodStats.DIGITAL_WALLET || 0,
-        bankTransferSales: paymentMethodStats.BANK_TRANSFER || 0
+interface Sale {
+  id: string
+  saleNumber: string
+  saleDate: string
+  totalAmount: number
+  paymentMethod: string
+  status: string
+  customer?: {
+    name: string
+    phone: string
+  }
+  user: {
+    name: string
+  }
+  order?: {
+    orderNumber: string
+    orderType: string
+    orderItems: Array<{
+      menuItem?: {
+        name: string
       }
-    };
-  } catch (error) {
-    console.error('Sales data fetch error:', error);
-    return {
-      sales: [],
-      dailyStats: {
-        totalSales: 0,
-        totalOrders: 0,
-        averageOrder: 0,
-        cashSales: 0,
-        cardSales: 0,
-        digitalWalletSales: 0,
-        bankTransferSales: 0
-      }
-    };
+    }>
+  }
+  menuItemSales: Array<{
+    quantity: number
+    totalPrice: number
+    grossProfit: number
+    menuItem: {
+      name: string
+    }
+  }>
+}
+
+interface SalesData {
+  sales: Sale[]
+  pagination: {
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }
+  todayStats: {
+    todayRevenue: number
+    todayTransactions: number
+    servedOrders: number
+    pendingSalesRecords: number
+  }
+  summary: {
+    totalRevenue: number
+    totalTransactions: number
+    averageOrderValue: number
+    totalTax: number
+    totalDeliveryFees: number
+    paymentBreakdown: Array<{
+      paymentMethod: string
+      _sum: { totalAmount: number }
+      _count: number
+    }>
   }
 }
 
-const paymentMethods = ['All', 'CASH', 'CARD', 'DIGITAL_WALLET', 'BANK_TRANSFER'];
+export default function SalesPage() {
+  const [salesData, setSalesData] = useState<SalesData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [filters, setFilters] = useState({
+    startDate: '',
+    endDate: '',
+    paymentMethod: '',
+    search: ''
+  })
 
-export default async function SalesPage() {
-  const { sales, dailyStats } = await getSalesData();
-  const totalDigital = dailyStats.cardSales + dailyStats.digitalWalletSales + dailyStats.bankTransferSales;
+  const fetchSalesData = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (filters.startDate) params.append('startDate', filters.startDate)
+      if (filters.endDate) params.append('endDate', filters.endDate)
+      if (filters.paymentMethod) params.append('paymentMethod', filters.paymentMethod)
+      
+      const response = await fetch(`/api/sales?${params.toString()}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setSalesData(data.data)
+      } else {
+        toast.error('Failed to load sales data')
+      }
+    } catch (error) {
+      console.error('Error fetching sales:', error)
+      toast.error('Error loading sales data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
+  const syncPendingSales = async () => {
+    try {
+      const response = await fetch('/api/sales/sync-pending', { method: 'POST' })
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success(`Synced ${data.recordsCreated} sales records`)
+        fetchSalesData()
+      } else {
+        toast.error('Failed to sync sales records')
+      }
+    } catch (error) {
+      toast.error('Error syncing sales records')
+    }
+  }
+
+  const exportSales = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (filters.startDate) params.append('startDate', filters.startDate)
+      if (filters.endDate) params.append('endDate', filters.endDate)
+      if (filters.paymentMethod) params.append('paymentMethod', filters.paymentMethod)
+      
+      const response = await fetch(`/api/sales/export?${params.toString()}`)
+      const blob = await response.blob()
+      
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `sales-report-${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      
+      toast.success('Sales report exported successfully')
+    } catch (error) {
+      toast.error('Failed to export sales report')
+    }
+  }
+
+  useEffect(() => {
+    fetchSalesData()
+  }, [])
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchSalesData()
+    }, 500)
+    
+    return () => clearTimeout(timeoutId)
+  }, [filters])
+
+  if (loading && !salesData) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 animate-spin" />
+      </div>
+    )
+  }
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Sales Dashboard</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            Track daily sales and revenue performance with profit analysis
+          <h1 className="text-3xl font-bold">Sales Reports</h1>
+          <p className="text-gray-600 mt-1">
+            Track revenue, transactions, and sales performance
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Link
-            href="/sales/profits"
-            className="inline-flex items-center rounded-md bg-purple-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
-          >
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Profit Analysis
-          </Link>
-          <Link
-            href="/sales/daily"
-            className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          >
-            <Receipt className="h-4 w-4 mr-2" />
-            Daily Sales Per Item
-          </Link>
-          <Link
-            href="/sales/new"
-            className="inline-flex items-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Quick Sale Entry
+        <div className="flex gap-2">
+          {salesData?.todayStats.pendingSalesRecords && salesData.todayStats.pendingSalesRecords > 0 && (
+            <Button onClick={syncPendingSales} variant="outline" className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4" />
+              Sync {salesData.todayStats.pendingSalesRecords} Pending
+            </Button>
+          )}
+          <Button onClick={exportSales} variant="outline" className="flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            Export
+          </Button>
+          <Link href="/sales/new">
+            <Button className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Sale
+            </Button>
           </Link>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">          <div className="flex items-center">            <div className="flex-shrink-0">              <DollarSign className="h-8 w-8 text-green-400" />            </div>            <div className="ml-5 w-0 flex-1">              <dl>                <dt className="truncate text-sm font-medium text-gray-500">Total Sales Today</dt>                <dd className="text-lg font-medium text-gray-900">                  {formatCurrency(dailyStats.totalSales)}                </dd>              </dl>            </div>          </div>          <div className="mt-2">            <div className="flex items-center text-sm text-green-600">              <TrendingUp className="mr-1 h-4 w-4" />              <span>Live data</span>            </div>          </div>        </div>        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">          <div className="flex items-center">            <div className="flex-shrink-0">              <Calendar className="h-8 w-8 text-blue-400" />            </div>            <div className="ml-5 w-0 flex-1">              <dl>                <dt className="truncate text-sm font-medium text-gray-500">Orders Today</dt>                <dd className="text-lg font-medium text-gray-900">{dailyStats.totalOrders}</dd>              </dl>            </div>          </div>        </div>        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">          <div className="flex items-center">            <div className="flex-shrink-0">              <TrendingUp className="h-8 w-8 text-purple-400" />            </div>            <div className="ml-5 w-0 flex-1">              <dl>                <dt className="truncate text-sm font-medium text-gray-500">Average Order</dt>                <dd className="text-lg font-medium text-gray-900">                  {formatCurrency(dailyStats.averageOrder)}                </dd>              </dl>            </div>          </div>        </div>        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">          <div className="flex items-center">            <div className="flex-shrink-0">              <DollarSign className="h-8 w-8 text-yellow-400" />            </div>            <div className="ml-5 w-0 flex-1">              <dl>                <dt className="truncate text-sm font-medium text-gray-500">Cash vs Digital</dt>                <dd className="text-sm font-medium text-gray-900">                  Cash: {formatCurrency(dailyStats.cashSales)}                </dd>                <dd className="text-xs text-gray-500">                  Digital: {formatCurrency(totalDigital)}                </dd>              </dl>            </div>          </div>        </div>      </div>      {/* Payment Method Breakdown */}      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">        <div className="lg:col-span-1">          <div className="overflow-hidden rounded-lg bg-white shadow">            <div className="px-4 py-5 sm:p-6">              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Payment Methods</h3>              <div className="space-y-4">                <div className="flex items-center justify-between">                  <span className="text-sm font-medium text-gray-900">Cash</span>                  <span className="text-sm text-gray-500">{formatCurrency(dailyStats.cashSales)}</span>                </div>                <div className="w-full bg-gray-200 rounded-full h-2">                  <div                     className="bg-green-600 h-2 rounded-full"                     style={{ width: dailyStats.totalSales > 0 ? `${(dailyStats.cashSales / dailyStats.totalSales) * 100}%` : '0%' }}                  ></div>                </div>                <div className="flex items-center justify-between">                  <span className="text-sm font-medium text-gray-900">Card</span>                  <span className="text-sm text-gray-500">{formatCurrency(dailyStats.cardSales)}</span>                </div>                <div className="w-full bg-gray-200 rounded-full h-2">                  <div                     className="bg-blue-600 h-2 rounded-full"                     style={{ width: dailyStats.totalSales > 0 ? `${(dailyStats.cardSales / dailyStats.totalSales) * 100}%` : '0%' }}                  ></div>                </div>                <div className="flex items-center justify-between">                  <span className="text-sm font-medium text-gray-900">Digital Wallet</span>                  <span className="text-sm text-gray-500">{formatCurrency(dailyStats.digitalWalletSales)}</span>                </div>                <div className="w-full bg-gray-200 rounded-full h-2">                  <div                     className="bg-purple-600 h-2 rounded-full"                     style={{ width: dailyStats.totalSales > 0 ? `${(dailyStats.digitalWalletSales / dailyStats.totalSales) * 100}%` : '0%' }}                  ></div>                </div>                {dailyStats.bankTransferSales > 0 && (                  <>                    <div className="flex items-center justify-between">                      <span className="text-sm font-medium text-gray-900">Bank Transfer</span>                      <span className="text-sm text-gray-500">{formatCurrency(dailyStats.bankTransferSales)}</span>                    </div>                    <div className="w-full bg-gray-200 rounded-full h-2">                      <div                         className="bg-indigo-600 h-2 rounded-full"                         style={{ width: dailyStats.totalSales > 0 ? `${(dailyStats.bankTransferSales / dailyStats.totalSales) * 100}%` : '0%' }}                      ></div>                    </div>                  </>                )}              </div>            </div>          </div>        </div>        {/* Recent Sales */}        <div className="lg:col-span-2">          <div className="overflow-hidden rounded-lg bg-white shadow">            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Recent Sales</h3>
+      {/* Statistics Cards */}
+      {salesData && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(salesData.todayStats.todayRevenue)}</div>
+              <p className="text-xs text-muted-foreground">
+                {salesData.todayStats.todayTransactions} transactions today
+              </p>
+            </CardContent>
+          </Card>
 
-              {/* Filters */}
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">                <div className="relative flex-1 max-w-md">                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">                    <Search className="h-5 w-5 text-gray-400" />                  </div>                  <input                    type="text"                    placeholder="Search sales..."                    className="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"                  />                </div>                <div className="flex items-center gap-2">                  <Filter className="h-4 w-4 text-gray-400" />                  <select className="rounded-md border-0 py-1.5 pl-3 pr-8 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6">                    {paymentMethods.map((method) => (                      <option key={method} value={method}>                        {method.replace('_', ' ')}                      </option>                    ))}                  </select>                </div>              </div>              {/* Sales Table */}
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Sale Details</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Customer</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Amount</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Payment</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    {sales.map((sale) => (
-                      <tr key={sale.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{sale.saleNumber}</div>
-                          <div className="text-sm text-gray-500">
-                            {formatDateTime(sale.saleDate)} • {sale.order?.orderType.replace('_', ' ') || 'Direct Sale'}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {sale.order?.customerId ? `Customer: ${sale.order.customerId}` : 'Walk-in'}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Staff: {sale.user.name}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">
-                            {formatCurrency(sale.finalAmount)}
-                          </div>
-                          {sale.discountAmount > 0 && (
-                            <div className="text-sm text-red-600">
-                              -{formatCurrency(sale.discountAmount)} discount
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            sale.paymentMethod === 'CASH'
-                               ? 'bg-green-100 text-green-800'
-                              : sale.paymentMethod === 'CARD'
-                              ? 'bg-blue-100 text-blue-800'
-                              : sale.paymentMethod === 'DIGITAL_WALLET'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-indigo-100 text-indigo-800'
-                          }`}>
-                            {sale.paymentMethod.replace('_', ' ')}
-                          </span>
-                          <div className="text-xs text-gray-500 mt-1">{sale.status}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end gap-2">
-                            <button className="text-blue-600 hover:text-blue-900">
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button className="text-gray-600 hover:text-gray-900">
-                              <Download className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              {sales.length === 0 && (
-                <div className="text-center py-8">
-                  <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-semibold text-gray-900">No sales found</h3>
-                  <p className="mt-1 text-sm text-gray-500">Sales data will appear here once orders are completed.</p>
-                </div>
-              )}
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(salesData.summary.totalRevenue)}</div>
+              <p className="text-xs text-muted-foreground">
+                {salesData.summary.totalTransactions} total transactions
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Average Order</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(salesData.summary.averageOrderValue)}</div>
+              <p className="text-xs text-muted-foreground">
+                Per transaction average
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tax Collected</CardTitle>
+              <Receipt className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(salesData.summary.totalTax)}</div>
+              <p className="text-xs text-muted-foreground">
+                {formatCurrency(salesData.summary.totalDeliveryFees)} delivery fees
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Filters & Analytics
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="text-sm font-medium">Start Date</label>
+              <Input
+                type="date"
+                value={filters.startDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">End Date</label>
+              <Input
+                type="date"
+                value={filters.endDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Payment Method</label>
+              <Select value={filters.paymentMethod} onValueChange={(value) => setFilters(prev => ({ ...prev, paymentMethod: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All methods" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All methods</SelectItem>
+                  <SelectItem value="CASH">Cash</SelectItem>
+                  <SelectItem value="CARD">Card</SelectItem>
+                  <SelectItem value="DIGITAL_WALLET">Digital Wallet</SelectItem>
+                  <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button 
+                onClick={() => setFilters({ startDate: '', endDate: '', paymentMethod: '', search: '' })}
+                variant="outline"
+                className="w-full"
+              >
+                Clear Filters
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+
+          {/* Payment Method Breakdown */}
+          {salesData?.summary.paymentBreakdown && salesData.summary.paymentBreakdown.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                <PieChart className="w-5 h-5" />
+                Payment Method Breakdown
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {salesData.summary.paymentBreakdown.map((payment) => (
+                  <div key={payment.paymentMethod} className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-medium text-gray-600 mb-1">
+                      {payment.paymentMethod.replace('_', ' ')}
+                    </div>
+                    <div className="text-xl font-bold">{formatCurrency(payment._sum.totalAmount)}</div>
+                    <div className="text-xs text-gray-500">{payment._count} transactions</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Sales Table */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Sales Transactions</CardTitle>
+              <CardDescription>
+                {salesData ? `${salesData.pagination.total} total sales` : 'Loading sales...'}
+              </CardDescription>
+            </div>
+            {loading && (
+              <RefreshCw className="w-5 h-5 animate-spin" />
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {salesData?.sales && salesData.sales.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Sale #</th>
+                    <th className="text-left p-2">Date</th>
+                    <th className="text-left p-2">Customer</th>
+                    <th className="text-left p-2">Items</th>
+                    <th className="text-left p-2">Payment</th>
+                    <th className="text-left p-2">Amount</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salesData.sales.map((sale) => (
+                    <tr key={sale.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">
+                        <div className="font-medium">{sale.saleNumber}</div>
+                        {sale.order?.orderNumber && (
+                          <div className="text-xs text-gray-500">Order: {sale.order.orderNumber}</div>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        <div>{new Date(sale.saleDate).toLocaleDateString()}</div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(sale.saleDate).toLocaleTimeString()}
+                        </div>
+                      </td>
+                      <td className="p-2">
+                        {sale.customer ? (
+                          <div>
+                            <div className="font-medium">{sale.customer.name}</div>
+                            <div className="text-xs text-gray-500">{sale.customer.phone}</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-500">Guest</span>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        <div className="text-sm">
+                          {sale.menuItemSales.length > 0 ? (
+                            sale.menuItemSales.slice(0, 2).map((item, idx) => (
+                              <div key={idx}>
+                                {item.quantity}x {item.menuItem.name}
+                              </div>
+                            ))
+                          ) : sale.order?.orderItems ? (
+                            sale.order.orderItems.slice(0, 2).map((item, idx) => (
+                              <div key={idx}>
+                                {item.menuItem?.name || 'Item'}
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-gray-500">No items</span>
+                          )}
+                          {(sale.menuItemSales.length > 2 || (sale.order?.orderItems && sale.order.orderItems.length > 2)) && (
+                            <div className="text-xs text-gray-500">
+                              +{Math.max(sale.menuItemSales.length - 2, (sale.order?.orderItems?.length || 0) - 2)} more
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-2">
+                        <Badge variant="outline">
+                          <CreditCard className="w-3 h-3 mr-1" />
+                          {sale.paymentMethod.replace('_', ' ')}
+                        </Badge>
+                      </td>
+                      <td className="p-2">
+                        <div className="font-semibold">{formatCurrency(sale.totalAmount)}</div>
+                        {sale.menuItemSales.length > 0 && (
+                          <div className="text-xs text-green-600">
+                            Profit: {formatCurrency(sale.menuItemSales.reduce((sum, item) => sum + item.grossProfit, 0))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        <Badge variant={sale.status === 'COMPLETED' ? 'default' : 'secondary'}>
+                          {sale.status}
+                        </Badge>
+                      </td>
+                      <td className="p-2">
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Receipt className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-600 mb-2">No sales found</h3>
+              <p className="text-gray-500 mb-4">
+                {filters.startDate || filters.endDate ? 
+                  'No sales match your filter criteria' : 
+                  'No sales have been recorded yet'
+                }
+              </p>
+              <Link href="/sales/new">
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Sale
+                </Button>
+              </Link>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

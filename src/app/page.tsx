@@ -78,6 +78,9 @@ export default function HomePage() {
 
   // Cart functions
   const addToCart = (itemId: string) => {
+    const menuItem = menuItems.find(item => item.id === itemId)
+    if (!menuItem) return
+    
     setCart(prev => {
       const existing = prev.find(item => item.id === itemId)
       if (existing) {
@@ -85,7 +88,7 @@ export default function HomePage() {
           item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
         )
       }
-      return [...prev, { id: itemId, quantity: 1 }]
+      return [...prev, { ...menuItem, quantity: 1 }]
     })
   }
 

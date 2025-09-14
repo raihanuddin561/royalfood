@@ -313,7 +313,7 @@ export default function OrderSettingsPage() {
                     <span className="text-green-600">Active (${deliverySettings.globalDeliveryCharge.toFixed(2)})</span> : 
                     <span className="text-red-600">Disabled</span>
                   }</li>
-                  <li>Free delivery: {deliverySettings?.freeDeliveryThreshold > 0 ? 
+                  <li>Free delivery: {deliverySettings?.freeDeliveryThreshold && deliverySettings.freeDeliveryThreshold > 0 ? 
                     `$${deliverySettings.freeDeliveryThreshold.toFixed(2)}+` : 'Disabled'
                   }</li>
                   <li>Max distance: {deliverySettings?.maxDeliveryDistance}km</li>
