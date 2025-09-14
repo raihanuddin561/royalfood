@@ -1,6 +1,7 @@
--- Order Management System Enhancement Migration
--- Date: 2025-09-12
+-- Order Management System Enhancement Migration (Fixed)
+-- Date: 2025-09-14
 -- Description: Add pre-order functionality, order tracking, and enhanced customer features
+-- Fixed: Removed CONCURRENTLY from index creation for transaction compatibility
 
 -- 1. Add pre-order fields to Order table
 DO $$
@@ -86,7 +87,7 @@ BEGIN
   END IF;
 END $$;
 
--- 6. Create indexes for better performance (using regular CREATE INDEX for migration compatibility)
+-- 6. Create indexes for better performance (without CONCURRENTLY for migration compatibility)
 CREATE INDEX IF NOT EXISTS "orders_isPreOrder_idx" ON "orders"("isPreOrder");
 CREATE INDEX IF NOT EXISTS "orders_scheduledDate_idx" ON "orders"("scheduledDate");
 CREATE INDEX IF NOT EXISTS "order_tracking_orderId_idx" ON "order_tracking"("orderId");
