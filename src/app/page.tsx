@@ -161,17 +161,17 @@ export default function HomePage() {
       <div className="bg-gradient-to-r from-white via-orange-50 to-white shadow-xl border-b-2 border-orange-200 sticky top-0 z-50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-3 sm:space-x-6">
               {/* Logo Section */}
-              <div className="flex items-center space-x-4">
-                <div className="bg-gradient-to-br from-orange-500 to-red-500 p-3 rounded-2xl shadow-lg">
-                  <ChefHat className="h-10 w-10 text-white" />
+              <div className="flex items-center space-x-2 sm:space-x-4">
+                <div className="bg-gradient-to-br from-orange-500 to-red-500 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg">
+                  <ChefHat className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-500 to-orange-700 bg-clip-text text-transparent">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-500 to-orange-700 bg-clip-text text-transparent">
                     Royal Food
                   </h1>
-                  <p className="text-sm text-gray-600 font-medium">Premium Food Delivery Platform</p>
+                  <p className="text-xs sm:text-sm text-gray-600 font-medium hidden sm:block">Premium Food Delivery Platform</p>
                 </div>
               </div>
               
@@ -219,11 +219,11 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/public/order">
-                <Button className="bg-white text-orange-600 hover:bg-orange-50 font-bold px-12 py-4 rounded-2xl shadow-xl text-xl">
+                <Button className="bg-white !text-orange-600 hover:bg-orange-50 hover:!text-orange-700 font-bold px-12 py-4 rounded-2xl shadow-xl text-xl border-2 border-orange-200">
                   🛒 Order Now • Free Delivery
                 </Button>
               </Link>
-              <Button variant="outline" className="border-white text-white hover:bg-white hover:text-orange-600 font-bold px-12 py-4 rounded-2xl text-xl">
+              <Button variant="outline" className="border-white !text-white hover:bg-white hover:!text-orange-600 font-bold px-12 py-4 rounded-2xl text-xl">
                 📱 Download App
               </Button>
             </div>
@@ -427,7 +427,7 @@ export default function HomePage() {
             Experience our premium food delivery service today
           </p>
           <Link href="/public/order">
-            <Button className="bg-white text-orange-600 hover:bg-orange-50 font-bold px-12 py-4 rounded-2xl shadow-xl text-xl">
+            <Button className="bg-white !text-orange-600 hover:bg-orange-50 hover:!text-orange-700 font-bold px-12 py-4 rounded-2xl shadow-xl text-xl border-2 border-orange-200">
               🛒 Start Ordering Now
               <ArrowRight className="h-6 w-6 ml-3" />
             </Button>
@@ -702,7 +702,7 @@ export default function HomePage() {
                 Choose your favorite dishes and get them delivered fresh to your door
               </p>
               <Link href="/public/order">
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-8 py-3 text-lg">
+                <Button size="lg" className="bg-white !text-blue-600 hover:bg-blue-50 hover:!text-blue-700 font-semibold px-8 py-3 text-lg border-2 border-blue-200">
                   Start Ordering
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>

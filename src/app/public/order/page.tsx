@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -121,7 +122,8 @@ function OrderPageContent() {
 
   // Calculate totals with correct currency
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const deliveryFee = orderType === 'DELIVERY' ? 50 : 0
+  // TODO: Delivery fee should come from admin settings, not be hardcoded
+  const deliveryFee = 0 // orderType === 'DELIVERY' ? 50 : 0
   const total = subtotal + deliveryFee
 
   // Helper functions for pre-order time restrictions
@@ -465,17 +467,17 @@ function OrderPageContent() {
         <div className="bg-gradient-to-r from-white via-orange-50 to-white shadow-xl border-b-2 border-orange-200 sticky top-0 z-50 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-20">
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-3 sm:space-x-6">
                 {/* Logo Section */}
-                <div className="flex items-center space-x-4">
-                  <div className="bg-gradient-to-br from-orange-500 to-red-500 p-3 rounded-2xl shadow-lg">
-                    <ChefHat className="h-10 w-10 text-white" />
+                <div className="flex items-center space-x-2 sm:space-x-4">
+                  <div className="bg-gradient-to-br from-orange-500 to-red-500 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg">
+                    <ChefHat className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-500 to-orange-700 bg-clip-text text-transparent">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-500 to-orange-700 bg-clip-text text-transparent">
                       Royal Food
                     </h1>
-                    <p className="text-sm text-gray-600 font-medium">Premium Food Delivery Platform</p>
+                    <p className="text-xs sm:text-sm text-gray-600 font-medium hidden sm:block">Premium Food Delivery Platform</p>
                   </div>
                 </div>
                 
@@ -1205,6 +1207,18 @@ function OrderPageContent() {
                 {/* Premium Place Order Button - Amazon Style */}
                 {cart.length > 0 && (
                   <div className="space-y-6">
+                    {/* Proceed to Checkout Button */}
+                    <Link href="/public/cart">
+                      <Button
+                        className="w-full h-16 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-500 hover:from-blue-600 hover:via-blue-700 hover:to-indigo-600 text-white text-xl font-bold shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-2xl"
+                        size="lg"
+                      >
+                        <ShoppingCart className="h-6 w-6 mr-3" />
+                        🛒 Proceed to Checkout • {formatCurrency(total)}
+                        <ArrowRight className="h-6 w-6 ml-3" />
+                      </Button>
+                    </Link>
+                    
                     <Button
                       onClick={handleSubmitOrder}
                       className="w-full h-20 bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 hover:from-orange-600 hover:via-orange-700 hover:to-red-600 text-white text-2xl font-bold shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-3xl"

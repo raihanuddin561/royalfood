@@ -11,7 +11,7 @@ interface CartIconProps {
   variant?: 'default' | 'floating'
 }
 
-export function CartIcon({ itemCount, className = '', onClick, href = '/public/order', variant = 'default' }: CartIconProps) {
+export function CartIcon({ itemCount, className = '', onClick, href = '/public/cart', variant = 'default' }: CartIconProps) {
   // Define styles based on variant
   const variantStyles = {
     default: "bg-white border-2 border-orange-500 text-orange-600 hover:bg-orange-50 hover:border-orange-600 hover:text-orange-700",
