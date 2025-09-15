@@ -241,14 +241,14 @@ export default function HomePage() {
                   placeholder="Search for delicious food, cuisines, restaurants..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-16 h-16 text-lg border-3 border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-2xl bg-white shadow-lg font-medium"
+                  className="pl-12 lg:pl-16 h-12 lg:h-16 text-base lg:text-lg border-2 lg:border-3 border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-xl lg:rounded-2xl bg-white shadow-lg font-medium"
                 />
               </div>
             </div>
             
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-56 h-16 border-3 border-gray-300 rounded-2xl bg-white shadow-lg text-lg font-medium">
-                <Filter className="h-5 w-5 mr-3 text-orange-500" />
+              <SelectTrigger className="w-full sm:w-56 h-12 lg:h-16 border-2 lg:border-3 border-gray-300 rounded-xl lg:rounded-2xl bg-white shadow-lg text-base lg:text-lg font-medium">
+                <Filter className="h-4 w-4 lg:h-5 lg:w-5 mr-2 lg:mr-3 text-orange-500" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -282,9 +282,9 @@ export default function HomePage() {
 
         {/* All Menu Items - Amazon Style Grid */}
         <section>
-          <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-gray-900 mb-2">🍽️ Our Complete Menu</h2>
-            <p className="text-xl text-gray-600">Discover delicious dishes crafted with premium ingredients</p>
+          <div className="text-center mb-6 lg:mb-8 px-4">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">🍽️ Our Complete Menu</h2>
+            <p className="text-lg sm:text-xl text-gray-600">Discover delicious dishes crafted with premium ingredients</p>
           </div>
           
           {filteredItems.length > 0 ? (
@@ -349,32 +349,32 @@ export default function HomePage() {
                           <span className="text-2xl font-bold text-orange-600">
                             {formatCurrency(item.price)}
                           </span>
-                          <span className="text-sm text-gray-400 line-through">
+                          <span className="text-sm text-gray-600 line-through">
                             {formatCurrency(Math.round(item.price * 1.33))}
                           </span>
                         </div>
                         
                         <div className="space-y-2">
                           {cartQuantity > 0 ? (
-                            <div className="flex items-center justify-center space-x-3 bg-orange-50 rounded-lg p-2 border border-orange-200">
+                            <div className="flex items-center justify-center space-x-4 bg-orange-100 rounded-xl p-3 border-2 border-orange-300">
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => updateQuantity(item.id, cartQuantity - 1)}
-                                className="h-8 w-8 p-0 border-orange-300 hover:bg-orange-100 text-orange-600"
+                                className="h-10 w-10 p-0 border-2 border-red-500 hover:bg-red-100 text-red-700 hover:text-red-800 hover:border-red-600 bg-white font-bold shadow-sm"
                               >
-                                <Minus className="h-4 w-4" />
+                                <Minus className="h-5 w-5" />
                               </Button>
-                              <span className="font-bold text-xl text-orange-700 min-w-[40px] text-center">
+                              <span className="font-bold text-2xl text-orange-800 min-w-[50px] text-center">
                                 {cartQuantity}
                               </span>
                               <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => updateQuantity(item.id, cartQuantity + 1)}
-                                className="h-8 w-8 p-0 border-orange-300 hover:bg-orange-100 text-orange-600"
+                                className="h-10 w-10 p-0 border-2 border-green-500 hover:bg-green-100 text-green-700 hover:text-green-800 hover:border-green-600 bg-white font-bold shadow-sm"
                               >
-                                <Plus className="h-4 w-4" />
+                                <Plus className="h-5 w-5" />
                               </Button>
                             </div>
                           ) : (
@@ -407,9 +407,9 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="text-center py-16">
-              <ChefHat className="h-24 w-24 text-gray-300 mx-auto mb-4" />
+              <ChefHat className="h-24 w-24 text-gray-600 mx-auto mb-4" />
               <h3 className="text-2xl font-medium text-gray-900 mb-2">No items found</h3>
-              <p className="text-gray-500 mb-6">Try adjusting your search or filter criteria</p>
+              <p className="text-gray-700 mb-6">Try adjusting your search or filter criteria</p>
               <Button 
                 onClick={() => { setSearchQuery(''); setSelectedCategory('all') }} 
                 className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-xl"
@@ -455,7 +455,7 @@ export default function HomePage() {
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                         />
                       ) : (
-                        <span className="text-gray-500 text-3xl">🍽️</span>
+                        <span className="text-gray-700 text-3xl">🍽️</span>
                       )}
                     </div>
                     <div className="absolute top-2 right-2 flex flex-col gap-1">
@@ -489,7 +489,7 @@ export default function HomePage() {
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`w-4 h-4 ${i < Math.floor(item.rating!) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              className={`w-4 h-4 ${i < Math.floor(item.rating!) ? 'text-yellow-400 fill-current' : 'text-gray-400'}`}
                             />
                           ))}
                         </div>
@@ -507,7 +507,7 @@ export default function HomePage() {
         <section className="mb-8">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white rounded-lg p-6 shadow-sm">
             <div className="flex items-center space-x-4 w-full md:w-auto">
-              <Filter className="w-5 h-5 text-gray-500" />
+              <Filter className="w-5 h-5 text-gray-700" />
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="All Categories" />
@@ -522,7 +522,7 @@ export default function HomePage() {
               </Select>
             </div>
             <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 lg:left-5 top-1/2 transform -translate-y-1/2 text-gray-600 w-4 h-4 lg:w-5 lg:h-5" />
               <Input
                 placeholder="Search dishes..."
                 value={searchQuery}
@@ -604,7 +604,7 @@ export default function HomePage() {
                           {[...Array(5)].map((_, i) => (
                             <Star
                               key={i}
-                              className={`w-4 h-4 ${i < Math.floor(item.rating!) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                              className={`w-4 h-4 ${i < Math.floor(item.rating!) ? 'text-yellow-400 fill-current' : 'text-gray-400'}`}
                             />
                           ))}
                         </div>
@@ -617,7 +617,7 @@ export default function HomePage() {
                       {/* If item is in cart, show quantity controls */}
                       {cart.find(cartItem => cartItem.id === item.id) ? (
                         <>
-                          <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 flex-1">
+                          <div className="flex items-center gap-3 bg-gray-100 rounded-xl p-3 flex-1">
                             <Button
                               size="sm"
                               variant="outline"
@@ -634,11 +634,11 @@ export default function HomePage() {
                                   toast.success(`${item.name} removed from cart`);
                                 }
                               }}
-                              className="h-8 w-8 p-0 hover:bg-red-50 hover:border-red-200"
+                              className="h-10 w-10 p-0 border-2 border-red-500 text-red-700 hover:bg-red-100 hover:border-red-600 hover:text-red-800 bg-white font-bold text-lg shadow-sm"
                             >
-                              <Minus className="w-4 h-4" />
+                              <Minus className="w-5 h-5" />
                             </Button>
-                            <span className="flex-1 text-center font-medium">
+                            <span className="flex-1 text-center font-bold text-lg text-gray-900 min-w-0">
                               {cart.find(cartItem => cartItem.id === item.id)?.quantity || 0} in cart
                             </span>
                             <Button
@@ -652,9 +652,9 @@ export default function HomePage() {
                                 ));
                                 toast.success(`Added another ${item.name} to cart`);
                               }}
-                              className="h-8 w-8 p-0 hover:bg-green-50 hover:border-green-200"
+                              className="h-10 w-10 p-0 border-2 border-green-500 text-green-700 hover:bg-green-100 hover:border-green-600 hover:text-green-800 bg-white font-bold text-lg shadow-sm"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-5 h-5" />
                             </Button>
                           </div>
                         </>
@@ -673,7 +673,8 @@ export default function HomePage() {
                       )}
                       <CartIcon 
                         itemCount={getCartItemCount()}
-                        className="border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold"
+                        variant="default"
+                        className="hover:scale-105 transition-transform"
                       />
                     </div>
                   </CardContent>
@@ -682,9 +683,9 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">🔍</div>
+              <div className="text-gray-600 text-6xl mb-4">🔍</div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No items found</h3>
-              <p className="text-gray-600 mb-4">Try adjusting your search or filter criteria</p>
+              <p className="text-gray-700 mb-4">Try adjusting your search or filter criteria</p>
               <Button onClick={() => { setSearchQuery(''); setSelectedCategory('all') }} variant="outline">
                 Clear Filters
               </Button>
@@ -711,19 +712,20 @@ export default function HomePage() {
         </section>
       </div>
 
-      {/* Floating Cart Icon - Only show when cart has items */}
+      {/* Floating Cart Summary - Only show when cart has items */}
       {getCartItemCount() > 0 && (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
-          {/* Cart Summary */}
-          <div className="bg-white shadow-lg rounded-lg px-4 py-2 border border-gray-200">
-            <p className="text-sm text-gray-600">
+        <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end gap-2 sm:gap-3">
+          {/* Cart Summary Card */}
+          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-orange-600 backdrop-blur-sm max-w-[200px] sm:max-w-none">
+            <p className="text-xs sm:text-sm font-medium leading-tight">
               {getCartItemCount()} items • {formatCurrency(cart.reduce((total, item) => total + (item.price * item.quantity), 0))}
             </p>
           </div>
-          {/* Cart Icon */}
+          {/* Floating Cart Icon */}
           <CartIcon 
             itemCount={getCartItemCount()}
-            className="shadow-lg bg-orange-500 text-white border-orange-500 hover:bg-orange-600 w-14 h-14 hover:scale-110 transition-transform"
+            variant="floating"
+            className="w-14 h-14 sm:w-16 sm:h-16 hover:scale-110 transition-transform shadow-2xl"
           />
         </div>
       )}

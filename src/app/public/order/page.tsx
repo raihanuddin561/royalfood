@@ -727,7 +727,7 @@ function OrderPageContent() {
                                   ))}
                                 </div>
                                 <span className="text-sm font-medium text-gray-700">(4.8)</span>
-                                <span className="text-sm text-gray-500">1,234 reviews</span>
+                                <span className="text-sm text-gray-700">1,234 reviews</span>
                               </div>
                             </div>
                             
@@ -763,7 +763,7 @@ function OrderPageContent() {
                                   <span className="text-3xl font-bold text-orange-600">
                                     {formatCurrency(item.price)}
                                   </span>
-                                  <span className="text-lg text-gray-400 line-through">
+                                  <span className="text-lg text-gray-600 line-through">
                                     {formatCurrency(Math.round(item.price * 1.33))}
                                   </span>
                                 </div>
@@ -835,7 +835,7 @@ function OrderPageContent() {
                             </div>
                             
                             {/* Trust Indicators */}
-                            <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                            <div className="flex items-center justify-between text-xs text-gray-700 pt-2 border-t border-gray-100">
                               <div className="flex items-center space-x-1">
                                 <Shield className="h-3 w-3 text-green-500" />
                                 <span>Secure Payment</span>
@@ -860,9 +860,9 @@ function OrderPageContent() {
               {/* Empty State */}
               {!loading && filteredItems.length === 0 && (
                 <div className="text-center py-16">
-                  <ChefHat className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <ChefHat className="h-16 w-16 text-gray-600 mx-auto mb-4" />
                   <h3 className="text-xl font-medium text-gray-900 mb-2">No items found</h3>
-                  <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+                  <p className="text-gray-700">Try adjusting your search or filter criteria</p>
                 </div>
               )}
 
@@ -901,38 +901,38 @@ function OrderPageContent() {
                     <div className="space-y-4 max-h-64 overflow-y-auto custom-scrollbar">
                       {cart.length === 0 ? (
                         <div className="text-center py-8">
-                          <ShoppingCart className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500 text-sm">Your cart is empty</p>
-                          <p className="text-gray-400 text-xs">Add delicious items to get started</p>
+                          <ShoppingCart className="h-12 w-12 text-gray-600 mx-auto mb-3" />
+                          <p className="text-gray-700 text-sm">Your cart is empty</p>
+                          <p className="text-gray-600 text-xs">Add delicious items to get started</p>
                         </div>
                       ) : (
                         cart.map((item) => (
                           <div key={item.menuItemId} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 rounded-lg px-2 transition-colors">
-                            <div className="flex-1 min-w-0 pr-2">
-                              <h4 className="font-medium text-sm text-gray-900 leading-tight truncate">{item.name}</h4>
-                              <p className="text-orange-600 font-semibold text-sm">
+                            <div className="flex-1 min-w-0 pr-3">
+                              <h4 className="font-medium text-sm lg:text-base text-gray-900 leading-tight truncate">{item.name}</h4>
+                              <p className="text-orange-600 font-semibold text-sm lg:text-base">
                                 {formatCurrency(item.price)} × {item.quantity}
                               </p>
                             </div>
-                            <div className="flex items-center space-x-1 lg:space-x-2 flex-shrink-0">
+                            <div className="flex items-center space-x-2 lg:space-x-3 flex-shrink-0">
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
-                                className="h-7 w-7 lg:h-6 lg:w-6 p-0 hover:bg-red-100 hover:text-red-600"
+                                className="h-9 w-9 lg:h-10 lg:w-10 p-0 text-red-700 hover:bg-red-100 hover:text-red-800 border-2 border-red-500 hover:border-red-600 bg-white font-bold shadow-sm"
                               >
-                                <Minus className="h-3 w-3" />
+                                <Minus className="h-4 w-4 lg:h-5 lg:w-5" />
                               </Button>
-                              <span className="font-medium text-sm w-8 text-center bg-orange-50 rounded px-1">
+                              <span className="font-bold text-base lg:text-lg w-10 lg:w-12 text-center bg-orange-100 rounded-lg px-2 py-1 text-gray-900 border border-orange-200">
                                 {item.quantity}
                               </span>
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
-                                className="h-6 w-6 p-0 hover:bg-green-100 hover:text-green-600"
+                                className="h-9 w-9 lg:h-10 lg:w-10 p-0 text-green-700 hover:bg-green-100 hover:text-green-800 border-2 border-green-500 hover:border-green-600 bg-white font-bold shadow-sm"
                               >
-                                <Plus className="h-3 w-3" />
+                                <Plus className="h-4 w-4 lg:h-5 lg:w-5" />
                               </Button>
                             </div>
                           </div>

@@ -70,7 +70,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <button
-              className="mr-3 block sm:hidden text-gray-500 hover:text-gray-700"
+              className="mr-3 block sm:hidden text-gray-700 hover:text-gray-900"
               onClick={toggle}
               aria-label="Open sidebar"
             >
@@ -95,7 +95,7 @@ export default function Header() {
               {/* Notifications */}
               <button 
                 type="button" 
-                className="relative -m-2.5 p-2.5 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+                className="relative -m-2.5 p-2.5 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
                 suppressHydrationWarning
               >
                 <span className="sr-only">View notifications</span>
@@ -145,7 +145,7 @@ export default function Header() {
                           <p className="text-base font-semibold text-gray-900 truncate">{session?.user?.name}</p>
                           <p className="text-sm text-gray-600 truncate">{session?.user?.email}</p>
                           {session?.user?.employee && (
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="text-xs text-gray-600 truncate">
                               {session.user.employee.position} • {session.user.employee.department}
                             </p>
                           )}
@@ -168,10 +168,10 @@ export default function Header() {
                           // Add profile navigation if needed
                         }}
                       >
-                        <User className="mr-3 h-4 w-4 text-gray-400" />
+                        <User className="mr-3 h-4 w-4 text-gray-600" />
                         <div className="flex-1 text-left">
                           <div className="font-medium">Profile</div>
-                          <div className="text-xs text-gray-500">View and edit profile</div>
+                          <div className="text-xs text-gray-600">View and edit profile</div>
                         </div>
                       </button>
                       
@@ -182,10 +182,10 @@ export default function Header() {
                           // Add settings navigation if needed
                         }}
                       >
-                        <Settings className="mr-3 h-4 w-4 text-gray-400" />
+                        <Settings className="mr-3 h-4 w-4 text-gray-600" />
                         <div className="flex-1 text-left">
                           <div className="font-medium">Settings</div>
-                          <div className="text-xs text-gray-500">Preferences and configuration</div>
+                          <div className="text-xs text-gray-600">Preferences and configuration</div>
                         </div>
                       </button>
                       
