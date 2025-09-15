@@ -79,6 +79,18 @@ const getStatusColor = (status: OrderStatus): string => {
   return statusOptions.find(option => option.value === status)?.color || 'bg-gray-500'
 }
 
+const getMealTypeDisplay = (scheduledTime?: string) => {
+  if (!scheduledTime) return 'Not specified'
+  
+  const mealTypes: { [key: string]: string } = {
+    'breakfast': '🌅 Breakfast (7:00-11:00 AM)',
+    'lunch': '☀️ Lunch (12:00-4:00 PM)', 
+    'dinner': '🌙 Dinner (6:00-11:00 PM)'
+  }
+  
+  return mealTypes[scheduledTime.toLowerCase()] || scheduledTime
+}
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
@@ -322,10 +334,20 @@ export default function AdminOrdersPage() {
                         <p>Table: {order.tableNumber}</p>
                       )}
                       {order.isPreOrder && (
-                        <p className="text-blue-600">
-                          <Calendar className="w-3 h-3 inline mr-1" />
-                          Pre-order: {order.scheduledDate && formatDate(order.scheduledDate)}
-                        </p>
+                        <div className="text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
+                          <p className="font-semibold flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            Pre-order Details
+                          </p>
+                          <p className="text-sm">
+                            📅 Date: {order.scheduledDate && formatDate(order.scheduledDate)}
+                          </p>
+                          {order.scheduledTime && (
+                            <p className="text-sm">
+                              {getMealTypeDisplay(order.scheduledTime)}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>

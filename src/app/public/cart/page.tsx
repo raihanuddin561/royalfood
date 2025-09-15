@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 
 interface CartItem {
-  id: string
+  menuItemId: string
   name: string
   price: number
   quantity: number
@@ -60,9 +60,21 @@ export default function CartPage() {
     const savedCart = localStorage.getItem('royal-food-cart')
     if (savedCart) {
       try {
-        setCart(JSON.parse(savedCart))
+        const rawCart = JSON.parse(savedCart)
+        // Handle both old format (with 'id') and new format (with 'menuItemId')
+        const normalizedCart = rawCart.map((item: any) => ({
+          menuItemId: item.menuItemId || item.id, // Support both formats
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+          category: item.category
+        }))
+        setCart(normalizedCart)
       } catch (error) {
         console.error('Error loading cart:', error)
+        // Clear corrupted data
+        localStorage.removeItem('royal-food-cart')
       }
     }
   }, [])
@@ -70,22 +82,32 @@ export default function CartPage() {
   // Save cart to localStorage
   useEffect(() => {
     if (cart.length > 0) {
-      localStorage.setItem('royal-food-cart', JSON.stringify(cart))
+      // Save in the consistent format that both pages can understand
+      const cartForStorage = cart.map(item => ({
+        id: item.menuItemId,        // For backward compatibility
+        menuItemId: item.menuItemId, // For new format
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+        category: item.category
+      }))
+      localStorage.setItem('royal-food-cart', JSON.stringify(cartForStorage))
     }
   }, [cart])
 
-  const updateQuantity = (id: string, newQuantity: number) => {
+  const updateQuantity = (menuItemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeItem(id)
+      removeItem(menuItemId)
       return
     }
     setCart(cart.map(item => 
-      item.id === id ? { ...item, quantity: newQuantity } : item
+      item.menuItemId === menuItemId ? { ...item, quantity: newQuantity } : item
     ))
   }
 
-  const removeItem = (id: string) => {
-    setCart(cart.filter(item => item.id !== id))
+  const removeItem = (menuItemId: string) => {
+    setCart(cart.filter(item => item.menuItemId !== menuItemId))
     toast.success('Item removed from cart')
   }
 
@@ -260,7 +282,47 @@ export default function CartPage() {
     setIsLoading(true)
     
     try {
-      // Prepare order data for success page
+      // Prepare order data for API submission
+      const orderPayload = {
+        orderType: orderDetails.orderType,
+        items: cart.map(item => ({
+          menuItemId: item.menuItemId, // Cart item.menuItemId corresponds to menuItem.id
+          quantity: item.quantity,
+          notes: ''
+        })),
+        
+        // Guest customer information
+        guestName: customerInfo.name,
+        guestPhone: customerInfo.phone,
+        guestEmail: customerInfo.email || undefined,
+        guestAddress: orderDetails.orderType === 'DELIVERY' ? customerInfo.address : undefined,
+        
+        // Pre-order information
+        isPreOrder: orderDetails.isPreOrder,
+        scheduledDate: orderDetails.isPreOrder ? orderDetails.preOrderDate : undefined,
+        scheduledTime: orderDetails.isPreOrder ? orderDetails.preOrderMealType?.toLowerCase() : undefined,
+        
+        // Order details
+        tableNumber: orderDetails.orderType === 'DINE_IN' ? orderDetails.tableNumber : undefined,
+        notes: customerInfo.specialInstructions || undefined
+      }
+      
+      // Submit order to API
+      const response = await fetch('/api/public/orders/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderPayload)
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to submit order')
+      }
+      
+      // Prepare order data for success page (using real order data from API)
       const orderData = {
         items: cart,
         customer: customerInfo,
@@ -268,26 +330,41 @@ export default function CartPage() {
         total: calculateTotal(),
         subtotal: calculateSubtotal(),
         deliveryFee: calculateDeliveryFee(),
-        orderNumber: `RF${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-        orderDate: new Date().toISOString()
+        orderNumber: result.order.orderNumber,
+        orderDate: new Date().toISOString(),
+        orderId: result.order.id
       }
       
       // Store order data in sessionStorage for success page
       sessionStorage.setItem('lastOrderData', JSON.stringify(orderData))
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
       // Show success message
       toast.success('Order placed successfully!')
       
-      // Clear cart after storing the data
+      // Clear cart after successful submission
       clearCart()
       
       // Redirect to success page
       window.location.href = '/public/order-success'
     } catch (error) {
-      toast.error('Failed to place order. Please try again.')
+      console.error('Order submission error:', error)
+      
+      // Provide specific error messages for different scenarios
+      let errorMessage = 'Failed to place order. Please try again.'
+      
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.'
+        } else if (error.message.includes('menu items are no longer available')) {
+          errorMessage = 'Some items in your cart are no longer available. Please refresh and update your cart.'
+        } else if (error.message.includes('before 11:59 PM') || error.message.includes('before 10:30 AM')) {
+          errorMessage = error.message // Show specific pre-order time cutoff error
+        } else {
+          errorMessage = error.message
+        }
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -368,7 +445,7 @@ export default function CartPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {cart.map((item) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 border rounded-lg">
+                    <div key={item.menuItemId} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 border rounded-lg">
                       {/* Top row on mobile: Image + Details */}
                       <div className="flex items-center gap-4 flex-1">
                         {/* Item Image */}
@@ -397,7 +474,7 @@ export default function CartPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
                             className="w-10 h-10 sm:w-12 sm:h-12 p-0 border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 font-bold text-lg"
                           >
                             <Minus className="w-4 h-4 sm:w-6 sm:h-6" />
@@ -406,7 +483,7 @@ export default function CartPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
                             className="w-10 h-10 sm:w-12 sm:h-12 p-0 border-2 border-green-300 text-green-600 hover:bg-green-50 hover:border-green-400 font-bold text-lg"
                           >
                             <Plus className="w-4 h-4 sm:w-6 sm:h-6" />
@@ -424,7 +501,7 @@ export default function CartPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeItem(item.id)}
+                          onClick={() => removeItem(item.menuItemId)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -681,7 +758,7 @@ export default function CartPage() {
 
             {/* Right Column - Order Summary */}
             <div className="lg:col-span-1">
-              <Card className="sticky top-8">
+              <Card className="lg:sticky lg:top-8">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CreditCard className="w-5 h-5" />

@@ -210,21 +210,23 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative max-w-7xl mx-auto px-4 py-20">
           <div className="text-center">
-            <h2 className="text-6xl font-bold mb-6 leading-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight">
               Delicious Food<br />
               <span className="text-yellow-300">Delivered Fast</span>
             </h2>
-            <p className="text-2xl mb-8 text-orange-100">
+            <p className="text-lg sm:text-xl lg:text-2xl mb-6 sm:mb-8 text-orange-100 px-4">
               Experience premium quality food with lightning-fast delivery
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/public/order">
-                <Button className="bg-white !text-orange-600 hover:bg-orange-50 hover:!text-orange-700 font-bold px-12 py-4 rounded-2xl shadow-xl text-xl border-2 border-orange-200">
-                  🛒 Order Now • Free Delivery
+                <Button className="bg-white !text-orange-600 hover:bg-orange-50 hover:!text-orange-700 font-bold px-4 sm:px-8 lg:px-12 py-3 sm:py-4 rounded-2xl shadow-xl text-sm sm:text-lg lg:text-xl border-2 border-orange-200">
+                  <span className="sm:hidden">🛒 Order Now</span>
+                  <span className="hidden sm:inline">🛒 Order Now • Free Delivery</span>
                 </Button>
               </Link>
-              <Button variant="outline" className="border-white !text-white hover:bg-white hover:!text-orange-600 font-bold px-12 py-4 rounded-2xl text-xl">
-                📱 Download App
+              <Button variant="outline" className="border-white !text-white hover:bg-white hover:!text-orange-600 font-bold px-4 sm:px-8 lg:px-12 py-3 sm:py-4 rounded-2xl text-sm sm:text-lg lg:text-xl">
+                <span className="sm:hidden">📱 Get App</span>
+                <span className="hidden sm:inline">📱 Download App</span>
               </Button>
             </div>
           </div>
@@ -421,15 +423,16 @@ export default function HomePage() {
         </section>
 
         {/* CTA Section */}
-        <div className="mt-16 bg-gradient-to-r from-orange-500 via-red-500 to-orange-600 rounded-3xl p-12 text-white text-center">
-          <h3 className="text-4xl font-bold mb-4">Ready to Order?</h3>
-          <p className="text-xl mb-8 text-orange-100">
+        <div className="mt-16 bg-gradient-to-r from-orange-500 via-red-500 to-orange-600 rounded-3xl p-6 sm:p-8 lg:p-12 text-white text-center">
+          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">Ready to Order?</h3>
+          <p className="text-base sm:text-lg lg:text-xl mb-6 sm:mb-8 text-orange-100 px-4">
             Experience our premium food delivery service today
           </p>
           <Link href="/public/order">
-            <Button className="bg-white !text-orange-600 hover:bg-orange-50 hover:!text-orange-700 font-bold px-12 py-4 rounded-2xl shadow-xl text-xl border-2 border-orange-200">
-              🛒 Start Ordering Now
-              <ArrowRight className="h-6 w-6 ml-3" />
+            <Button className="bg-white !text-orange-600 hover:bg-orange-50 hover:!text-orange-700 font-bold px-4 sm:px-8 lg:px-12 py-3 sm:py-4 rounded-2xl shadow-xl text-sm sm:text-lg lg:text-xl border-2 border-orange-200">
+              <span className="sm:hidden">🛒 Order Now</span>
+              <span className="hidden sm:inline">🛒 Start Ordering Now</span>
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 ml-2 sm:ml-3" />
             </Button>
           </Link>
         </div>

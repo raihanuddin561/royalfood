@@ -76,6 +76,42 @@ export async function POST(request: NextRequest) {
           error: 'Scheduled date must be in the future'
         }, { status: 400 })
       }
+      
+      // Validate meal-specific time cutoffs
+      if (validatedData.scheduledTime) {
+        const now = new Date()
+        const selectedDate = new Date(validatedData.scheduledDate)
+        selectedDate.setHours(0, 0, 0, 0)
+        
+        const currentHour = now.getHours()
+        const currentMinute = now.getMinutes()
+        const currentTime = currentHour * 60 + currentMinute
+        
+        if (validatedData.scheduledTime === 'breakfast') {
+          // For breakfast: must order before 11:59 PM the day before the selected date
+          const dayBeforeSelected = new Date(selectedDate)
+          dayBeforeSelected.setDate(dayBeforeSelected.getDate() - 1)
+          dayBeforeSelected.setHours(23, 59, 0, 0)
+          
+          if (now > dayBeforeSelected) {
+            return NextResponse.json({
+              success: false,
+              error: `Breakfast orders must be placed before 11:59 PM the day before selected date. Current time: ${now.toLocaleString()}`
+            }, { status: 400 })
+          }
+        } else if (validatedData.scheduledTime === 'lunch' || validatedData.scheduledTime === 'dinner') {
+          // For lunch/dinner: must order before 10:30 AM on the selected date
+          const cutoffDateTime = new Date(selectedDate)
+          cutoffDateTime.setHours(10, 30, 0, 0)
+          
+          if (now > cutoffDateTime) {
+            return NextResponse.json({
+              success: false,
+              error: `${validatedData.scheduledTime.charAt(0).toUpperCase() + validatedData.scheduledTime.slice(1)} orders must be placed before 10:30 AM on selected date. Current time: ${now.toLocaleString()}`
+            }, { status: 400 })
+          }
+        }
+      }
     }
     
     // Get menu items to calculate pricing
@@ -96,9 +132,14 @@ export async function POST(request: NextRequest) {
     })
     
     if (menuItems.length !== menuItemIds.length) {
+      // Find which items are unavailable
+      const availableItemIds = menuItems.map(item => item.id)
+      const unavailableItemIds = menuItemIds.filter(id => !availableItemIds.includes(id))
+      
       return NextResponse.json({
         success: false,
-        error: 'Some menu items are not available'
+        error: 'Some menu items in your cart are no longer available. Please refresh the menu and try again.',
+        unavailableItems: unavailableItemIds
       }, { status: 400 })
     }
     
