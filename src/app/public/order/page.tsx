@@ -188,8 +188,9 @@ function OrderPageContent() {
     fetchMenuItems()
   }, [])
 
-  // Handle reorder items from session storage
+  // Load cart from localStorage and handle reorder items
   useEffect(() => {
+    // First, check for reorder items from session storage (higher priority)
     const reorderItems = sessionStorage.getItem('reorderItems')
     if (reorderItems) {
       try {
@@ -197,12 +198,56 @@ function OrderPageContent() {
         setCart(items)
         sessionStorage.removeItem('reorderItems')
         toast.success('Previous order items loaded for reordering!')
+        return // Exit early if reorder items exist
       } catch (error) {
         console.error('Error loading reorder items:', error)
         sessionStorage.removeItem('reorderItems')
       }
     }
+
+    // If no reorder items, load cart from localStorage
+    const savedCart = localStorage.getItem('royal-food-cart')
+    if (savedCart) {
+      try {
+        const homePageCart = JSON.parse(savedCart)
+        if (homePageCart.length > 0) {
+          // Convert home page cart format to order page cart format
+          const orderPageCart = homePageCart.map((item: any) => ({
+            menuItemId: item.id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            image: item.image
+          }))
+          setCart(orderPageCart)
+          console.log('Cart loaded from localStorage:', orderPageCart)
+          toast.success(`Cart loaded with ${homePageCart.length} items!`)
+        }
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error)
+        // Clear corrupted data
+        localStorage.removeItem('royal-food-cart')
+      }
+    }
   }, [])
+
+  // Save cart to localStorage whenever cart changes
+  useEffect(() => {
+    if (cart.length > 0) {
+      // Convert order page cart format back to home page format for consistency
+      const homePageCart = cart.map(item => ({
+        id: item.menuItemId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image
+      }))
+      localStorage.setItem('royal-food-cart', JSON.stringify(homePageCart))
+    } else {
+      // Clear localStorage if cart is empty
+      localStorage.removeItem('royal-food-cart')
+    }
+  }, [cart])
 
   // Handle item parameter from URL (when clicking "Order Now" from home page)
   useEffect(() => {

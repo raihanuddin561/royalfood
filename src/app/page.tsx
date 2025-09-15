@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { ShoppingCart, Clock, Star, Filter, Search, ArrowRight, Plus, Minus, Heart, Shield, Award, Zap, Truck, ChefHat } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CartIcon } from '@/components/ui/cart-icon'
+import { toast } from 'sonner'
 import Link from 'next/link'
 import Image from 'next/image'
 import { formatCurrency } from '@/lib/currency-config'
@@ -32,6 +34,28 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [cart, setCart] = useState<(MenuItem & {quantity: number})[]>([])
+
+  // Load cart from localStorage on component mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('royal-food-cart')
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart))
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error)
+      }
+    }
+  }, [])
+
+  // Save cart to localStorage whenever cart changes
+  useEffect(() => {
+    localStorage.setItem('royal-food-cart', JSON.stringify(cart))
+  }, [cart])
+
+  // Helper function to get total cart items
+  const getCartItemCount = () => {
+    return cart.reduce((total, item) => total + item.quantity, 0)
+  }
 
   // Load menu items
   useEffect(() => {
@@ -588,37 +612,69 @@ export default function HomePage() {
                       </div>
                     )}
                     
-                    {/* Prominent Order Buttons */}
+                    {/* Order Controls */}
                     <div className="flex gap-2 mt-4">
-                      <Button 
-                        className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg"
-                        disabled={!item.isAvailable}
-                        onClick={() => {
-                          const cartItem = cart.find(cartItem => cartItem.id === item.id);
-                          if (cartItem) {
-                            setCart(cart.map(cartItem => 
-                              cartItem.id === item.id 
-                                ? {...cartItem, quantity: cartItem.quantity + 1}
-                                : cartItem
-                            ));
-                          } else {
+                      {/* If item is in cart, show quantity controls */}
+                      {cart.find(cartItem => cartItem.id === item.id) ? (
+                        <>
+                          <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-2 flex-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const cartItem = cart.find(cartItem => cartItem.id === item.id);
+                                if (cartItem && cartItem.quantity > 1) {
+                                  setCart(cart.map(cartItem =>
+                                    cartItem.id === item.id 
+                                      ? {...cartItem, quantity: cartItem.quantity - 1}
+                                      : cartItem
+                                  ));
+                                } else {
+                                  setCart(cart.filter(cartItem => cartItem.id !== item.id));
+                                  toast.success(`${item.name} removed from cart`);
+                                }
+                              }}
+                              className="h-8 w-8 p-0 hover:bg-red-50 hover:border-red-200"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </Button>
+                            <span className="flex-1 text-center font-medium">
+                              {cart.find(cartItem => cartItem.id === item.id)?.quantity || 0} in cart
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setCart(cart.map(cartItem =>
+                                  cartItem.id === item.id 
+                                    ? {...cartItem, quantity: cartItem.quantity + 1}
+                                    : cartItem
+                                ));
+                                toast.success(`Added another ${item.name} to cart`);
+                              }}
+                              className="h-8 w-8 p-0 hover:bg-green-50 hover:border-green-200"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <Button
+                          className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg"
+                          disabled={!item.isAvailable}
+                          onClick={() => {
                             setCart([...cart, {...item, quantity: 1}]);
-                          }
-                        }}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Add to Cart
-                      </Button>
-                      <Button 
-                        variant="outline"
+                            toast.success(`${item.name} added to cart!`);
+                          }}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Add to Cart
+                        </Button>
+                      )}
+                      <CartIcon 
+                        itemCount={getCartItemCount()}
                         className="border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold"
-                        disabled={!item.isAvailable}
-                        asChild
-                      >
-                        <Link href="/public/order">
-                          Order Now
-                        </Link>
-                      </Button>
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -654,6 +710,23 @@ export default function HomePage() {
           </Card>
         </section>
       </div>
+
+      {/* Floating Cart Icon - Only show when cart has items */}
+      {getCartItemCount() > 0 && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2">
+          {/* Cart Summary */}
+          <div className="bg-white shadow-lg rounded-lg px-4 py-2 border border-gray-200">
+            <p className="text-sm text-gray-600">
+              {getCartItemCount()} items • {formatCurrency(cart.reduce((total, item) => total + (item.price * item.quantity), 0))}
+            </p>
+          </div>
+          {/* Cart Icon */}
+          <CartIcon 
+            itemCount={getCartItemCount()}
+            className="shadow-lg bg-orange-500 text-white border-orange-500 hover:bg-orange-600 w-14 h-14 hover:scale-110 transition-transform"
+          />
+        </div>
+      )}
     </div>
   )
 }
