@@ -165,14 +165,21 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Create order tracking entry
-    await prisma.orderTracking.create({
-      data: {
-        orderId: validatedData.orderId,
-        status: validatedData.status,
-        message: validatedData.notes
-      }
-    })
+    // Create order tracking entry (with error handling for missing columns)
+    try {
+      await prisma.orderTracking.create({
+        data: {
+          orderId: validatedData.orderId,
+          status: validatedData.status,
+          message: validatedData.notes || null,
+          timestamp: new Date(),
+          updatedBy: session?.user?.id || null
+        }
+      })
+    } catch (trackingError) {
+      console.warn('Could not create order tracking entry:', trackingError)
+      // Continue without order tracking if table has schema issues
+    }
 
     // Create sales record when order is served or completed
     if (validatedData.status === 'SERVED' || validatedData.status === 'COMPLETED') {

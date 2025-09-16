@@ -12,12 +12,15 @@ export async function POST(request: NextRequest) {
     const fixes = []
     const errors = []
 
-    // Fix 1: Add message column to order_tracking
+    // Fix 1: Add missing columns to order_tracking
     try {
       await prisma.$executeRaw`ALTER TABLE "order_tracking" ADD COLUMN IF NOT EXISTS "message" TEXT`
-      fixes.push('Added message column to order_tracking')
+      await prisma.$executeRaw`ALTER TABLE "order_tracking" ADD COLUMN IF NOT EXISTS "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP`
+      await prisma.$executeRaw`ALTER TABLE "order_tracking" ADD COLUMN IF NOT EXISTS "updatedBy" TEXT`
+      await prisma.$executeRaw`ALTER TABLE "order_tracking" ADD COLUMN IF NOT EXISTS "estimatedTime" INTEGER`
+      fixes.push('Added missing columns to order_tracking (message, timestamp, updatedBy, estimatedTime)')
     } catch (error) {
-      errors.push(`order_tracking.message: ${error instanceof Error ? error.message : 'Unknown'}`)
+      errors.push(`order_tracking columns: ${error instanceof Error ? error.message : 'Unknown'}`)
     }
 
     // Fix 2: Add finalAmount column to orders

@@ -104,14 +104,19 @@ export async function POST(request: NextRequest) {
           }
         })
 
-        // Create order tracking entry
-        await prisma.orderTracking.create({
-          data: {
-            orderId: order.id,
-            status: 'SERVED',
-            message: 'Auto-completed by system based on time elapsed'
-          }
-        })
+        // Create order tracking entry (with error handling)
+        try {
+          await prisma.orderTracking.create({
+            data: {
+              orderId: order.id,
+              status: 'SERVED',
+              message: 'Auto-completed by system based on time elapsed',
+              timestamp: new Date()
+            }
+          })
+        } catch (trackingError) {
+          console.warn('Could not create order tracking entry:', trackingError)
+        }
 
         processedCount++
 
