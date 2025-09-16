@@ -14,7 +14,9 @@
     "vercel-build": "prisma generate && next build",
     "test:unit": "tsx ./scripts/test-financial-breakdown.js",
     "db:migrate:run": "node ./scripts/run_migrations.js",
-    "db:migrate:safe": "node ./scripts/apply_migrations_safe.js"
+    "db:migrate:safe": "node ./scripts/apply_migrations_safe.js",
+    "db:migrate:production": "node ./scripts/apply-production-migrations.js",
+    "fix:order-migration": "curl -X POST https://royal-food-rs.vercel.app/api/fix-order-migration"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",
