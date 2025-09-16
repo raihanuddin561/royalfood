@@ -32,13 +32,14 @@ export async function GET() {
             zipCode: true,
             landmark: true
           }
-        },
-        orderTracking: {
-          orderBy: {
-            timestamp: 'desc'
-          },
-          take: 5 // Limit to last 5 status changes
         }
+        // Remove orderTracking include to avoid missing column errors
+        // orderTracking: {
+        //   orderBy: {
+        //     timestamp: 'desc'
+        //   },
+        //   take: 5
+        // }
       }
     })
 
@@ -74,13 +75,14 @@ export async function GET() {
           menuItem: item.menuItem
         })),
         customer: order.customer,
-        deliveryAddress: order.deliveryAddress,
-        orderTracking: order.orderTracking.map((tracking: any) => ({
-          id: tracking.id,
-          status: tracking.status,
-          message: tracking.message,
-          timestamp: tracking.timestamp.toISOString()
-        }))
+        deliveryAddress: order.deliveryAddress
+        // Remove orderTracking to avoid missing column errors
+        // orderTracking: order.orderTracking.map((tracking: any) => ({
+        //   id: tracking.id,
+        //   status: tracking.status,
+        //   message: tracking.message || null,
+        //   timestamp: tracking.timestamp.toISOString()
+        // }))
       }))
     })
 
