@@ -284,6 +284,7 @@ export async function POST(request: NextRequest) {
         taxAmount,
         deliveryFee,
         totalAmount,
+        finalAmount: totalAmount, // Required by database schema
         
         // Order details
         notes: validatedData.notes || null,
