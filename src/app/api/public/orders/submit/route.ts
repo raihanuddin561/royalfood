@@ -37,17 +37,29 @@ const submitOrderSchema = z.object({
 
 // POST /api/public/orders/submit - Submit customer order
 export async function POST(request: NextRequest) {
+  const debugInfo: any = {
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    step: 'initialization'
+  }
+  
   try {
+    debugInfo.step = 'parsing-request-body'
     const body = await request.json()
     
+    debugInfo.step = 'validating-input-data'
     // Validate input data
     const validatedData = submitOrderSchema.parse(body)
+    debugInfo.orderType = validatedData.orderType
+    debugInfo.itemCount = validatedData.items.length
     
+    debugInfo.step = 'validating-customer-info'
     // Validate customer information
     if (!validatedData.customerId && (!validatedData.guestName || !validatedData.guestPhone)) {
       return NextResponse.json({
         success: false,
-        error: 'Customer name and phone are required'
+        error: 'Customer name and phone are required',
+        debug: debugInfo
       }, { status: 400 })
     }
     
@@ -56,7 +68,8 @@ export async function POST(request: NextRequest) {
         !validatedData.guestAddress) {
       return NextResponse.json({
         success: false,
-        error: 'Delivery address is required for delivery orders'
+        error: 'Delivery address is required for delivery orders',
+        debug: debugInfo
       }, { status: 400 })
     }
     
@@ -114,8 +127,21 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    debugInfo.step = 'fetching-menu-items'
     // Get menu items to calculate pricing
     const menuItemIds = validatedData.items.map(item => item.menuItemId)
+    debugInfo.menuItemIds = menuItemIds
+    
+    // First check if deliveryCharge column exists
+    let hasDeliveryChargeColumn = true
+    try {
+      await prisma.$queryRaw`SELECT deliveryCharge FROM menu_items LIMIT 1`
+    } catch (columnError) {
+      hasDeliveryChargeColumn = false
+      debugInfo.deliveryChargeColumnMissing = true
+      console.warn('deliveryCharge column not found in menu_items table:', columnError)
+    }
+    
     const menuItems = await prisma.menuItem.findMany({
       where: {
         id: { in: menuItemIds },
@@ -127,9 +153,12 @@ export async function POST(request: NextRequest) {
         name: true,
         price: true,
         prepTime: true,
-        deliveryCharge: true
+        ...(hasDeliveryChargeColumn ? { deliveryCharge: true } : {})
       }
     })
+    
+    debugInfo.foundMenuItems = menuItems.length
+    debugInfo.hasDeliveryChargeColumn = hasDeliveryChargeColumn
     
     if (menuItems.length !== menuItemIds.length) {
       // Find which items are unavailable
@@ -139,10 +168,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: false,
         error: 'Some menu items in your cart are no longer available. Please refresh the menu and try again.',
-        unavailableItems: unavailableItemIds
+        unavailableItems: unavailableItemIds,
+        debug: debugInfo
       }, { status: 400 })
     }
     
+    debugInfo.step = 'calculating-order-totals'
     // Calculate order totals
     let subtotal = 0
     const orderItems = validatedData.items.map(item => {
@@ -159,22 +190,30 @@ export async function POST(request: NextRequest) {
       }
     })
     
+    debugInfo.subtotal = subtotal
+    debugInfo.step = 'fetching-tax-settings'
+    
     // Calculate fees and taxes
     // Get tax settings from database
     const taxSettings = await prisma.taxSettings.findFirst()
     const taxRate = taxSettings?.isTaxActive ? (taxSettings.taxRate || 0) : 0
     const taxAmount = subtotal * taxRate
     
+    debugInfo.step = 'fetching-delivery-settings'
     // Get global delivery settings
     const deliverySettings = await prisma.deliverySettings.findFirst()
     
+    debugInfo.step = 'calculating-delivery-fee'
     // Calculate delivery fee based on items' delivery charges and global settings
     let deliveryFee = 0
     if (validatedData.orderType === 'DELIVERY') {
-      // Calculate item-specific delivery charges (only if they are set above 0)
+      // Calculate item-specific delivery charges (only if column exists and they are set above 0)
       const itemDeliveryCharges = validatedData.items.reduce((total, item) => {
         const menuItem = menuItems.find(mi => mi.id === item.menuItemId)!
-        const itemDeliveryCharge = menuItem.deliveryCharge || 0
+        // Safely access deliveryCharge only if column exists
+        const itemDeliveryCharge = hasDeliveryChargeColumn && menuItem.deliveryCharge 
+          ? menuItem.deliveryCharge 
+          : 0
         // Only add delivery charge if it's explicitly set (greater than 0)
         return total + (itemDeliveryCharge > 0 ? itemDeliveryCharge * item.quantity : 0)
       }, 0)
@@ -274,6 +313,10 @@ export async function POST(request: NextRequest) {
       }
     })
     
+    debugInfo.step = 'order-creation-success'
+    debugInfo.orderId = newOrder.id
+    debugInfo.orderNumber = newOrder.orderNumber
+    
     // Generate guest access token for success page (for guest orders)
     let guestToken = null
     if (!validatedData.customerId) {
@@ -305,23 +348,69 @@ export async function POST(request: NextRequest) {
           price: item.unitPrice,
           total: item.totalPrice
         })) || []
-      }
+      },
+      debug: debugInfo
     }, { status: 201 })
     
   } catch (error) {
     console.error('Order submission error:', error)
+    console.error('Debug info at time of error:', debugInfo)
+    
+    // Enhanced error logging for production debugging
+    const errorDetails: any = {
+      timestamp: new Date().toISOString(),
+      step: debugInfo.step || 'unknown',
+      environment: process.env.NODE_ENV,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      debug: debugInfo
+    }
     
     if (error instanceof z.ZodError) {
       return NextResponse.json({
         success: false,
         error: 'Validation failed',
-        details: error.issues
+        details: error.issues,
+        debug: errorDetails
       }, { status: 400 })
+    }
+    
+    // Check for specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('deliveryCharge')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Database schema error: deliveryCharge column missing. Please apply pending migrations.',
+          details: 'The deliveryCharge column has not been added to the menu_items table in production.',
+          migrationNeeded: '20250914120621_add_delivery_charge_to_menu_items',
+          debug: errorDetails
+        }, { status: 500 })
+      }
+      
+      if (error.message.includes('relation') || error.message.includes('table')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Database schema error: Missing tables or relations.',
+          details: 'Database schema is not up to date with the application code.',
+          debug: errorDetails
+        }, { status: 500 })
+      }
+      
+      if (error.message.includes('connection') || error.message.includes('connect')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Database connection error',
+          details: 'Unable to connect to the database. Please check DATABASE_URL_NEW.',
+          debug: errorDetails
+        }, { status: 500 })
+      }
     }
     
     return NextResponse.json({
       success: false,
-      error: 'Failed to submit order'
+      error: 'Failed to submit order',
+      details: error instanceof Error ? error.message : 'Unknown server error',
+      debug: errorDetails
     }, { status: 500 })
   }
 }
