@@ -257,61 +257,99 @@ export async function POST(request: NextRequest) {
     // This allows public orders to work without requiring admin setup
     
     debugInfo.step = 'creating-order'
-    const newOrder = await prisma.order.create({
-      data: {
-        orderNumber,
-        customerId: validatedData.customerId || null,
-        deliveryAddressId: validatedData.deliveryAddressId || null,
-        ...(systemUser?.id ? { userId: systemUser.id } : {}),
-        
-        // Guest customer data
-        guestName: validatedData.guestName || null,
-        guestPhone: validatedData.guestPhone || null,
-        guestEmail: validatedData.guestEmail || null,
-        guestAddress: validatedData.guestAddress || null,
-        
-        orderType: validatedData.orderType,
-        status: 'PENDING',
-        tableNumber: validatedData.tableNumber || null,
-        
-        // Pre-order fields
-        isPreOrder: validatedData.isPreOrder || false,
-        scheduledDate: validatedData.scheduledDate ? new Date(validatedData.scheduledDate) : null,
-        scheduledTime: validatedData.scheduledTime || null,
-        
-        // Pricing
-        subtotal,
-        taxAmount,
-        deliveryFee,
-        totalAmount,
-        finalAmount: totalAmount, // Required by database schema
-        
-        // Order details
-        notes: validatedData.notes || null,
-        kitchenNotes: validatedData.kitchenNotes || null,
-        estimatedTime: Math.max(totalPrepTime, 15), // Minimum 15 minutes
-        paymentMethod: 'CASH',
-        paymentStatus: 'PENDING',
-        
-        // Create order items
-        orderItems: {
-          create: orderItems
-        }
-      },
-      include: {
-        orderItems: {
-          include: {
-            menuItem: {
-              select: {
-                name: true,
-                image: true
+    
+    // First create the order data object
+    const orderData = {
+      orderNumber,
+      customerId: validatedData.customerId || null,
+      deliveryAddressId: validatedData.deliveryAddressId || null,
+      userId: systemUser?.id || null,
+      
+      // Guest customer data
+      guestName: validatedData.guestName || null,
+      guestPhone: validatedData.guestPhone || null,
+      guestEmail: validatedData.guestEmail || null,
+      guestAddress: validatedData.guestAddress || null,
+      
+      orderType: validatedData.orderType,
+      status: 'PENDING' as const,
+      tableNumber: validatedData.tableNumber || null,
+      
+      // Pre-order fields
+      isPreOrder: validatedData.isPreOrder || false,
+      scheduledDate: validatedData.scheduledDate ? new Date(validatedData.scheduledDate) : null,
+      scheduledTime: validatedData.scheduledTime || null,
+      
+      // Pricing
+      subtotal,
+      taxAmount,
+      deliveryFee,
+      totalAmount,
+      
+      // Order details
+      notes: validatedData.notes || null,
+      kitchenNotes: validatedData.kitchenNotes || null,
+      estimatedTime: Math.max(totalPrepTime, 15), // Minimum 15 minutes
+      paymentMethod: 'CASH' as const,
+      paymentStatus: 'PENDING' as const,
+      
+      // Create order items
+      orderItems: {
+        create: orderItems
+      }
+    }
+    
+    // Create order with proper error handling for finalAmount
+    let newOrder
+    try {
+      newOrder = await prisma.order.create({
+        data: {
+          ...orderData,
+          finalAmount: totalAmount // Try with finalAmount first
+        },
+        include: {
+          orderItems: {
+            include: {
+              menuItem: {
+                select: {
+                  name: true,
+                  image: true
+                }
               }
             }
           }
         }
-        // Remove customer and deliveryAddress includes to avoid missing table errors
+      })
+    } catch (finalAmountError) {
+      // If finalAmount field doesn't exist in schema, create without it
+      console.warn('Creating order without finalAmount field:', finalAmountError)
+      newOrder = await prisma.order.create({
+        data: orderData,
+        include: {
+          orderItems: {
+            include: {
+              menuItem: {
+                select: {
+                  name: true,
+                  image: true
+                }
+              }
+            }
+          }
+        }
+      })
+      
+      // Then update with finalAmount using raw SQL
+      try {
+        await prisma.$executeRaw`
+          UPDATE "orders" 
+          SET "finalAmount" = ${totalAmount}
+          WHERE "id" = ${newOrder.id}
+        `
+      } catch (updateError) {
+        console.warn('Could not update finalAmount via raw SQL:', updateError)
       }
-    })
+    }
     
     debugInfo.step = 'order-creation-success'
     debugInfo.orderId = newOrder.id
