@@ -187,14 +187,27 @@ export async function POST(request: NextRequest) {
     debugInfo.step = 'fetching-tax-settings'
     
     // Calculate fees and taxes
-    // Get tax settings from database
-    const taxSettings = await prisma.taxSettings.findFirst()
+    // Get tax settings from database (handle missing table gracefully)
+    let taxSettings = null
+    try {
+      taxSettings = await prisma.taxSettings.findFirst()
+    } catch (taxError) {
+      console.warn('tax_settings table not found, using default tax rate of 0:', taxError)
+      debugInfo.taxSettingsTableMissing = true
+    }
+    
     const taxRate = taxSettings?.isTaxActive ? (taxSettings.taxRate || 0) : 0
     const taxAmount = subtotal * taxRate
     
     debugInfo.step = 'fetching-delivery-settings'
-    // Get global delivery settings
-    const deliverySettings = await prisma.deliverySettings.findFirst()
+    // Get global delivery settings (handle missing table gracefully)
+    let deliverySettings = null
+    try {
+      deliverySettings = await prisma.deliverySettings.findFirst()
+    } catch (deliveryError) {
+      console.warn('delivery_settings table not found, using default delivery settings:', deliveryError)
+      debugInfo.deliverySettingsTableMissing = true
+    }
     
     debugInfo.step = 'calculating-delivery-fee'
     // Calculate delivery fee based on items' delivery charges and global settings
@@ -230,13 +243,20 @@ export async function POST(request: NextRequest) {
     }, 0)
     
     // Create order (try to find a system user, but proceed even if none exists)
-    const systemUser = await prisma.user.findFirst({
-      where: { role: 'ADMIN' }
-    })
+    let systemUser = null
+    try {
+      systemUser = await prisma.user.findFirst({
+        where: { role: 'ADMIN' }
+      })
+    } catch (userError) {
+      console.warn('User table not accessible, proceeding without admin user:', userError)
+      debugInfo.userTableMissing = true
+    }
     
     // Note: We'll proceed with order creation even if no admin user exists
     // This allows public orders to work without requiring admin setup
     
+    debugInfo.step = 'creating-order'
     const newOrder = await prisma.order.create({
       data: {
         orderNumber,
@@ -287,15 +307,8 @@ export async function POST(request: NextRequest) {
               }
             }
           }
-        },
-        customer: {
-          select: {
-            name: true,
-            email: true,
-            phone: true
-          }
-        },
-        deliveryAddress: true
+        }
+        // Remove customer and deliveryAddress includes to avoid missing table errors
       }
     })
     
