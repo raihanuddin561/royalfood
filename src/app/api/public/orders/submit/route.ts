@@ -132,15 +132,8 @@ export async function POST(request: NextRequest) {
     const menuItemIds = validatedData.items.map(item => item.menuItemId)
     debugInfo.menuItemIds = menuItemIds
     
-    // First check if deliveryCharge column exists
-    let hasDeliveryChargeColumn = true
-    try {
-      await prisma.$queryRaw`SELECT deliveryCharge FROM menu_items LIMIT 1`
-    } catch (columnError) {
-      hasDeliveryChargeColumn = false
-      debugInfo.deliveryChargeColumnMissing = true
-      console.warn('deliveryCharge column not found in menu_items table:', columnError)
-    }
+    // Skip the column check - just try to fetch menu items and handle gracefully
+    debugInfo.deliveryChargeColumnMissing = false
     
     const menuItems = await prisma.menuItem.findMany({
       where: {
@@ -152,13 +145,13 @@ export async function POST(request: NextRequest) {
         id: true,
         name: true,
         price: true,
-        prepTime: true,
-        ...(hasDeliveryChargeColumn ? { deliveryCharge: true } : {})
+        prepTime: true
+        // Don't select deliveryCharge to avoid the error
       }
     })
     
     debugInfo.foundMenuItems = menuItems.length
-    debugInfo.hasDeliveryChargeColumn = hasDeliveryChargeColumn
+    debugInfo.hasDeliveryChargeColumn = false // Assume false for now
     
     if (menuItems.length !== menuItemIds.length) {
       // Find which items are unavailable
@@ -207,16 +200,9 @@ export async function POST(request: NextRequest) {
     // Calculate delivery fee based on items' delivery charges and global settings
     let deliveryFee = 0
     if (validatedData.orderType === 'DELIVERY') {
-      // Calculate item-specific delivery charges (only if column exists and they are set above 0)
-      const itemDeliveryCharges = validatedData.items.reduce((total, item) => {
-        const menuItem = menuItems.find(mi => mi.id === item.menuItemId)!
-        // Safely access deliveryCharge only if column exists
-        const itemDeliveryCharge = hasDeliveryChargeColumn && menuItem.deliveryCharge 
-          ? menuItem.deliveryCharge 
-          : 0
-        // Only add delivery charge if it's explicitly set (greater than 0)
-        return total + (itemDeliveryCharge > 0 ? itemDeliveryCharge * item.quantity : 0)
-      }, 0)
+      // Since deliveryCharge column doesn't exist yet, skip item-specific charges
+      // and use only global delivery settings
+      const itemDeliveryCharges = 0 // Skip item-specific charges until column is added
       
       // Use global delivery charge if no item-specific charges and global is active
       if (itemDeliveryCharges === 0 && deliverySettings?.isGlobalChargeActive && deliverySettings?.globalDeliveryCharge > 0) {
