@@ -189,12 +189,12 @@ export default function Sidebar() {
   <aside className={`fixed top-0 left-0 h-screen w-64 max-w-[100vw] box-border bg-gradient-to-b from-gray-900 to-gray-800 flex-shrink-0 border-r border-gray-700 shadow-xl transition-transform duration-300 z-60 transform ${open ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0 sm:static sm:block overflow-y-auto`}> 
         {/* Header */}
         <div className="flex h-16 shrink-0 items-center px-4 border-b border-gray-700 bg-gray-800">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <Link href="/" className="flex items-center gap-2 group cursor-pointer">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center group-hover:shadow-lg transition-shadow duration-300">
               <ChefHat className="h-5 w-5 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-white">Royal Food</h1>
-          </div>
+            <h1 className="text-xl font-bold text-white group-hover:text-blue-200 transition-colors duration-300">Royal Food</h1>
+          </Link>
         </div>
 
   {/* User Info */}

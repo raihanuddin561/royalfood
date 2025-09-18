@@ -469,17 +469,17 @@ function OrderPageContent() {
             <div className="flex items-center justify-between h-20">
               <div className="flex items-center space-x-3 sm:space-x-6">
                 {/* Logo Section */}
-                <div className="flex items-center space-x-2 sm:space-x-4">
-                  <div className="bg-gradient-to-br from-orange-500 to-red-500 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg">
+                <Link href="/" className="flex items-center space-x-2 sm:space-x-4 group cursor-pointer">
+                  <div className="bg-gradient-to-br from-orange-500 to-red-500 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                     <ChefHat className="h-6 w-6 sm:h-8 sm:w-8 lg:h-10 lg:w-10 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-500 to-orange-700 bg-clip-text text-transparent">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-orange-600 via-red-500 to-orange-700 bg-clip-text text-transparent group-hover:from-orange-700 group-hover:via-red-600 group-hover:to-orange-800 transition-all duration-300">
                       Royal Food
                     </h1>
-                    <p className="text-xs sm:text-sm text-gray-600 font-medium hidden sm:block">Premium Food Delivery Platform</p>
+                    <p className="text-xs sm:text-sm text-gray-600 font-medium hidden sm:block group-hover:text-gray-800 transition-colors duration-300">Premium Food Delivery Platform</p>
                   </div>
-                </div>
+                </Link>
                 
                 {/* Trust Badges */}
                 <div className="hidden lg:flex items-center space-x-4">
@@ -512,7 +512,7 @@ function OrderPageContent() {
                   <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg">
                     <Phone className="h-5 w-5 text-green-600" />
                     <div>
-                      <span className="font-bold text-green-700">+880-1234-5678</span>
+                      <a href="tel:01703548115" className="font-bold text-green-700 hover:text-green-800 transition-colors">01703548115</a>
                       <p className="text-xs text-gray-600">24/7 Support</p>
                     </div>
                   </div>
@@ -827,10 +827,10 @@ function OrderPageContent() {
                                   <Button
                                     onClick={() => addToCart(item)}
                                     variant="outline"
-                                    className="w-full h-12 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold rounded-lg"
+                                    className="w-full h-10 sm:h-12 md:h-12 lg:h-12 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold rounded-lg text-sm sm:text-base md:text-base lg:text-base px-3 sm:px-4 md:px-4 lg:px-4"
                                   >
-                                    <Zap className="h-4 w-4 mr-2" />
-                                    Order Now
+                                    <Zap className="h-3 w-3 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-4 lg:w-4 mr-1 sm:mr-2 md:mr-2 lg:mr-2" />
+                                    <span className="text-xs sm:text-sm md:text-base lg:text-base">Order Now</span>
                                   </Button>
                                 </div>
                               )}
@@ -1206,27 +1206,36 @@ function OrderPageContent() {
 
                 {/* Premium Place Order Button - Amazon Style */}
                 {cart.length > 0 && (
-                  <div className="space-y-6">
+                  <div className="space-y-4 lg:space-y-6">
                     {/* Proceed to Checkout Button */}
                     <Link href="/public/cart">
                       <Button
-                        className="w-full h-16 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-500 hover:from-blue-600 hover:via-blue-700 hover:to-indigo-600 text-white text-xl font-bold shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-2xl"
+                        className="w-full h-10 sm:h-12 md:h-14 lg:h-16 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:from-emerald-700 hover:via-green-700 hover:to-teal-700 text-white text-xs sm:text-sm md:text-base lg:text-lg font-semibold shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-lg sm:rounded-xl relative overflow-hidden group px-3 sm:px-4 md:px-6 lg:px-8"
                         size="lg"
                       >
-                        <ShoppingCart className="h-6 w-6 mr-3" />
-                        🛒 Proceed to Checkout • {formatCurrency(total)}
-                        <ArrowRight className="h-6 w-6 ml-3" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative flex items-center justify-center space-x-1.5 sm:space-x-2 md:space-x-2.5">
+                          <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-5 lg:w-5" />
+                          <span className="font-semibold tracking-wide text-xs sm:text-sm md:text-base">🛒 PROCEED • {formatCurrency(total)}</span>
+                          <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-5 lg:w-5" />
+                        </div>
                       </Button>
                     </Link>
                     
+                    {/* Add gap between buttons on mobile */}
+                    <div className="py-2 lg:py-0" />
+                    
                     <Button
                       onClick={handleSubmitOrder}
-                      className="w-full h-20 bg-gradient-to-r from-orange-500 via-orange-600 to-red-500 hover:from-orange-600 hover:via-orange-700 hover:to-red-600 text-white text-2xl font-bold shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-3xl"
+                      className="w-full h-10 sm:h-12 md:h-14 lg:h-16 bg-gradient-to-r from-orange-600 via-orange-500 to-red-500 hover:from-orange-700 hover:via-orange-600 hover:to-red-600 text-white text-xs sm:text-sm md:text-base lg:text-lg font-semibold shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-lg sm:rounded-xl relative overflow-hidden group px-3 sm:px-4 md:px-6 lg:px-8"
                       size="lg"
                     >
-                      <ShoppingCart className="h-8 w-8 mr-4" />
-                      🚀 Place Order Now • {formatCurrency(total)}
-                      <ArrowRight className="h-8 w-8 ml-4" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="relative flex items-center justify-center space-x-1.5 sm:space-x-2 md:space-x-2.5">
+                        <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-5 lg:w-5" />
+                        <span className="font-semibold tracking-wide text-xs sm:text-sm md:text-base">🚀 ORDER NOW • {formatCurrency(total)}</span>
+                        <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-5 lg:w-5" />
+                      </div>
                     </Button>
                     
                     {/* Amazon-style guarantees */}

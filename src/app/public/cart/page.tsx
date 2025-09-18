@@ -378,9 +378,10 @@ export default function CartPage() {
             {/* Header */}
             <div className="flex items-center gap-4 mb-8">
               <Link href="/public/order">
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Continue Shopping
+                <Button variant="outline" size="sm" className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap overflow-hidden">
+                  <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="hidden sm:inline">Continue Shopping</span>
+                  <span className="sm:hidden">Shop</span>
                 </Button>
               </Link>
               <h1 className="text-3xl font-bold text-gray-900">Your Cart</h1>
@@ -412,9 +413,10 @@ export default function CartPage() {
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
             <Link href="/public/order">
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Continue Shopping
+              <Button variant="outline" size="sm" className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap overflow-hidden">
+                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Continue Shopping</span>
+                <span className="sm:hidden">Shop</span>
               </Button>
             </Link>
             <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
@@ -791,18 +793,19 @@ export default function CartPage() {
                     <Button 
                       onClick={handleSubmitOrder}
                       disabled={isLoading}
-                      className="w-full bg-orange-500 hover:bg-orange-600 text-white h-12 text-lg font-semibold"
+                      className="w-full bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:from-emerald-700 hover:via-green-700 hover:to-teal-700 disabled:from-gray-400 disabled:via-gray-500 disabled:to-gray-600 text-white h-10 sm:h-12 md:h-14 lg:h-16 text-xs sm:text-sm md:text-base lg:text-lg font-semibold px-4 sm:px-6 md:px-8 lg:px-10 rounded-lg sm:rounded-xl shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] disabled:scale-100 transition-all duration-300 border-0 relative overflow-hidden group tracking-wide"
                     >
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       {isLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                          Processing...
-                        </>
+                        <div className="relative flex items-center justify-center space-x-2 sm:space-x-2.5">
+                          <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 lg:h-6 lg:w-6 border-2 sm:border-3 border-white border-t-transparent"></div>
+                          <span className="font-semibold text-xs sm:text-sm md:text-base">PROCESSING...</span>
+                        </div>
                       ) : (
-                        <>
-                          <CheckCircle className="w-5 h-5 mr-2" />
-                          Place Order
-                        </>
+                        <div className="relative flex items-center justify-center space-x-2 sm:space-x-2.5">
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 lg:w-6 lg:h-6" />
+                          <span className="font-semibold text-xs sm:text-sm md:text-base">🚀 PLACE ORDER NOW</span>
+                        </div>
                       )}
                     </Button>
                     

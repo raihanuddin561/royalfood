@@ -464,14 +464,14 @@ export default function NewOrderPage() {
             <button
               onClick={submitOrder}
               disabled={orderItems.length === 0}
-              className={`w-full mt-6 px-4 py-3 rounded-md font-medium flex items-center justify-center ${
+              className={`w-full mt-6 px-4 sm:px-6 md:px-8 py-3 sm:py-4 md:py-4 rounded-md font-medium flex items-center justify-center text-sm sm:text-base md:text-lg ${
                 orderItems.length === 0
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-green-600 text-white hover:bg-green-700'
               }`}
             >
-              <CreditCard className="h-5 w-5 mr-2" />
-              Place Order • {formatCurrency(total)}
+              <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 mr-2 sm:mr-2 md:mr-3" />
+              <span className="text-sm sm:text-base md:text-lg">Place Order • {formatCurrency(total)}</span>
             </button>
           </div>
         </div>
