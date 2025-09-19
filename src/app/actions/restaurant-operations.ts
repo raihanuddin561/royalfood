@@ -674,3 +674,190 @@ export async function getMenuItemProfitability() {
     return { success: false, error: 'Failed to get menu item profitability' }
   }
 }
+
+// Update Stock Usage Record
+export async function updateStockUsage(usageId: string, data: {
+  quantity?: number
+  usageType?: 'RECIPE' | 'WASTAGE' | 'OTHER'
+  menuItemId?: string
+  description?: string
+  usageDate?: Date | string
+}) {
+  try {
+    // Input validation
+    if (!usageId || typeof usageId !== 'string') {
+      return { success: false, message: 'Invalid usage ID provided' }
+    }
+
+    // Get existing usage record with item details
+    const existingUsage = await prisma.stockUsage.findUnique({
+      where: { id: usageId },
+      include: {
+        item: {
+          select: {
+            id: true,
+            name: true,
+            currentStock: true,
+            costPrice: true,
+            unit: true
+          }
+        }
+      }
+    })
+
+    if (!existingUsage) {
+      return { success: false, message: 'Stock usage record not found' }
+    }
+
+    // Start transaction to handle stock adjustments
+    await prisma.$transaction(async (tx) => {
+      const oldQuantity = existingUsage.quantity
+      const newQuantity = data.quantity !== undefined ? data.quantity : oldQuantity
+      const quantityDifference = newQuantity - oldQuantity
+
+      // Update the usage record
+      const updatedUsage = await tx.stockUsage.update({
+        where: { id: usageId },
+        data: {
+          quantity: newQuantity,
+          totalCost: newQuantity * existingUsage.item.costPrice,
+          reason: data.usageType || existingUsage.reason,
+          menuItemId: data.menuItemId !== undefined ? data.menuItemId : existingUsage.menuItemId,
+          description: data.description !== undefined ? data.description : existingUsage.description,
+          usageDate: data.usageDate ? new Date(data.usageDate) : existingUsage.usageDate,
+          updatedAt: new Date()
+        }
+      })
+
+      // Adjust item stock if quantity changed
+      if (quantityDifference !== 0) {
+        const newItemStock = existingUsage.item.currentStock - quantityDifference
+        
+        if (newItemStock < 0) {
+          throw new Error(`Insufficient stock. This would result in negative stock (${newItemStock.toFixed(2)} ${existingUsage.item.unit})`)
+        }
+
+        await tx.item.update({
+          where: { id: existingUsage.itemId },
+          data: {
+            currentStock: newItemStock,
+            updatedAt: new Date()
+          }
+        })
+
+        // Create inventory log for the adjustment
+        const adminUser = await tx.user.findFirst({
+          where: { role: 'ADMIN' }
+        })
+
+        if (adminUser) {
+          await tx.inventoryLog.create({
+            data: {
+              itemId: existingUsage.itemId,
+              userId: adminUser.id,
+              type: 'ADJUSTMENT',
+              quantity: -quantityDifference, // Negative because we're adjusting usage
+              previousStock: existingUsage.item.currentStock,
+              newStock: newItemStock,
+              reason: `Stock usage adjustment: ${oldQuantity} ${existingUsage.item.unit} → ${newQuantity} ${existingUsage.item.unit}`
+            }
+          })
+        }
+      }
+    })
+
+    return { 
+      success: true, 
+      message: `Stock usage updated successfully. ${data.quantity !== undefined ? `Quantity: ${existingUsage.quantity} → ${data.quantity} ${existingUsage.item.unit}` : ''}`.trim()
+    }
+  } catch (error: any) {
+    console.error('Error updating stock usage:', error)
+    
+    if (error.message?.includes('Insufficient stock')) {
+      return { success: false, message: error.message }
+    }
+    
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to update stock usage'
+    }
+  }
+}
+
+// Delete Stock Usage Record
+export async function deleteStockUsage(usageId: string) {
+  try {
+    // Input validation
+    if (!usageId || typeof usageId !== 'string') {
+      return { success: false, message: 'Invalid usage ID provided' }
+    }
+
+    // Get existing usage record with item details
+    const existingUsage = await prisma.stockUsage.findUnique({
+      where: { id: usageId },
+      include: {
+        item: {
+          select: {
+            id: true,
+            name: true,
+            currentStock: true,
+            unit: true
+          }
+        }
+      }
+    })
+
+    if (!existingUsage) {
+      return { success: false, message: 'Stock usage record not found' }
+    }
+
+    // Start transaction to reverse stock adjustment and delete record
+    await prisma.$transaction(async (tx) => {
+      // Restore the stock by adding back the used quantity
+      const restoredStock = existingUsage.item.currentStock + existingUsage.quantity
+
+      await tx.item.update({
+        where: { id: existingUsage.itemId },
+        data: {
+          currentStock: restoredStock,
+          updatedAt: new Date()
+        }
+      })
+
+      // Create inventory log for the restoration
+      const adminUser = await tx.user.findFirst({
+        where: { role: 'ADMIN' }
+      })
+
+      if (adminUser) {
+        await tx.inventoryLog.create({
+          data: {
+            itemId: existingUsage.itemId,
+            userId: adminUser.id,
+            type: 'ADJUSTMENT',
+            quantity: existingUsage.quantity, // Positive because we're restoring stock
+            previousStock: existingUsage.item.currentStock,
+            newStock: restoredStock,
+            reason: `Stock usage deleted - restored ${existingUsage.quantity} ${existingUsage.item.unit}`
+          }
+        })
+      }
+
+      // Delete the usage record
+      await tx.stockUsage.delete({
+        where: { id: usageId }
+      })
+    })
+
+    return { 
+      success: true, 
+      message: `Stock usage deleted and ${existingUsage.quantity} ${existingUsage.item.unit} restored to ${existingUsage.item.name}`
+    }
+  } catch (error: any) {
+    console.error('Error deleting stock usage:', error)
+    return { 
+      success: false, 
+      message: error instanceof Error ? error.message : 'Failed to delete stock usage'
+    }
+  }
+}

@@ -822,6 +822,118 @@ export async function deleteInventoryItem(itemId: string) {
   }
 }
 
+export async function hardDeleteInventoryItem(itemId: string) {
+  try {
+    // Input validation
+    if (!itemId || typeof itemId !== 'string') {
+      return { 
+        success: false, 
+        message: 'Invalid item ID provided. Please refresh the page and try again.' 
+      }
+    }
+
+    if (itemId.length < 1) {
+      return { 
+        success: false, 
+        message: 'Item ID cannot be empty.' 
+      }
+    }
+
+    // Check if item exists
+    const existingItem = await prisma.item.findUnique({
+      where: { id: itemId },
+      select: {
+        id: true,
+        name: true,
+        sku: true
+      }
+    })
+
+    if (!existingItem) {
+      return { 
+        success: false, 
+        message: 'This item no longer exists. It may have already been deleted by another user.' 
+      }
+    }
+
+    // Start a transaction to handle cascading deletes
+    await prisma.$transaction(async (tx) => {
+      // Delete all related records in the correct order to avoid foreign key constraints
+      
+      // 1. Delete inventory logs
+      await tx.inventoryLog.deleteMany({
+        where: { itemId: itemId }
+      })
+
+      // 2. Delete stock usage records
+      await tx.stockUsage.deleteMany({
+        where: { itemId: itemId }
+      })
+
+      // 3. Delete purchase items
+      await tx.purchaseItem.deleteMany({
+        where: { itemId: itemId }
+      })
+
+      // 4. Delete order items
+      await tx.orderItem.deleteMany({
+        where: { itemId: itemId }
+      })
+
+      // 5. Delete recipe items
+      await tx.recipeItem.deleteMany({
+        where: { itemId: itemId }
+      })
+
+      // 6. Finally delete the item itself
+      await tx.item.delete({
+        where: { id: itemId }
+      })
+    })
+
+    // Revalidate pages
+    revalidatePath('/inventory')
+
+    return { 
+      success: true, 
+      message: `Item "${existingItem.name}" and all its related records have been permanently deleted from the database.`,
+      isHardDeleted: true
+    }
+  } catch (error: any) {
+    console.error('Hard delete inventory item error:', error)
+    
+    // Handle specific database errors
+    if (error?.code === 'P2025') {
+      return { 
+        success: false, 
+        message: 'Item not found. It may have already been deleted.' 
+      }
+    } else if (error?.code === 'P2003') {
+      return { 
+        success: false, 
+        message: 'Cannot delete item due to database constraints. Some related records may need to be removed first.' 
+      }
+    } else if (error?.code === 'P1001') {
+      return { 
+        success: false, 
+        message: 'Database connection failed. Please try again in a moment.' 
+      }
+    } else if (error?.message?.includes('timeout')) {
+      return { 
+        success: false, 
+        message: 'Operation timed out. Please check your connection and try again.' 
+      }
+    } else {
+      return { 
+        success: false, 
+        message: error instanceof Error ? 
+          `Hard delete failed: ${error.message}` : 
+          'An unexpected error occurred during permanent deletion. Please try again or contact support if the problem persists.'
+      }
+    }
+  }
+}
+
 export async function toggleItemStatus(itemId: string) {
   try {
     // Input validation

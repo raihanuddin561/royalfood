@@ -262,7 +262,7 @@ export default async function InventoryPage() {
   } = await getInventoryData()
   
   // Type assertion with any to bypass TypeScript issues
-  const typedItems = items as any[]
+  const typedItems = (items as any[]).filter(item => item.isActive)
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

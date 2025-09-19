@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowLeft, Activity, Package, AlertTriangle, DollarSign } from 'lucide-react'
 import StandaloneStockUsageForm from '../components/StandaloneStockUsageForm'
+import UsageHistoryWithActions from '../components/UsageHistoryWithActions'
 import { prisma } from '@/lib/prisma'
 export const dynamic = 'force-dynamic'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
@@ -368,111 +369,21 @@ export default async function StockUsagePage() {
           </div>
 
           {/* Today's Usage History */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div className="px-6 py-4 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900">Today's Usage</h2>
-              <p className="text-sm text-gray-600">Recent stock consumption records</p>
-            </div>
-            <div className="p-6">
-              {todayUsage.length === 0 ? (
-                <div className="text-center py-8">
-                  <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No stock usage recorded today</p>
-                  <p className="text-sm text-gray-400">Start recording your daily expenses</p>
-                </div>
-              ) : (
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {todayUsage.map((usage) => (
-                    <div key={usage.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          usage.reason === 'PRODUCTION' 
-                            ? 'bg-green-100' 
-                            : usage.reason === 'WASTE' 
-                              ? 'bg-red-100' 
-                              : 'bg-orange-100'
-                        }`}>
-                          {usage.reason === 'PRODUCTION' ? (
-                            <Package className="w-4 h-4 text-green-600" />
-                          ) : usage.reason === 'WASTE' ? (
-                            <AlertTriangle className="w-4 h-4 text-red-600" />
-                          ) : (
-                            <Activity className="w-4 h-4 text-orange-600" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{usage.item.name}</p>
-                          <p className="text-xs text-gray-500">
-                            Quantity: {usage.quantity} {usage.item.unit} • {usage.reason}
-                            {usage.menuItem && ` • ${usage.menuItem.name}`}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">{formatCurrency(usage.totalCost)}</p>
-                        <p className="text-xs text-gray-500">{formatDateTime(usage.createdAt)}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <UsageHistoryWithActions
+            usages={todayUsage as any}
+            title="Today's Usage"
+            description="Recent stock consumption records"
+            showActions={true}
+          />
         </div>
 
         {/* Recent Usage History */}
-        <div className="mt-8 bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Stock Usage History</h2>
-            <p className="text-sm text-gray-600">Complete log of recent stock consumption</p>
-          </div>
-          <div className="p-6">
-            {recentUsage.length === 0 ? (
-              <div className="text-center py-8">
-                <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No usage history available</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentUsage.map((usage) => (
-                  <div key={usage.id} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        usage.reason === 'PRODUCTION' 
-                          ? 'bg-green-100' 
-                          : usage.reason === 'WASTE' 
-                            ? 'bg-red-100' 
-                            : 'bg-orange-100'
-                      }`}>
-                        {usage.reason === 'PRODUCTION' ? (
-                          <Package className="w-4 h-4 text-green-600" />
-                        ) : usage.reason === 'WASTE' ? (
-                          <AlertTriangle className="w-4 h-4 text-red-600" />
-                        ) : (
-                          <Activity className="w-4 h-4 text-orange-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{usage.item.name}</p>
-                        <p className="text-xs text-gray-500">
-                          Quantity: {usage.quantity} {usage.item.unit} • {usage.reason}
-                          {usage.menuItem && ` • ${usage.menuItem.name}`}
-                        </p>
-                        {(usage as any).description && (
-                          <p className="text-xs text-gray-400 mt-1">{(usage as any).description}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{formatCurrency(usage.totalCost)}</p>
-                      <p className="text-xs text-gray-500">{formatDateTime(usage.createdAt)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <UsageHistoryWithActions
+          usages={recentUsage as any}
+          title="Recent Stock Usage History"
+          description="Complete log of recent stock consumption"
+          showActions={true}
+        />
       </div>
     </div>
   )
