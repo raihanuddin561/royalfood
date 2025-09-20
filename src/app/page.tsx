@@ -79,8 +79,8 @@ export default function HomePage() {
     if (isCartLoaded && cart.length > 0) {
       // Save in STANDARDIZED format with both id and menuItemId
       const standardizedCart = cart.map(item => ({
-        id: item.menuItemId || item.id,
-        menuItemId: item.menuItemId || item.id,
+        id: item.id,
+        menuItemId: item.id, // Use item.id for menuItemId field
         name: item.name,
         price: item.price,
         quantity: item.quantity,

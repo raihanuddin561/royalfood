@@ -523,7 +523,7 @@ export default function CartPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <User className="w-5 h-5" />
+                    <Phone className="w-5 h-5" />
                     Customer Information
                   </CardTitle>
                 </CardHeader>
