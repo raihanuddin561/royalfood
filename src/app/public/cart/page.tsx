@@ -343,11 +343,12 @@ export default function CartPage() {
       // Store order data in sessionStorage for success page
       sessionStorage.setItem('lastOrderData', JSON.stringify(orderData))
       
+      // Clear cart silently (no toast message for order submission)
+      setCart([])
+      localStorage.removeItem('royal-food-cart')
+      
       // Show success message
       toast.success('Order placed successfully!')
-      
-      // Clear cart after successful submission
-      clearCart()
       
       // Redirect to success page
       window.location.href = '/public/order-success'
@@ -738,7 +739,7 @@ export default function CartPage() {
                       ) : (
                         <div className="relative flex items-center justify-center space-x-2 sm:space-x-2.5">
                           <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                          <span className="font-semibold text-xs sm:text-sm md:text-base">🚀 PLACE ORDER NOW</span>
+                          <span className="font-semibold text-xs sm:text-sm md:text-base">CONFIRM ORDER</span>
                         </div>
                       )}
                     </Button>

@@ -388,8 +388,8 @@ export default function OrderSuccessPage() {
               <div>
                 <h3 className="font-semibold text-lg text-gray-900 mb-4">Order Items</h3>
                 <div className="space-y-3">
-                  {orderData.items.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  {orderData.items.map((item, index) => (
+                    <div key={`order-item-${item.id || index}`} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                       <div>
                         <h4 className="font-medium text-gray-900">{item.name}</h4>
                         {item.category && (
