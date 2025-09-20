@@ -15,9 +15,9 @@ async function generateComprehensiveData() {
     // await prisma.expenses.deleteMany({})
 
     // 2. Ensure we have required entities
-    let category = await prisma.categories.findFirst()
+    let category = await prisma.category.findFirst()
     if (!category) {
-      category = await prisma.categories.create({
+      category = await prisma.category.create({
         data: {
           name: 'Food Items',
           description: 'Main food category'
@@ -25,9 +25,9 @@ async function generateComprehensiveData() {
       })
     }
 
-    let supplier = await prisma.suppliers.findFirst()
+    let supplier = await prisma.supplier.findFirst()
     if (!supplier) {
-      supplier = await prisma.suppliers.create({
+      supplier = await prisma.supplier.create({
         data: {
           name: 'Metro Suppliers Ltd',
           contactPerson: 'Ahmed Hassan',
@@ -38,9 +38,9 @@ async function generateComprehensiveData() {
       })
     }
 
-    let item = await prisma.items.findFirst()
+    let item = await prisma.item.findFirst()
     if (!item) {
-      item = await prisma.items.create({
+      item = await prisma.item.create({
         data: {
           name: 'Chicken Breast (Fresh)',
           categoryId: category.id,
@@ -54,9 +54,9 @@ async function generateComprehensiveData() {
       })
     }
 
-    let expenseCategory = await prisma.expenseCategories.findFirst()
+    let expenseCategory = await prisma.expenseCategory.findFirst()
     if (!expenseCategory) {
-      expenseCategory = await prisma.expenseCategories.create({
+      expenseCategory = await prisma.expenseCategory.create({
         data: {
           name: 'Electricity Bill',
           type: 'UTILITIES',
@@ -85,7 +85,7 @@ async function generateComprehensiveData() {
         const saleDate = new Date(date)
         saleDate.setHours(12 + j, 30, 0, 0) // Different times
 
-        await prisma.sales.create({
+        await prisma.sale.create({
           data: {
             customerName: `Customer ${i}-${j}`,
             customerPhone: `01700${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}`,
@@ -104,7 +104,7 @@ async function generateComprehensiveData() {
       if (i % 2 === 0) {
         const purchaseAmount = 12000 + Math.floor(Math.random() * 8000) // BDT 12000-20000
         
-        await prisma.purchases.create({
+        await prisma.purchase.create({
           data: {
             supplierId: supplier.id,
             totalAmount: purchaseAmount,
@@ -142,12 +142,12 @@ async function generateComprehensiveData() {
         const expense = dailyExpenses[k]
         
         // Find or create expense category
-        let expCat = await prisma.expenseCategories.findFirst({
+        let expCat = await prisma.expenseCategory.findFirst({
           where: { type: expense.type }
         })
         
         if (!expCat) {
-          expCat = await prisma.expenseCategories.create({
+          expCat = await prisma.expenseCategory.create({
             data: {
               name: expense.name,
               type: expense.type,
@@ -156,7 +156,7 @@ async function generateComprehensiveData() {
           })
         }
 
-        await prisma.expenses.create({
+        await prisma.expense.create({
           data: {
             description: `${expense.name} - ${date.toDateString()}`,
             amount: expense.amount,
@@ -171,7 +171,7 @@ async function generateComprehensiveData() {
     console.log('✅ Sample data generation completed!')
     console.log('📊 Data summary:')
     
-    const salesCount = await prisma.sales.count()
+    const salesCount = await prisma.sale.count()
     const purchasesCount = await prisma.purchases.count()
     const stockUsageCount = await prisma.stockUsage.count()
     const expensesCount = await prisma.expenses.count()

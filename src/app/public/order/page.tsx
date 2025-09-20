@@ -39,6 +39,7 @@ import Image from 'next/image'
 import { toast } from 'sonner'
 import CustomerAuthModal from '@/components/auth/CustomerAuthModal'
 import { formatCurrency } from '@/lib/currency-config'
+import { CartIcon } from '@/components/ui/cart-icon'
 import Head from 'next/head'
 
 type MenuItem = {
@@ -192,11 +193,14 @@ function OrderPageContent() {
 
   // Load cart from localStorage and handle reorder items
   useEffect(() => {
+    console.log('📦 Cart loading effect triggered')
+    
     // First, check for reorder items from session storage (higher priority)
     const reorderItems = sessionStorage.getItem('reorderItems')
     if (reorderItems) {
       try {
         const items = JSON.parse(reorderItems)
+        console.log('📦 Loading reorder items:', items)
         setCart(items)
         sessionStorage.removeItem('reorderItems')
         toast.success('Previous order items loaded for reordering!')
@@ -209,27 +213,36 @@ function OrderPageContent() {
 
     // If no reorder items, load cart from localStorage
     const savedCart = localStorage.getItem('royal-food-cart')
+    console.log('📦 Raw localStorage cart:', savedCart)
+    
     if (savedCart) {
       try {
-        const homePageCart = JSON.parse(savedCart)
-        if (homePageCart.length > 0) {
-          // Convert home page cart format to order page cart format
-          const orderPageCart = homePageCart.map((item: any) => ({
-            menuItemId: item.id,
+        const storedCart = JSON.parse(savedCart)
+        console.log('📦 Parsed stored cart:', storedCart)
+        
+        if (storedCart.length > 0) {
+          // Handle STANDARDIZED format - works with both id and menuItemId
+          const orderPageCart = storedCart.map((item: any) => ({
+            menuItemId: item.menuItemId || item.id, // Support both formats
             name: item.name,
             price: item.price,
             quantity: item.quantity,
             image: item.image
           }))
+          console.log('📦 Converted order page cart:', orderPageCart)
           setCart(orderPageCart)
-          console.log('Cart loaded from localStorage:', orderPageCart)
-          toast.success(`Cart loaded with ${homePageCart.length} items!`)
+          console.log('📦 Cart loaded from localStorage:', orderPageCart)
+          toast.success(`Cart loaded with ${storedCart.length} items!`)
+        } else {
+          console.log('📦 Empty cart in localStorage')
         }
       } catch (error) {
         console.error('Error loading cart from localStorage:', error)
         // Clear corrupted data
         localStorage.removeItem('royal-food-cart')
       }
+    } else {
+      console.log('📦 No cart found in localStorage')
     }
   }, [])
 
@@ -273,7 +286,29 @@ function OrderPageContent() {
         }
       }
     }
-  }, [searchParams, menuItems, cart])
+  }, [searchParams, menuItems]) // Removed cart from dependencies to prevent reload loops
+
+  // Save cart to localStorage whenever cart changes
+  useEffect(() => {
+    // Always save cart state, even if empty
+    if (cart.length > 0) {
+      // Save in STANDARDIZED format that ALL pages can understand
+      const standardizedCart = cart.map(item => ({
+        id: item.menuItemId,           // Primary ID field (for home page compatibility)
+        menuItemId: item.menuItemId,   // Backup ID field (for order page compatibility)
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image || null
+      }))
+      localStorage.setItem('royal-food-cart', JSON.stringify(standardizedCart))
+      console.log('💾 Cart saved to localStorage (standardized format):', standardizedCart)
+    } else {
+      // If cart is empty, remove from localStorage
+      localStorage.removeItem('royal-food-cart')
+      console.log('💾 Empty cart - removed from localStorage')
+    }
+  }, [cart])
 
   const fetchMenuItems = async () => {
     try {
@@ -341,9 +376,21 @@ function OrderPageContent() {
   }
 
   const removeFromCart = (menuItemId: string) => {
-    setCart(prev => prev.filter(item => item.menuItemId !== menuItemId))
-    const itemName = cart.find(item => item.menuItemId === menuItemId)?.name
-    toast.success(`${itemName} removed from cart`)
+    console.log('🗑️ removeFromCart called for:', menuItemId)
+    console.log('🗑️ Current cart before removal:', cart)
+    
+    const itemToRemove = cart.find(item => item.menuItemId === menuItemId)
+    if (itemToRemove) {
+      console.log('🗑️ Item found, removing:', itemToRemove)
+      setCart(prev => {
+        const newCart = prev.filter(item => item.menuItemId !== menuItemId)
+        console.log('🗑️ New cart after removal:', newCart)
+        return newCart
+      })
+      toast.success(`${itemToRemove.name} removed from cart`)
+    } else {
+      console.log('🗑️ Item not found in cart:', menuItemId)
+    }
   }
 
   const getCartQuantity = (menuItemId: string) => {
@@ -1204,27 +1251,9 @@ function OrderPageContent() {
                   </Card>
                 )}
 
-                {/* Premium Place Order Button - Amazon Style */}
+                {/* Confirm Order Button */}
                 {cart.length > 0 && (
                   <div className="space-y-4 lg:space-y-6">
-                    {/* Proceed to Checkout Button */}
-                    <Link href="/public/cart">
-                      <Button
-                        className="w-full h-10 sm:h-12 md:h-14 lg:h-16 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 hover:from-emerald-700 hover:via-green-700 hover:to-teal-700 text-white text-xs sm:text-sm md:text-base lg:text-lg font-semibold shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-lg sm:rounded-xl relative overflow-hidden group px-3 sm:px-4 md:px-6 lg:px-8"
-                        size="lg"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="relative flex items-center justify-center space-x-1.5 sm:space-x-2 md:space-x-2.5">
-                          <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-5 lg:w-5" />
-                          <span className="font-semibold tracking-wide text-xs sm:text-sm md:text-base">🛒 PROCEED • {formatCurrency(total)}</span>
-                          <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-5 lg:w-5" />
-                        </div>
-                      </Button>
-                    </Link>
-                    
-                    {/* Add gap between buttons on mobile */}
-                    <div className="py-2 lg:py-0" />
-                    
                     <Button
                       onClick={handleSubmitOrder}
                       className="w-full h-10 sm:h-12 md:h-14 lg:h-16 bg-gradient-to-r from-orange-600 via-orange-500 to-red-500 hover:from-orange-700 hover:via-orange-600 hover:to-red-600 text-white text-xs sm:text-sm md:text-base lg:text-lg font-semibold shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] transition-all duration-300 border-0 rounded-lg sm:rounded-xl relative overflow-hidden group px-3 sm:px-4 md:px-6 lg:px-8"
@@ -1233,7 +1262,7 @@ function OrderPageContent() {
                       <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative flex items-center justify-center space-x-1.5 sm:space-x-2 md:space-x-2.5">
                         <ShoppingCart className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-5 lg:w-5" />
-                        <span className="font-semibold tracking-wide text-xs sm:text-sm md:text-base">🚀 ORDER NOW • {formatCurrency(total)}</span>
+                        <span className="font-semibold tracking-wide text-xs sm:text-sm md:text-base">🚀 CONFIRM ORDER • {formatCurrency(total)}</span>
                         <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-5 lg:w-5" />
                       </div>
                     </Button>
@@ -1289,6 +1318,25 @@ function OrderPageContent() {
           onClose={() => setShowAuthModal(false)}
           onSuccess={handleCustomerAuth}
         />
+
+        {/* Floating Cart Summary - Only show when cart has items */}
+        {cart.length > 0 && (
+          <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center space-x-2 sm:space-x-3">
+            {/* Cart Summary */}
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-orange-600 backdrop-blur-sm max-w-[200px] sm:max-w-none">
+              <p className="text-xs sm:text-sm font-medium leading-tight">
+                {cart.reduce((sum, item) => sum + item.quantity, 0)} items • {formatCurrency(total)}
+              </p>
+            </div>
+            {/* Floating Cart Icon */}
+            <CartIcon 
+              itemCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+              variant="floating"
+              className="w-14 h-14 sm:w-16 sm:h-16 hover:scale-110 transition-transform shadow-2xl"
+              href="/public/cart"
+            />
+          </div>
+        )}
       </div>
     </>
   )

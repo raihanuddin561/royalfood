@@ -70,6 +70,50 @@ export default function PublicMenuPage() {
     loadMenu()
   }, [])
 
+  // Load cart from localStorage on component mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('royal-food-cart')
+    if (savedCart) {
+      try {
+        const storedCart = JSON.parse(savedCart)
+        console.log('🍽️ Public menu loading from localStorage:', storedCart)
+        
+        // Handle STANDARDIZED format - works with both id and menuItemId
+        const normalizedCart = storedCart.map((item: any) => ({
+          menuItemId: item.menuItemId || item.id, // Support both formats
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          notes: item.notes
+        }))
+        setCart(normalizedCart)
+        console.log('🍽️ Public menu loaded and normalized:', normalizedCart)
+      } catch (error) {
+        console.error('Error loading cart:', error)
+        localStorage.removeItem('royal-food-cart')
+      }
+    }
+  }, [])
+
+  // Save cart to localStorage whenever cart changes
+  useEffect(() => {
+    if (cart.length > 0) {
+      // Save in STANDARDIZED format with both id and menuItemId
+      const standardizedCart = cart.map(item => ({
+        id: item.menuItemId,
+        menuItemId: item.menuItemId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      }))
+      localStorage.setItem('royal-food-cart', JSON.stringify(standardizedCart))
+      console.log('🍽️ Public menu saving to localStorage (standardized):', standardizedCart)
+    } else {
+      localStorage.removeItem('royal-food-cart')
+      console.log('🍽️ Public menu cleared empty cart from localStorage')
+    }
+  }, [cart])
+
   const loadMenu = async () => {
     try {
       const response = await fetch('/api/public/menu')

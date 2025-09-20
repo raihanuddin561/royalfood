@@ -60,17 +60,19 @@ export default function CartPage() {
     const savedCart = localStorage.getItem('royal-food-cart')
     if (savedCart) {
       try {
-        const rawCart = JSON.parse(savedCart)
-        // Handle both old format (with 'id') and new format (with 'menuItemId')
-        const normalizedCart = rawCart.map((item: any) => ({
+        const storedCart = JSON.parse(savedCart)
+        console.log('📦 Cart page loading from localStorage:', storedCart)
+        
+        // Handle STANDARDIZED format - works with both id and menuItemId
+        const normalizedCart = storedCart.map((item: any) => ({
           menuItemId: item.menuItemId || item.id, // Support both formats
           name: item.name,
           price: item.price,
           quantity: item.quantity,
-          image: item.image,
-          category: item.category
+          image: item.image
         }))
         setCart(normalizedCart)
+        console.log('📦 Cart page loaded and normalized:', normalizedCart)
       } catch (error) {
         console.error('Error loading cart:', error)
         // Clear corrupted data
@@ -82,17 +84,21 @@ export default function CartPage() {
   // Save cart to localStorage
   useEffect(() => {
     if (cart.length > 0) {
-      // Save in the consistent format that both pages can understand
-      const cartForStorage = cart.map(item => ({
-        id: item.menuItemId,        // For backward compatibility
-        menuItemId: item.menuItemId, // For new format
+      // Save in STANDARDIZED format that ALL pages can understand
+      const standardizedCart = cart.map(item => ({
+        id: item.menuItemId,           // Primary ID field (for home page compatibility)
+        menuItemId: item.menuItemId,   // Backup ID field (for order page compatibility)
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        image: item.image,
-        category: item.category
+        image: item.image || null
       }))
-      localStorage.setItem('royal-food-cart', JSON.stringify(cartForStorage))
+      localStorage.setItem('royal-food-cart', JSON.stringify(standardizedCart))
+      console.log('💾 Cart page saved to localStorage (standardized):', standardizedCart)
+    } else {
+      // If cart is empty, remove from localStorage
+      localStorage.removeItem('royal-food-cart')
+      console.log('💾 Cart page: Empty cart - removed from localStorage')
     }
   }, [cart])
 

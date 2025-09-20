@@ -67,5 +67,5 @@ export default async function RootLayout({
         </ErrorBoundary>
       </body>
     </html>
-  );
+  )
 }

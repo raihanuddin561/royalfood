@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
       newOrder = await prisma.order.create({
         data: {
           ...orderData,
-          finalAmount: totalAmount // Try with finalAmount first
+          finalAmount: totalAmount
         },
         include: {
           orderItems: {
@@ -320,35 +320,16 @@ export async function POST(request: NextRequest) {
           }
         }
       })
-    } catch (finalAmountError) {
-      // If finalAmount field doesn't exist in schema, create without it
-      console.warn('Creating order without finalAmount field:', finalAmountError)
-      newOrder = await prisma.order.create({
-        data: orderData,
-        include: {
-          orderItems: {
-            include: {
-              menuItem: {
-                select: {
-                  name: true,
-                  image: true
-                }
-              }
-            }
-          }
-        }
-      })
+    } catch (orderCreationError) {
+      console.error('Error creating order:', orderCreationError)
+      debugInfo.step = 'order-creation-error'
+      debugInfo.error = orderCreationError instanceof Error ? orderCreationError.message : 'Unknown error'
       
-      // Then update with finalAmount using raw SQL
-      try {
-        await prisma.$executeRaw`
-          UPDATE "orders" 
-          SET "finalAmount" = ${totalAmount}
-          WHERE "id" = ${newOrder.id}
-        `
-      } catch (updateError) {
-        console.warn('Could not update finalAmount via raw SQL:', updateError)
-      }
+      return NextResponse.json({
+        error: 'Failed to create order',
+        details: orderCreationError instanceof Error ? orderCreationError.message : 'Unknown error',
+        debug: debugInfo
+      }, { status: 500 })
     }
     
     debugInfo.step = 'order-creation-success'

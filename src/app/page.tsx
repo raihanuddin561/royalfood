@@ -49,9 +49,26 @@ export default function HomePage() {
     const savedCart = localStorage.getItem('royal-food-cart')
     if (savedCart) {
       try {
-        setCart(JSON.parse(savedCart))
+        const storedCart = JSON.parse(savedCart)
+        console.log('🏠 Home page loading from localStorage:', storedCart)
+        
+        // Handle STANDARDIZED format - works with both id and menuItemId
+        const normalizedCart = storedCart.map((item: any) => ({
+          id: item.menuItemId || item.id, // Support both formats - use id for internal state
+          menuItemId: item.menuItemId || item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+          description: item.description,
+          category: item.category
+        }))
+        setCart(normalizedCart)
+        console.log('🏠 Home page loaded and normalized:', normalizedCart)
       } catch (error) {
         console.error('Error loading cart from localStorage:', error)
+        // Clear corrupted data
+        localStorage.removeItem('royal-food-cart')
       }
     }
     setIsCartLoaded(true)
@@ -59,8 +76,22 @@ export default function HomePage() {
 
   // Save cart to localStorage whenever cart changes (but not on initial empty load)
   useEffect(() => {
-    if (isCartLoaded) {
-      localStorage.setItem('royal-food-cart', JSON.stringify(cart))
+    if (isCartLoaded && cart.length > 0) {
+      // Save in STANDARDIZED format with both id and menuItemId
+      const standardizedCart = cart.map(item => ({
+        id: item.menuItemId || item.id,
+        menuItemId: item.menuItemId || item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image
+      }))
+      localStorage.setItem('royal-food-cart', JSON.stringify(standardizedCart))
+      console.log('🏠 Home page saving to localStorage (standardized):', standardizedCart)
+    } else if (isCartLoaded && cart.length === 0) {
+      // Clear localStorage when cart is empty
+      localStorage.removeItem('royal-food-cart')
+      console.log('🏠 Home page cleared empty cart from localStorage')
     }
   }, [cart, isCartLoaded])
 
@@ -204,7 +235,12 @@ export default function HomePage() {
           item.id === itemId ? { ...item, quantity: item.quantity + 1 } : item
         )
       }
-      return [...prev, { ...menuItem, quantity: 1 }]
+      // Add both id and menuItemId for standardized format
+      return [...prev, { 
+        ...menuItem, 
+        menuItemId: menuItem.id, // Add menuItemId for cross-page compatibility
+        quantity: 1 
+      }]
     })
   }
 
