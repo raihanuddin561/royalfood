@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -40,6 +41,7 @@ interface OrderDetails {
 }
 
 export default function CartPage() {
+  const router = useRouter()
   const [cart, setCart] = useState<CartItem[]>([])
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: '',
@@ -343,15 +345,17 @@ export default function CartPage() {
       // Store order data in sessionStorage for success page
       sessionStorage.setItem('lastOrderData', JSON.stringify(orderData))
       
-      // Clear cart silently (no toast message for order submission)
-      setCart([])
-      localStorage.removeItem('royal-food-cart')
-      
       // Show success message
       toast.success('Order placed successfully!')
       
-      // Redirect to success page
-      window.location.href = '/public/order-success'
+      // Navigate to success page first (this prevents showing empty cart)
+      router.push('/public/order-success')
+      
+      // Clear cart after navigation starts (this will happen in background)
+      setTimeout(() => {
+        setCart([])
+        localStorage.removeItem('royal-food-cart')
+      }, 100)
     } catch (error) {
       console.error('Order submission error:', error)
       
