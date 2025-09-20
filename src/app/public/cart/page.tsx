@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ArrowLeft, Plus, Minus, Trash2, ShoppingCart, MapPin, Phone, User, Clock, CreditCard, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Plus, Minus, Trash2, ShoppingCart, MapPin, Phone, Clock, CreditCard, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -30,10 +30,10 @@ interface CustomerInfo {
 }
 
 interface OrderDetails {
-  orderType: 'DELIVERY' | 'PICKUP' | 'DINE_IN'
+  orderType: 'DELIVERY'  // Always DELIVERY - no user selection needed
   tableNumber?: string
   scheduledTime?: string
-  paymentMethod: 'CASH' | 'CARD' | 'MOBILE'
+  paymentMethod: 'CASH'  // Always CASH - no user selection needed
   isPreOrder: boolean
   preOrderDate?: string
   preOrderMealType?: 'BREAKFAST' | 'LUNCH' | 'DINNER'
@@ -49,8 +49,8 @@ export default function CartPage() {
     specialInstructions: ''
   })
   const [orderDetails, setOrderDetails] = useState<OrderDetails>({
-    orderType: 'DELIVERY',
-    paymentMethod: 'CASH',
+    orderType: 'DELIVERY',    // Static - always delivery
+    paymentMethod: 'CASH',    // Static - always cash on delivery
     isPreOrder: false
   })
   const [isLoading, setIsLoading] = useState(false)
@@ -246,7 +246,7 @@ export default function CartPage() {
       return
     }
 
-    if (orderDetails.orderType === 'DELIVERY' && !customerInfo.address) {
+    if (!customerInfo.address) {
       toast.error('Please provide delivery address')
       return
     }
@@ -301,15 +301,14 @@ export default function CartPage() {
         guestName: customerInfo.name,
         guestPhone: customerInfo.phone,
         guestEmail: customerInfo.email || undefined,
-        guestAddress: orderDetails.orderType === 'DELIVERY' ? customerInfo.address : undefined,
+        guestAddress: customerInfo.address, // Always required for delivery
         
         // Pre-order information
         isPreOrder: orderDetails.isPreOrder,
         scheduledDate: orderDetails.isPreOrder ? orderDetails.preOrderDate : undefined,
         scheduledTime: orderDetails.isPreOrder ? orderDetails.preOrderMealType?.toLowerCase() : undefined,
         
-        // Order details
-        tableNumber: orderDetails.orderType === 'DINE_IN' ? orderDetails.tableNumber : undefined,
+        // Order details (no table number needed for delivery)
         notes: customerInfo.specialInstructions || undefined
       }
       
@@ -564,19 +563,17 @@ export default function CartPage() {
                     />
                   </div>
                   
-                  {orderDetails.orderType === 'DELIVERY' && (
-                    <div>
-                      <Label htmlFor="address">Delivery Address *</Label>
-                      <Textarea
-                        id="address"
-                        value={customerInfo.address}
-                        onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
-                        placeholder="Enter your complete delivery address"
-                        className="mt-1"
-                        rows={3}
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <Label htmlFor="address">Delivery Address *</Label>
+                    <Textarea
+                      id="address"
+                      value={customerInfo.address}
+                      onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
+                      placeholder="Enter your complete delivery address"
+                      className="mt-1"
+                      rows={3}
+                    />
+                  </div>
                   
                   <div>
                     <Label htmlFor="instructions">Special Instructions</Label>
@@ -592,93 +589,15 @@ export default function CartPage() {
                 </CardContent>
               </Card>
 
-              {/* Order Details */}
+              {/* Pre-order Options */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="w-5 h-5" />
-                    Order Details
+                    Delivery Options
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label>Order Type</Label>
-                    <Select 
-                      value={orderDetails.orderType} 
-                      onValueChange={(value) => 
-                        setOrderDetails({...orderDetails, orderType: value as 'DELIVERY' | 'PICKUP' | 'DINE_IN'})
-                      }
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DELIVERY">
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            Delivery
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="PICKUP">
-                          <div className="flex items-center gap-2">
-                            <ShoppingCart className="w-4 h-4" />
-                            Pickup
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="DINE_IN">
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4" />
-                            Dine In
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {orderDetails.orderType === 'DINE_IN' && (
-                    <div>
-                      <Label htmlFor="tableNumber">Table Number</Label>
-                      <Input
-                        id="tableNumber"
-                        value={orderDetails.tableNumber || ''}
-                        onChange={(e) => setOrderDetails({...orderDetails, tableNumber: e.target.value})}
-                        placeholder="Enter table number"
-                        className="mt-1"
-                      />
-                    </div>
-                  )}
-                  
-                  <div>
-                    <Label htmlFor="scheduledTime">Scheduled Time (Optional)</Label>
-                    <Input
-                      id="scheduledTime"
-                      type="datetime-local"
-                      value={orderDetails.scheduledTime || ''}
-                      onChange={(e) => setOrderDetails({...orderDetails, scheduledTime: e.target.value})}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label>Payment Method</Label>
-                    <Select 
-                      value={orderDetails.paymentMethod} 
-                      onValueChange={(value) => 
-                        setOrderDetails({...orderDetails, paymentMethod: value as 'CASH' | 'CARD' | 'MOBILE'})
-                      }
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CASH">Cash on Delivery</SelectItem>
-                        <SelectItem value="CARD">Credit/Debit Card</SelectItem>
-                        <SelectItem value="MOBILE">Mobile Payment</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Pre-order Options */}
+                <CardContent>
                   <div className="space-y-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
                     <div className="flex items-center space-x-3">
                       <input
@@ -759,6 +678,17 @@ export default function CartPage() {
                         )}
                       </div>
                     )}
+                    
+                    {/* Info about default settings */}
+                    <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2 text-green-800">
+                        <MapPin className="w-4 h-4" />
+                        <span className="font-medium">Delivery Service</span>
+                      </div>
+                      <p className="text-sm text-green-700 mt-1">
+                        🚚 All orders are for delivery • 💰 Cash on delivery payment
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -780,12 +710,10 @@ export default function CartPage() {
                       <span>{formatCurrency(calculateSubtotal())}</span>
                     </div>
                     
-                    {orderDetails.orderType === 'DELIVERY' && (
-                      <div className="flex justify-between">
-                        <span>Delivery Fee</span>
-                        <span>{formatCurrency(calculateDeliveryFee())}</span>
-                      </div>
-                    )}
+                    <div className="flex justify-between">
+                      <span>Delivery Fee</span>
+                      <span>{formatCurrency(calculateDeliveryFee())}</span>
+                    </div>
                     
                     <hr className="my-2" />
                     
@@ -825,7 +753,7 @@ export default function CartPage() {
                     <div className="flex items-center gap-2 text-sm text-orange-700">
                       <Clock className="w-4 h-4" />
                       <span className="font-medium">
-                        Estimated {orderDetails.orderType === 'DELIVERY' ? 'Delivery' : 'Preparation'} Time: 25-35 mins
+                        Estimated Delivery Time: 25-35 mins
                       </span>
                     </div>
                   </div>
