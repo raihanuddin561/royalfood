@@ -1150,6 +1150,18 @@ function OrderPageContent() {
                           <span>Total</span>
                           <span className="text-orange-600">{formatCurrency(total)}</span>
                         </div>
+                        
+                        {/* Delivery Promise Note */}
+                        {orderType === 'DELIVERY' && (
+                          <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <div className="flex items-center gap-2 text-sm text-green-700">
+                              <Clock className="w-4 h-4" />
+                              <span className="font-medium">
+                                🚚 Your order will be delivered within 30 minutes
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>
