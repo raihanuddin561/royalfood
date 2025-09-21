@@ -762,6 +762,16 @@ export default function CartPage() {
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Delivery Promise */}
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 text-sm text-green-700">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="font-medium">
+                        🚚 Your order will be delivered within 30 minutes
+                      </span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
