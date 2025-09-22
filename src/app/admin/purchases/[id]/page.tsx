@@ -16,7 +16,13 @@ export default async function Page({ params }: Props) {
     <div className="p-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Purchase {purchase.purchaseNumber}</h1>
-        <Link href="/admin/purchases" className="btn">Back</Link>
+        <div className="flex gap-2">
+          <Link href={`/admin/purchases/${purchase.id}/edit`} className="btn btn-primary">Edit</Link>
+          {purchase.status === 'PENDING' && (
+            <Link href={`/admin/purchases/${purchase.id}/receive`} className="btn btn-secondary">Receive</Link>
+          )}
+          <Link href="/admin/purchases" className="btn">Back</Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-4">

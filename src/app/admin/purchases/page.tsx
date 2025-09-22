@@ -42,7 +42,10 @@ export default async function PurchasesPage() {
                 <td className="py-2">{p.status}</td>
                 <td className="py-2">
                   <Link href={`/admin/purchases/${p.id}`} className="text-indigo-600 mr-3">View</Link>
-                  <Link href={`/admin/purchases/${p.id}/receive`} className="text-green-600">Receive</Link>
+                  <Link href={`/admin/purchases/${p.id}/edit`} className="text-blue-600 mr-3">Edit</Link>
+                  {p.status === 'PENDING' && (
+                    <Link href={`/admin/purchases/${p.id}/receive`} className="text-green-600">Receive</Link>
+                  )}
                 </td>
               </tr>
             ))}
