@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatDateTime } from '@/lib/utils'
 import { prisma } from '@/lib/prisma'
+import { getRestaurantName } from '@/lib/restaurant-config'
 import ServerPartnershipSummary from './ServerPartnershipSummary'
 import FinancialBreakdownClient from './FinancialBreakdownClient'
 import CustomerNavigation from '@/components/CustomerNavigation'
@@ -189,7 +190,7 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
         <p className="mt-2 text-sm text-gray-700">
-          Overview of your Royal Food restaurant operations
+          Overview of your {getRestaurantName()} restaurant operations
         </p>
       </div>
 

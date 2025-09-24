@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, Clock, MapPin, Phone, ArrowLeft, Home, ShoppingCart, Download, Camera, Share } from 'lucide-react'
+import { getSupportInfo } from '@/lib/restaurant-config'
 
 interface OrderItem {
   id: string
@@ -502,12 +503,14 @@ export default function OrderSuccessPage() {
           <div className="text-center mt-8 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600 mb-2">Need help with your order?</p>
             <div className="flex justify-center gap-4">
-              <a href="tel:+8801XXXXXXXXX" className="text-orange-600 hover:text-orange-700 font-semibold">
+              <a href={`tel:${getSupportInfo().phone}`} className="text-orange-600 hover:text-orange-700 font-semibold">
                 📞 Call Support
               </a>
-              <a href="https://wa.me/8801XXXXXXXXX" className="text-green-600 hover:text-green-700 font-semibold">
-                💬 WhatsApp
-              </a>
+              {getSupportInfo().whatsapp && (
+                <a href={`https://wa.me/${getSupportInfo().whatsapp?.replace(/[^0-9]/g, '') || ''}`} className="text-green-600 hover:text-green-700 font-semibold">
+                  💬 WhatsApp
+                </a>
+              )}
             </div>
           </div>
         </div>

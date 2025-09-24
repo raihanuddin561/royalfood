@@ -9,6 +9,7 @@ import { ShoppingCart, Clock, Star, Filter, Search, ArrowRight, Plus, Minus, Hea
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CartIcon } from '@/components/ui/cart-icon'
+import { getContactPhone } from '@/lib/restaurant-config'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -394,8 +395,8 @@ export default function HomePage() {
               {/* Contact Info - Hidden on mobile */}
               <div className="hidden lg:flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-2 border border-orange-200">
                 <Phone className="h-4 w-4 text-orange-600" />
-                <a href="tel:01703548115" className="text-gray-700 font-medium hover:text-orange-600 transition-colors">
-                  01703548115
+                <a href={`tel:${getContactPhone()}`} className="text-gray-700 font-medium hover:text-orange-600 transition-colors">
+                  {getContactPhone()}
                 </a>
               </div>
               
@@ -1221,8 +1222,8 @@ export default function HomePage() {
                     </div>
                     <div>
                       <p className="text-gray-300 text-sm">Call Us</p>
-                      <a href="tel:01703548115" className="text-white font-medium hover:text-orange-400 transition-colors">
-                        01703548115
+                      <a href={`tel:${getContactPhone()}`} className="text-white font-medium hover:text-orange-400 transition-colors">
+                        {getContactPhone()}
                       </a>
                     </div>
                   </div>
@@ -1274,7 +1275,7 @@ export default function HomePage() {
                   <p>&copy; 2025 Royal Food. All rights reserved. Made with ❤️ for food lovers.</p>
                 </div>
                 <div className="flex items-center space-x-3 sm:space-x-4 md:space-x-6">
-                  <a href="tel:01703548115" className="inline-flex items-center space-x-1 sm:space-x-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold px-3 sm:px-4 md:px-4 py-2 sm:py-2 md:py-2 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base md:text-base">
+                  <a href={`tel:${getContactPhone()}`} className="inline-flex items-center space-x-1 sm:space-x-2 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold px-3 sm:px-4 md:px-4 py-2 sm:py-2 md:py-2 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl text-sm sm:text-base md:text-base">
                     <Phone className="h-3 w-3 sm:h-4 sm:w-4 md:h-4 md:w-4" />
                     <span className="text-xs sm:text-sm md:text-base">Call Now</span>
                   </a>

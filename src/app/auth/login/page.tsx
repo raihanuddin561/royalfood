@@ -5,6 +5,7 @@ import { signIn, getSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Lock, Mail, AlertCircle, LogIn } from 'lucide-react'
 import Link from 'next/link'
+import { getRestaurantName } from '@/lib/restaurant-config'
 
 interface LoginFormData {
   email: string
@@ -68,7 +69,7 @@ export default function LoginPage() {
             <LogIn className="w-8 h-8 text-white" />
           </div>
           <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-            Royal Food Restaurant
+            {getRestaurantName()} Restaurant
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Admin & Manager Portal

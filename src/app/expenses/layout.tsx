@@ -4,9 +4,10 @@ import Header from '@/components/layout/Header'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import Link from 'next/link'
 import { DollarSign, BarChart3, Plus, FileText, Receipt } from 'lucide-react'
+import { getRestaurantName } from '@/lib/restaurant-config'
 
 export const metadata: Metadata = {
-  title: 'Expense Management | Royal Food',
+  title: `Expense Management | ${getRestaurantName()}`,
   description: 'Comprehensive expense tracking and management system',
 }
 

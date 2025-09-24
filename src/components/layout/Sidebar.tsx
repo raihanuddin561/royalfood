@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { getRestaurantName } from '@/lib/restaurant-config'
 import { 
   Home, 
   Package, 
@@ -193,7 +194,7 @@ export default function Sidebar() {
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center group-hover:shadow-lg transition-shadow duration-300">
               <ChefHat className="h-5 w-5 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-white group-hover:text-blue-200 transition-colors duration-300">Royal Food</h1>
+            <h1 className="text-xl font-bold text-white group-hover:text-blue-200 transition-colors duration-300">{getRestaurantName()}</h1>
           </Link>
         </div>
 

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getContactPhone } from '@/lib/restaurant-config'
 import { Badge } from '@/components/ui/badge'
 import { 
   Plus, 
@@ -559,7 +560,7 @@ function OrderPageContent() {
                   <div className="flex items-center space-x-2 bg-green-50 px-3 py-2 rounded-lg">
                     <Phone className="h-5 w-5 text-green-600" />
                     <div>
-                      <a href="tel:01703548115" className="font-bold text-green-700 hover:text-green-800 transition-colors">01703548115</a>
+                      <a href={`tel:${getContactPhone()}`} className="font-bold text-green-700 hover:text-green-800 transition-colors">{getContactPhone()}</a>
                       <p className="text-xs text-gray-600">24/7 Support</p>
                     </div>
                   </div>

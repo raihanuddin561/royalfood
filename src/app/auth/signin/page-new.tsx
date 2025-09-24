@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { getRestaurantName } from '@/lib/restaurant-config';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -60,7 +61,7 @@ export default function SignInPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Sign in to Royal Food
+            Sign in to {getRestaurantName()}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Restaurant Management System

@@ -5,6 +5,7 @@ import { useSidebar } from './SidebarContext'
 import { useSession, signOut } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import { sessionStorage as customSessionStorage } from '@/lib/session-utils'
+import { getRestaurantName } from '@/lib/restaurant-config'
 
 export default function Header() {
   const { data: session } = useSession()
@@ -77,7 +78,7 @@ export default function Header() {
               <Menu className="h-6 w-6" />
             </button>
             <div className="flex-shrink-0">
-              <img className="h-8 w-auto" src="/file.svg" alt="Royal Food" />
+              <img className="h-8 w-auto" src="/file.svg" alt={getRestaurantName()} />
             </div>
             <nav className="hidden sm:flex sm:ml-6 space-x-4">
               {/* nav links */}

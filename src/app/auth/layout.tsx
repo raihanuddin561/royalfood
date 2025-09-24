@@ -1,7 +1,8 @@
 import React from 'react'
+import { getRestaurantName } from '@/lib/restaurant-config'
 
 export const metadata = {
-  title: 'Auth - Royal Food'
+  title: `Auth - ${getRestaurantName()}`
 }
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {

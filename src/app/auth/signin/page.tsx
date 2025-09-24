@@ -5,6 +5,7 @@ import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { sessionStorage as customSessionStorage } from '@/lib/session-utils';
+import { getRestaurantName } from '@/lib/restaurant-config';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -59,7 +60,7 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl space-y-8">
         <div>
-          <img className="mx-auto h-12 w-auto" src="/file.svg" alt="Royal Food" />
+          <img className="mx-auto h-12 w-auto" src="/file.svg" alt={getRestaurantName()} />
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
           </h2>
