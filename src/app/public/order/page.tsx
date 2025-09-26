@@ -109,8 +109,7 @@ function OrderPageContent() {
   const [searchTerm, setSearchTerm] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [loading, setLoading] = useState(true)
-  const [orderType, setOrderType] = useState<'DINE_IN' | 'TAKEAWAY' | 'DELIVERY'>('DELIVERY')
-  const [tableNumber, setTableNumber] = useState('')
+  const orderType = 'DELIVERY' // Static delivery option as requested
   const [notes, setNotes] = useState('')
   const [isPreOrder, setIsPreOrder] = useState(false)
   const [scheduledDate, setScheduledDate] = useState('')
@@ -465,10 +464,7 @@ function OrderPageContent() {
       return
     }
 
-    if (orderType === 'DINE_IN' && !tableNumber) {
-      toast.error('Please provide table number')
-      return
-    }
+
 
     // Validate meal type compatibility
     const selectedMealTypeUpper = mealType.toUpperCase()
@@ -507,7 +503,6 @@ function OrderPageContent() {
           quantity: item.quantity
         })),
         orderType,
-        tableNumber: orderType === 'DINE_IN' ? tableNumber : undefined,
         notes,
         isPreOrder,
         scheduledDate: isPreOrder && scheduledDate ? new Date(scheduledDate).toISOString() : undefined,
@@ -536,7 +531,6 @@ function OrderPageContent() {
         // Clear cart and form data
         setCart([])
         setNotes('')
-        setTableNumber('')
         setIsPreOrder(false)
         setScheduledDate('')
         setMealType('lunch')
@@ -651,31 +645,7 @@ function OrderPageContent() {
                 <Badge className="bg-blue-500 text-white text-xs font-bold">100% Safe</Badge>
               </div>
               
-              {/* Mobile Meal Type Selector - Prominent */}
-              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-4 border-2 border-orange-200">
-                <h3 className="text-sm font-bold text-gray-800 mb-3 text-center">🍽️ Choose Your Meal Time</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { value: 'breakfast', label: '🌅 Breakfast', icon: '🥐' },
-                    { value: 'lunch', label: '🌞 Lunch', icon: '🍽️' },
-                    { value: 'dinner', label: '🌙 Dinner', icon: '🍝' }
-                  ].map(({ value, label, icon }) => (
-                    <Button
-                      key={value}
-                      variant={mealType === value ? 'default' : 'outline'}
-                      onClick={() => setMealType(value as 'breakfast' | 'lunch' | 'dinner')}
-                      className={`h-16 flex flex-col items-center justify-center font-bold text-xs transition-all duration-300 rounded-xl ${
-                        mealType === value 
-                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg scale-105' 
-                          : 'border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-700 hover:scale-105'
-                      }`}
-                    >
-                      <span className="text-lg mb-1">{icon}</span>
-                      <span className="text-[10px] leading-tight">{label.split(' ')[1]}</span>
-                    </Button>
-                  ))}
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
@@ -707,26 +677,28 @@ function OrderPageContent() {
                   
                   {/* Filter Controls */}
                   <div className="flex flex-col lg:flex-row items-stretch lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
-                    {/* Meal Type Selector */}
-                    <Select value={mealType} onValueChange={(value) => setMealType(value as 'breakfast' | 'lunch' | 'dinner')}>
-                      <SelectTrigger className="w-full lg:w-56 h-12 lg:h-16 border-2 lg:border-3 border-gray-300 rounded-xl lg:rounded-2xl bg-white shadow-lg text-base lg:text-lg font-medium">
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 lg:h-5 lg:w-5 mr-2 lg:mr-3 text-orange-500" />
-                          <SelectValue />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="breakfast" className="text-base lg:text-lg py-2 lg:py-3">
-                          🌅 Breakfast
-                        </SelectItem>
-                        <SelectItem value="lunch" className="text-base lg:text-lg py-2 lg:py-3">
-                          🌞 Lunch
-                        </SelectItem>
-                        <SelectItem value="dinner" className="text-base lg:text-lg py-2 lg:py-3">
-                          🌙 Dinner
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {/* Meal Type Selector - Visible on both mobile and desktop */}
+                    <div className="w-full lg:w-56">
+                      <Select value={mealType} onValueChange={(value) => setMealType(value as 'breakfast' | 'lunch' | 'dinner')}>
+                        <SelectTrigger className="w-full h-12 lg:h-16 border-2 lg:border-3 border-orange-300 rounded-xl lg:rounded-2xl bg-gradient-to-r from-white to-orange-50 shadow-lg text-base lg:text-lg font-medium hover:border-orange-400 transition-colors">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 lg:h-5 lg:w-5 mr-2 lg:mr-3 text-orange-600" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="breakfast" className="text-base lg:text-lg py-2 lg:py-3">
+                            🌅 Breakfast
+                          </SelectItem>
+                          <SelectItem value="lunch" className="text-base lg:text-lg py-2 lg:py-3">
+                            🌞 Lunch
+                          </SelectItem>
+                          <SelectItem value="dinner" className="text-base lg:text-lg py-2 lg:py-3">
+                            🌙 Dinner
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                       <SelectTrigger className="w-full lg:w-56 h-12 lg:h-16 border-2 lg:border-3 border-gray-300 rounded-xl lg:rounded-2xl bg-white shadow-lg text-base lg:text-lg font-medium">
@@ -764,8 +736,35 @@ function OrderPageContent() {
                   </div>
                 </div>
 
+                {/* Meal Type Selector - Prominent for all screens */}
+                <div className="mt-6 lg:mt-8">
+                  <h3 className="text-lg lg:text-xl font-bold text-gray-800 mb-4 text-center">🍽️ Choose Your Meal Time</h3>
+                  <div className="grid grid-cols-3 gap-3 lg:gap-4 max-w-2xl mx-auto">
+                    {[
+                      { value: 'breakfast', label: 'Breakfast', icon: '🌅', time: '6 AM - 11 AM' },
+                      { value: 'lunch', label: 'Lunch', icon: '🌞', time: '11 AM - 4 PM' },
+                      { value: 'dinner', label: 'Dinner', icon: '🌙', time: '4 PM - 11 PM' }
+                    ].map(({ value, label, icon, time }) => (
+                      <Button
+                        key={value}
+                        variant={mealType === value ? 'default' : 'outline'}
+                        onClick={() => setMealType(value as 'breakfast' | 'lunch' | 'dinner')}
+                        className={`h-20 lg:h-24 flex flex-col items-center justify-center font-bold text-sm lg:text-base transition-all duration-300 rounded-xl lg:rounded-2xl ${
+                          mealType === value 
+                            ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-xl scale-105 border-2 border-orange-400' 
+                            : 'border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-700 hover:scale-105 bg-white shadow-md'
+                        }`}
+                      >
+                        <span className="text-2xl lg:text-3xl mb-1">{icon}</span>
+                        <span className="text-sm lg:text-base font-bold">{label}</span>
+                        <span className="text-xs lg:text-sm opacity-75 mt-1">{time}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Enhanced Category Filters */}
-                <div className="space-y-4">
+                <div className="space-y-4 mt-8">
                   <h3 className="text-lg font-bold text-gray-800">Browse by Category</h3>
                   <div className="flex flex-wrap gap-4">
                     {categories.slice(0, 10).map(category => (
@@ -930,46 +929,18 @@ function OrderPageContent() {
                       )}
                     </div>
 
-                    {/* Order Type Selection */}
+                    {/* Static Delivery Order Type */}
                     {cart.length > 0 && (
                       <div className="mt-6 pt-6 border-t border-gray-100">
-                        <Label className="text-sm font-medium text-gray-700 mb-3 block">Order Type</Label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[
-                            { value: 'DINE_IN', icon: Store, label: 'Dine In' },
-                            { value: 'TAKEAWAY', icon: ShoppingCart, label: 'Takeaway' },
-                            { value: 'DELIVERY', icon: Truck, label: 'Delivery' }
-                          ].map(({ value, icon: Icon, label }) => (
-                            <Button
-                              key={value}
-                              variant={orderType === value ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setOrderType(value as any)}
-                              className={`flex flex-col items-center p-3 h-auto ${
-                                orderType === value 
-                                  ? 'bg-orange-600 hover:bg-orange-700 text-white' 
-                                  : 'border-gray-200 hover:border-orange-300'
-                              }`}
-                            >
-                              <Icon className="h-4 w-4 mb-1" />
-                              <span className="text-xs">{label}</span>
-                            </Button>
-                          ))}
-                        </div>
-
-                        {/* Table Number for Dine In */}
-                        {orderType === 'DINE_IN' && (
-                          <div className="mt-4">
-                            <Label htmlFor="tableNumber" className="text-sm font-medium text-gray-700">Table Number</Label>
-                            <Input
-                              id="tableNumber"
-                              value={tableNumber}
-                              onChange={(e) => setTableNumber(e.target.value)}
-                              placeholder="Enter table number"
-                              className="mt-1 border-gray-200 focus:border-orange-500"
-                            />
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                          <div className="flex items-center space-x-2">
+                            <Truck className="h-5 w-5 text-green-600" />
+                            <div>
+                              <p className="font-medium text-green-900">Delivery Service</p>
+                              <p className="text-sm text-green-700">We deliver to your doorstep</p>
+                            </div>
                           </div>
-                        )}
+                        </div>
 
                         {/* Pre-order Options */}
                         {preorderEnabled && (
