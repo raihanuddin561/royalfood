@@ -4,19 +4,22 @@ import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { Client } from 'pg'
-import { spawn } from 'child_process'
 
 const MIGRATIONS_DIR = path.join(process.cwd(), 'scripts', 'migrations')
-const SAFE_RUN_SCRIPT = path.join(process.cwd(), 'scripts', 'apply_migrations_safe.js')
 
 async function listMigrations() {
-  if (!fs.existsSync(MIGRATIONS_DIR)) return []
-  const files = fs.readdirSync(MIGRATIONS_DIR).filter(f => f.endsWith('.sql')).sort()
-  return files.map(file => {
-    const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8')
-    const checksum = crypto.createHash('sha256').update(sql).digest('hex')
-    return { file, checksum }
-  })
+  try {
+    if (!fs.existsSync(MIGRATIONS_DIR)) return []
+    const files = fs.readdirSync(MIGRATIONS_DIR).filter(f => f.endsWith('.sql')).sort()
+    return files.map(file => {
+      const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8')
+      const checksum = crypto.createHash('sha256').update(sql).digest('hex')
+      return { file, checksum, sql }
+    })
+  } catch (error) {
+    console.error('Error listing migrations:', error)
+    return []
+  }
 }
 
 async function getAppliedMigrations(client: Client) {
@@ -27,32 +30,92 @@ async function getAppliedMigrations(client: Client) {
 }
 
 async function createBackups(client: Client) {
-  // Create a backup table for every user table in public schema
-  const res = await client.query(`
-    SELECT table_name FROM information_schema.tables
-    WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-  `)
+  try {
+    // Create a backup table for every user table in public schema
+    const res = await client.query(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+    `)
 
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-  const created: string[] = []
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const created: string[] = []
 
-  for (const row of res.rows) {
-    const tbl = row.table_name
-    // Skip our applied_migrations bookkeeping table and any existing backups
-    if (tbl === 'applied_migrations' || tbl.startsWith('backup_before_migration_')) continue
-    const backupName = `backup_before_migration_${timestamp}_${tbl}`
-    // Use CREATE TABLE AS SELECT to copy data
-    const sql = `CREATE TABLE IF NOT EXISTS "${backupName}" AS TABLE "${tbl}";`
-    try {
-      await client.query(sql)
-      created.push(backupName)
-    } catch (err) {
-      // If any backup fails, throw to abort migration
-      const e = err as any
-      throw new Error(`Failed to create backup for ${tbl}: ${e?.message ?? String(err)}`)
+    for (const row of res.rows) {
+      const tbl = row.table_name
+      // Skip our applied_migrations bookkeeping table and any existing backups
+      if (tbl === 'applied_migrations' || tbl.startsWith('backup_before_migration_')) continue
+      const backupName = `backup_before_migration_${timestamp}_${tbl}`
+      // Use CREATE TABLE AS SELECT to copy data
+      const sql = `CREATE TABLE IF NOT EXISTS "${backupName}" AS TABLE "${tbl}";`
+      try {
+        await client.query(sql)
+        created.push(backupName)
+      } catch (err) {
+        // If any backup fails, throw to abort migration
+        const e = err as any
+        throw new Error(`Failed to create backup for ${tbl}: ${e?.message ?? String(err)}`)
+      }
     }
+    return created
+  } catch (error) {
+    console.error('Error creating backups:', error)
+    throw error
   }
-  return created
+}
+
+async function applyMigrationsDirect(client: Client, migrations: any[]) {
+  // Direct migration application without child processes (Vercel-compatible)
+  try {
+    // Ensure applied_migrations table exists
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS applied_migrations (
+        filename TEXT PRIMARY KEY,
+        checksum TEXT NOT NULL,
+        applied_at TIMESTAMPTZ DEFAULT now()
+      );
+    `)
+
+    const results: any[] = []
+
+    for (const migration of migrations) {
+      const { file, checksum, sql } = migration
+      console.log('Considering migration:', file)
+
+      // Check if already applied
+      const res = await client.query('SELECT checksum FROM applied_migrations WHERE filename = $1', [file])
+      if (res.rows.length > 0) {
+        const existing = res.rows[0].checksum
+        if (existing === checksum) {
+          console.log(`  ✓ already applied: ${file}`)
+          results.push({ file, status: 'already_applied' })
+          continue
+        } else {
+          throw new Error(`Checksum mismatch for ${file}. Migration file changed after applied - aborting.`)
+        }
+      }
+
+      console.log('  -> applying', file)
+      try {
+        await client.query('BEGIN')
+        // Run migration SQL (may contain multiple statements)
+        await client.query(sql)
+        await client.query('INSERT INTO applied_migrations(filename, checksum) VALUES($1, $2)', [file, checksum])
+        await client.query('COMMIT')
+        console.log(`  ✅ applied: ${file}`)
+        results.push({ file, status: 'applied' })
+      } catch (err) {
+        await client.query('ROLLBACK')
+        const error = err as any
+        console.error(`  ❌ migration ${file} failed:`, error.message || error)
+        throw new Error(`Migration ${file} failed: ${error.message || error}`)
+      }
+    }
+
+    return results
+  } catch (error) {
+    console.error('Migration process failed:', error)
+    throw error
+  }
 }
 
 export const GET = requireAdmin(async (req: any) => {
@@ -69,7 +132,19 @@ export const GET = requireAdmin(async (req: any) => {
     const all = await listMigrations()
     const pending = all.filter(a => !applied.find(x => x.filename === a.file))
 
-    return NextResponse.json({ applied, pending, migrationsDir: MIGRATIONS_DIR })
+    // Don't include SQL content in the response for GET requests
+    const pendingFiles = pending.map(({ file, checksum }) => ({ file, checksum }))
+    const allFiles = all.map(({ file, checksum }) => ({ file, checksum }))
+
+    return NextResponse.json({ 
+      applied, 
+      pending: pendingFiles,
+      all: allFiles,
+      migrationsDir: MIGRATIONS_DIR,
+      totalMigrations: all.length,
+      appliedCount: applied.length,
+      pendingCount: pendingFiles.length
+    })
   } catch (err) {
     const e = err as any
     return NextResponse.json({ error: e?.message ?? String(err) }, { status: 500 })
@@ -95,11 +170,12 @@ export const POST = requireAdmin(async (req: any) => {
     const migrations = await listMigrations()
     if (!migrations.length) return NextResponse.json({ message: 'No migration files found' })
 
+    let backups: string[] = []
     if (doBackup) {
       // Create backups for all public tables
       await client.query('BEGIN')
       try {
-        const backups = await createBackups(client)
+        backups = await createBackups(client)
         await client.query('COMMIT')
         console.log('Created backups:', backups.join(', '))
       } catch (err) {
@@ -108,34 +184,24 @@ export const POST = requireAdmin(async (req: any) => {
       }
     }
 
-    // Run the safe runner script via node child process
-    if (!fs.existsSync(SAFE_RUN_SCRIPT)) {
-      return NextResponse.json({ error: `Safe runner not found at ${SAFE_RUN_SCRIPT}` }, { status: 500 })
-    }
+    // Apply migrations directly (Vercel-compatible, no child processes)
+    const results = await applyMigrationsDirect(client, migrations)
 
-    return new Promise((resolve) => {
-      const env = { ...process.env, DATABASE_URL_NEW: dbUrl }
-      const child = spawn(process.execPath, [SAFE_RUN_SCRIPT], { env })
-
-      let stdout = ''
-      let stderr = ''
-
-      child.stdout.on('data', (chunk) => { stdout += String(chunk) })
-      child.stderr.on('data', (chunk) => { stderr += String(chunk) })
-
-      child.on('close', async (code) => {
-        try { await client.end() } catch (_) {}
-        if (code === 0) {
-          resolve(NextResponse.json({ ok: true, code, stdout }))
-        } else {
-          resolve(NextResponse.json({ ok: false, code, stdout, stderr }, { status: 500 }))
-        }
-      })
+    return NextResponse.json({ 
+      ok: true, 
+      results,
+      backups,
+      message: 'All migrations processed successfully'
     })
   } catch (err) {
-    try { await client.end() } catch (_) {}
     const e = err as any
-    return NextResponse.json({ error: e?.message ?? String(err) }, { status: 500 })
+    console.error('Migration failed:', e.message || err)
+    return NextResponse.json({ 
+      ok: false, 
+      error: e?.message ?? String(err) 
+    }, { status: 500 })
+  } finally {
+    try { await client.end() } catch (_) {}
   }
 })
 
