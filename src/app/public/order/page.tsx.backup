@@ -116,12 +116,6 @@ function OrderPageContent() {
   const [scheduledDate, setScheduledDate] = useState('')
   const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner'>('lunch')
   
-  // Advanced filter states
-  const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: 1000})
-  const [sortBy, setSortBy] = useState<'name' | 'price' | 'rating' | 'popular'>('name')
-  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'unavailable'>('all')
-  const [selectedMealTypeFilter, setSelectedMealTypeFilter] = useState<'all' | 'breakfast' | 'lunch' | 'dinner'>('all')
-  
   // Get restaurant settings
   const orderSettings = getOrderSettings()
   const preorderEnabled = orderSettings.preorderEnabled
@@ -356,46 +350,16 @@ function OrderPageContent() {
     }
   }
 
-  // Filter and sort menu items with advanced filtering options
-  const filteredItems = menuItems
-    .filter(item => {
-      // Basic filters
-      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesMealType = mealType === 'breakfast' ? (item.mealTypes?.includes('BREAKFAST') ?? false) :
-                             mealType === 'lunch' ? (item.mealTypes?.includes('LUNCH') ?? false) :
-                             mealType === 'dinner' ? (item.mealTypes?.includes('DINNER') ?? false) : true
-      
-      // Advanced filters
-      const matchesPriceRange = item.price >= priceRange.min && item.price <= priceRange.max
-      const matchesAvailability = availabilityFilter === 'all' || 
-                                 (availabilityFilter === 'available' && item.isAvailable) ||
-                                 (availabilityFilter === 'unavailable' && !item.isAvailable)
-      const matchesMealTypeFilter = selectedMealTypeFilter === 'all' ||
-                                   (item.mealTypes?.includes(selectedMealTypeFilter.toUpperCase() as any) ?? false)
-      
-      return matchesCategory && matchesSearch && matchesMealType && matchesPriceRange && matchesAvailability && matchesMealTypeFilter
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'price':
-          return a.price - b.price
-        case 'name':
-          return a.name.localeCompare(b.name)
-        case 'rating':
-          // Rating not available in MenuItem type, sort by name for now
-          return a.name.localeCompare(b.name)
-        case 'popular':
-          // Sort by availability first (available items first), then by name
-          if (a.isAvailable !== b.isAvailable) {
-            return b.isAvailable ? 1 : -1
-          }
-          return a.name.localeCompare(b.name)
-        default:
-          return 0
-      }
-    })
+  // Filter menu items - now includes unavailable items to show availability status
+  const filteredItems = menuItems.filter(item => {
+    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesMealType = mealType === 'breakfast' ? (item.mealTypes?.includes('BREAKFAST') ?? false) :
+                           mealType === 'lunch' ? (item.mealTypes?.includes('LUNCH') ?? false) :
+                           mealType === 'dinner' ? (item.mealTypes?.includes('DINNER') ?? false) : true
+    return matchesCategory && matchesSearch && matchesMealType
+  })
 
   // Cart functions
   const addToCart = (item: MenuItem) => {
@@ -748,8 +712,7 @@ function OrderPageContent() {
                 {/* Collapsible Filters */}
                 {showFilters && (
                   <div className="space-y-4 pt-4 border-t border-gray-200 animate-in slide-in-from-top-2 duration-200">
-                    {/* Primary Filters Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {/* Category Filter */}
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">Category</label>
@@ -766,167 +729,48 @@ function OrderPageContent() {
                           </SelectContent>
                         </Select>
                       </div>
-
-                      {/* Meal Type Filter */}
+                      
+                      {/* View Mode */}
                       <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Available For</label>
-                        <Select value={selectedMealTypeFilter} onValueChange={(value) => setSelectedMealTypeFilter(value as any)}>
-                          <SelectTrigger className="h-10 border border-gray-300 rounded-lg">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all" className="text-sm py-2">
-                              🌅 All Meal Times
-                            </SelectItem>
-                            <SelectItem value="breakfast" className="text-sm py-2">
-                              🌅 Breakfast Only
-                            </SelectItem>
-                            <SelectItem value="lunch" className="text-sm py-2">
-                              🌞 Lunch Only
-                            </SelectItem>
-                            <SelectItem value="dinner" className="text-sm py-2">
-                              🌙 Dinner Only
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Availability Filter */}
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Availability</label>
-                        <Select value={availabilityFilter} onValueChange={(value) => setAvailabilityFilter(value as any)}>
-                          <SelectTrigger className="h-10 border border-gray-300 rounded-lg">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all" className="text-sm py-2">
-                              📋 All Items
-                            </SelectItem>
-                            <SelectItem value="available" className="text-sm py-2">
-                              ✅ Available Now
-                            </SelectItem>
-                            <SelectItem value="unavailable" className="text-sm py-2">
-                              ❌ Currently Unavailable
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Sort By */}
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Sort By</label>
-                        <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
-                          <SelectTrigger className="h-10 border border-gray-300 rounded-lg">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="name" className="text-sm py-2">
-                              📝 Name (A-Z)
-                            </SelectItem>
-                            <SelectItem value="price" className="text-sm py-2">
-                              💰 Price (Low to High)
-                            </SelectItem>
-                            <SelectItem value="rating" className="text-sm py-2">
-                              ⭐ Rating (High to Low)
-                            </SelectItem>
-                            <SelectItem value="popular" className="text-sm py-2">
-                              🔥 Most Popular
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Secondary Filters Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {/* Price Range */}
-                      <div className="lg:col-span-2">
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Price Range</label>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <Input
-                              type="number"
-                              placeholder="Min Price"
-                              value={priceRange.min || ''}
-                              onChange={(e) => setPriceRange(prev => ({...prev, min: Number(e.target.value) || 0}))}
-                              className="h-10 text-sm border border-gray-300 rounded-lg"
-                            />
-                          </div>
-                          <span className="text-gray-400 font-medium">to</span>
-                          <div className="flex-1">
-                            <Input
-                              type="number"
-                              placeholder="Max Price"
-                              value={priceRange.max || ''}
-                              onChange={(e) => setPriceRange(prev => ({...prev, max: Number(e.target.value) || 1000}))}
-                              className="h-10 text-sm border border-gray-300 rounded-lg"
-                            />
-                          </div>
-                        </div>
-                        <div className="mt-1 flex justify-between text-xs text-gray-500">
-                          <span>Min: ₹{priceRange.min}</span>
-                          <span>Max: ₹{priceRange.max}</span>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">Actions</label>
-                        <div className="space-y-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setSearchTerm('')
-                              setSelectedCategory('all')
-                              setPriceRange({min: 0, max: 1000})
-                              setSortBy('name')
-                              setAvailabilityFilter('all')
-                              setSelectedMealTypeFilter('all')
-                            }}
-                            className="h-10 w-full text-sm"
-                          >
-                            Clear All Filters
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* View Mode Toggle */}
-                    <div className="pt-2 border-t border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium text-gray-700">Display Style</label>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">View</label>
                         <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                           <Button
                             variant={viewMode === 'grid' ? 'default' : 'ghost'}
                             size="sm"
                             onClick={() => setViewMode('grid')}
-                            className={`rounded-none px-4 h-8 text-xs ${viewMode === 'grid' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                            className={`rounded-none flex-1 h-10 ${viewMode === 'grid' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'text-gray-600'}`}
                           >
-                            <Grid className="h-3 w-3 mr-1" />
+                            <Grid className="h-4 w-4 mr-1" />
                             Grid
                           </Button>
                           <Button
                             variant={viewMode === 'list' ? 'default' : 'ghost'}
                             size="sm"
                             onClick={() => setViewMode('list')}
-                            className={`rounded-none px-4 h-8 text-xs ${viewMode === 'list' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                            className={`rounded-none flex-1 h-10 ${viewMode === 'list' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'text-gray-600'}`}
                           >
-                            <List className="h-3 w-3 mr-1" />
+                            <List className="h-4 w-4 mr-1" />
                             List
                           </Button>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Filter Results Summary */}
-                    <div className="pt-2 border-t border-gray-100">
-                      <p className="text-sm text-gray-600">
-                        Showing <span className="font-medium text-orange-600">{filteredItems.length}</span> of {menuItems.length} items
-                        {(searchTerm || selectedCategory !== 'all' || availabilityFilter !== 'all' || selectedMealTypeFilter !== 'all' || priceRange.min > 0 || priceRange.max < 1000) && (
-                          <span className="text-xs text-gray-500 ml-1">with active filters</span>
-                        )}
-                      </p>
+                      
+                      {/* Quick Actions */}
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">Actions</label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSearchTerm('')
+                            setSelectedCategory('all')
+                            setShowFilters(false)
+                          }}
+                          className="h-10 w-full text-sm"
+                        >
+                          Clear All
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1386,7 +1230,6 @@ function OrderPageContent() {
             </div>
           </div>
         </div>
-      </div>
 
         {/* Customer Auth Modal */}
         <CustomerAuthModal

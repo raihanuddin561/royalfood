@@ -44,6 +44,11 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'rating' | 'popular'>('name')
   const [priceRange, setPriceRange] = useState<{min: number, max: number}>({min: 0, max: 1000})
   const [isCartLoaded, setIsCartLoaded] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  
+  // Additional filter states
+  const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'available' | 'unavailable'>('all')
+  const [selectedMealTypeFilter, setSelectedMealTypeFilter] = useState<'all' | 'breakfast' | 'lunch' | 'dinner'>('all')
 
   const router = useRouter()
 
@@ -181,31 +186,52 @@ export default function HomePage() {
       item.price >= priceRange.min && item.price <= priceRange.max
     )
 
+    // Filter by availability
+    if (availabilityFilter !== 'all') {
+      filtered = filtered.filter(item => {
+        if (availabilityFilter === 'available') return item.isAvailable
+        if (availabilityFilter === 'unavailable') return !item.isAvailable
+        return true
+      })
+    }
+
+    // Filter by meal type
+    if (selectedMealTypeFilter !== 'all') {
+      filtered = filtered.filter(item => 
+        (item.mealTypes?.includes(selectedMealTypeFilter.toUpperCase() as any) ?? false)
+      )
+    }
+
     // Sort items
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'price':
           return a.price - b.price
         case 'rating':
-          return (b.rating || 0) - (a.rating || 0)
+          // Rating not available in MenuItem type, sort by name for now
+          return a.name.localeCompare(b.name)
         case 'popular':
-          if (a.isPopular && !b.isPopular) return -1
-          if (!a.isPopular && b.isPopular) return 1
-          return 0
+          // Sort by availability first (available items first), then by name
+          if (a.isAvailable !== b.isAvailable) {
+            return b.isAvailable ? 1 : -1
+          }
+          return a.name.localeCompare(b.name)
         default:
           return a.name.localeCompare(b.name)
       }
     })
 
     setFilteredItems(filtered)
-  }, [menuItems, selectedCategory, searchQuery, sortBy, priceRange])
+  }, [menuItems, selectedCategory, searchQuery, sortBy, priceRange, availabilityFilter, selectedMealTypeFilter])
 
-  // Clear search
+  // Clear search and all filters
   const clearSearch = () => {
     setSearchQuery('')
     setSelectedCategory('all')
     setPriceRange({min: 0, max: 1000})
     setSortBy('name')
+    setAvailabilityFilter('all')
+    setSelectedMealTypeFilter('all')
     setShowSuggestions(false)
   }
 
@@ -414,230 +440,265 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Hero Section - Amazon Style */}
+      {/* Compact Hero Section - Mobile First */}
       <div className="bg-gradient-to-r from-orange-500 via-red-500 to-orange-600 text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 py-20">
+        <div className="relative max-w-7xl mx-auto px-4 py-6 sm:py-12 lg:py-20">
           <div className="text-center">
-            <h2 className="text-3xl sm:text-4xl lg:text-6xl font-bold mb-4 sm:mb-6 leading-tight">
-              Delicious Food<br />
-              <span className="text-yellow-300">Delivered Fast</span>
+            <h2 className="text-xl sm:text-3xl lg:text-6xl font-bold mb-2 sm:mb-4 lg:mb-6 leading-tight">
+              <span className="block sm:hidden">🍽️ Royal Food</span>
+              <span className="hidden sm:block">
+                Delicious Food<br />
+                <span className="text-yellow-300">Delivered Fast</span>
+              </span>
             </h2>
-            <p className="text-lg sm:text-xl lg:text-2xl mb-6 sm:mb-8 text-orange-100 px-4">
-              Experience premium quality food with lightning-fast delivery
+            <p className="text-sm sm:text-lg lg:text-2xl mb-4 sm:mb-6 lg:mb-8 text-orange-100">
+              <span className="block sm:hidden">Premium food, fast delivery</span>
+              <span className="hidden sm:block">Experience premium quality food with lightning-fast delivery</span>
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/public/order">
-                <Button className="bg-white !text-orange-600 hover:bg-orange-50 hover:!text-orange-700 font-bold px-4 sm:px-8 lg:px-12 py-3 sm:py-4 rounded-2xl shadow-xl text-sm sm:text-lg lg:text-xl border-2 border-orange-200">
-                  <span className="sm:hidden">🛒 Order Now</span>
-                  <span className="hidden sm:inline">🛒 Order Now • Free Delivery</span>
-                </Button>
-              </Link>
-              <Button variant="outline" className="border-white !text-white hover:bg-white hover:!text-orange-600 font-bold px-4 sm:px-8 lg:px-12 py-3 sm:py-4 rounded-2xl text-sm sm:text-lg lg:text-xl">
-                <span className="sm:hidden">📱 Get App</span>
-                <span className="hidden sm:inline">📱 Download App</span>
+            <Link href="/public/order">
+              <Button className="bg-white !text-orange-600 hover:bg-orange-50 hover:!text-orange-700 font-bold px-6 sm:px-8 lg:px-12 py-2 sm:py-3 lg:py-4 rounded-xl sm:rounded-2xl shadow-xl text-sm sm:text-lg lg:text-xl border border-orange-200 w-full sm:w-auto">
+                🛒 <span className="ml-2">
+                  <span className="sm:hidden">Order Now</span>
+                  <span className="hidden sm:inline">Order Now • Free Delivery</span>
+                </span>
               </Button>
-            </div>
+            </Link>
           </div>
         </div>
       </div>
-                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Enhanced Search Section - Amazon Style */}
-        <div className="bg-gradient-to-r from-white via-orange-50/50 to-white rounded-2xl lg:rounded-3xl shadow-2xl border-2 border-orange-200 p-4 lg:p-8 mb-8 lg:mb-10">
-          {/* Main Search Bar with Suggestions */}
-          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-center mb-6 lg:mb-8">
-            <div className="flex-1 max-w-2xl relative" ref={searchRef}>
+                  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {/* Compact Search Section */}
+        <div className="bg-white rounded-xl shadow-lg border border-orange-200 p-4 mb-6">
+          {/* Compact Search Bar */}
+          <div className="flex gap-3 items-center mb-4">
+            <div className="flex-1 relative" ref={searchRef}>
               <div className="relative">
-                <Search className="absolute left-3 lg:left-6 top-1/2 transform -translate-y-1/2 text-orange-500 h-4 w-4 lg:h-6 lg:w-6" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-500 h-5 w-5" />
                 <Input
-                  placeholder="Search for delicious food, cuisines, restaurants..."
+                  placeholder="Search delicious food..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch(searchQuery)}
                   onFocus={() => setShowSuggestions(true)}
-                  className="pl-10 lg:pl-16 h-12 lg:h-16 text-sm lg:text-lg border-2 lg:border-3 border-gray-300 focus:border-orange-500 focus:ring-orange-500 rounded-xl lg:rounded-2xl bg-white shadow-lg font-medium"
+                  className="pl-10 pr-4 h-12 text-base border-2 border-gray-300 focus:border-orange-500 rounded-xl bg-white shadow-sm font-medium"
                 />
                 {searchQuery && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={clearSearch}
-                    className="absolute right-2 lg:right-4 top-1/2 transform -translate-y-1/2 h-8 w-8 lg:h-10 lg:w-10 p-0 text-gray-400 hover:text-gray-600"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
                   >
                     ✕
                   </Button>
                 )}
               </div>
               
-              {/* Search Suggestions Dropdown */}
-              {showSuggestions && (searchSuggestions.length > 0 || searchHistory.length > 0) && (
-                <div className="absolute top-full left-0 right-0 bg-white border-2 border-gray-200 rounded-xl shadow-xl z-40 mt-2 max-h-80 overflow-y-auto">
-                  {searchSuggestions.length > 0 && (
-                    <div className="p-3 border-b border-gray-100">
-                      <p className="text-xs font-semibold text-gray-600 mb-2">SUGGESTIONS</p>
-                      {searchSuggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSearch(suggestion)}
-                          className="w-full text-left p-2 hover:bg-orange-50 rounded-lg flex items-center gap-2 text-sm"
-                        >
-                          <Search className="h-3 w-3 lg:h-4 lg:w-4 text-gray-400" />
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {searchHistory.length > 0 && (
-                    <div className="p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-gray-600">RECENT SEARCHES</p>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSearchHistory([])}
-                          className="text-xs text-gray-400 hover:text-gray-600 h-6 px-2"
-                        >
-                          Clear All
-                        </Button>
-                      </div>
-                      {searchHistory.slice(0, 5).map((history, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSearch(history)}
-                          className="w-full text-left p-2 hover:bg-gray-50 rounded-lg flex items-center gap-2 text-sm"
-                        >
-                          <Clock className="h-3 w-3 lg:h-4 lg:w-4 text-gray-400" />
-                          {history}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+              {/* Compact Search Suggestions */}
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-40 mt-1 max-h-60 overflow-y-auto">
+                  <div className="p-2">
+                    {searchSuggestions.slice(0, 3).map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSearch(suggestion)}
+                        className="w-full text-left p-2 hover:bg-orange-50 rounded text-sm flex items-center gap-2"
+                      >
+                        <Search className="h-3 w-3 text-gray-400" />
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
             
-            {/* Category Filter */}
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full sm:w-56 h-12 lg:h-16 border-2 lg:border-3 border-gray-300 rounded-xl lg:rounded-2xl bg-white shadow-lg text-sm lg:text-lg font-medium">
-                <Filter className="h-3 w-3 lg:h-5 lg:w-5 mr-2 lg:mr-3 text-orange-500 flex-shrink-0" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category} className="text-sm lg:text-lg py-2 lg:py-3">
-                    {category === 'all' ? '🍽️ All Categories' : `🍴 ${category}`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Filter Toggle Button */}
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className={`h-12 px-4 border-2 rounded-xl font-medium transition-all ${
+                showFilters 
+                  ? 'border-orange-500 bg-orange-50 text-orange-700' 
+                  : 'border-gray-300 hover:border-orange-400 hover:bg-orange-50'
+              }`}
+            >
+              <Filter className="h-5 w-5 mr-2" />
+              <span className="hidden sm:inline">Filters</span>
+            </Button>
           </div>
 
-          {/* Advanced Search Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            {/* Sort By */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Sort By</label>
-              <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
-                <SelectTrigger className="h-10 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">📝 Name (A-Z)</SelectItem>
-                  <SelectItem value="price">💰 Price (Low to High)</SelectItem>
-                  <SelectItem value="rating">⭐ Rating (High to Low)</SelectItem>
-                  <SelectItem value="popular">🔥 Most Popular</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Price Range */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Price Range</label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder="Min"
-                  value={priceRange.min}
-                  onChange={(e) => setPriceRange(prev => ({...prev, min: Number(e.target.value) || 0}))}
-                  className="h-10 text-sm"
-                />
-                <span className="text-gray-400">-</span>
-                <Input
-                  type="number"
-                  placeholder="Max"
-                  value={priceRange.max}
-                  onChange={(e) => setPriceRange(prev => ({...prev, max: Number(e.target.value) || 1000}))}
-                  className="h-10 text-sm"
-                />
+          {/* Collapsible Filters */}
+          {showFilters && (
+            <div className="space-y-4 pt-4 border-t border-gray-200 animate-in slide-in-from-top-2 duration-200">
+              {/* Primary Filters Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Category Filter */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Category</label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="h-10 border border-gray-300 rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(category => (
+                        <SelectItem key={category} value={category} className="text-sm py-2">
+                          {category === 'all' ? '🍽️ All Categories' : `🍴 ${category}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Meal Type Filter */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Available For</label>
+                  <Select value={selectedMealTypeFilter} onValueChange={(value) => setSelectedMealTypeFilter(value as any)}>
+                    <SelectTrigger className="h-10 border border-gray-300 rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-sm py-2">
+                        🌅 All Meal Times
+                      </SelectItem>
+                      <SelectItem value="breakfast" className="text-sm py-2">
+                        🌅 Breakfast Only
+                      </SelectItem>
+                      <SelectItem value="lunch" className="text-sm py-2">
+                        🌞 Lunch Only
+                      </SelectItem>
+                      <SelectItem value="dinner" className="text-sm py-2">
+                        🌙 Dinner Only
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Availability Filter */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Availability</label>
+                  <Select value={availabilityFilter} onValueChange={(value) => setAvailabilityFilter(value as any)}>
+                    <SelectTrigger className="h-10 border border-gray-300 rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-sm py-2">
+                        📋 All Items
+                      </SelectItem>
+                      <SelectItem value="available" className="text-sm py-2">
+                        ✅ Available Now
+                      </SelectItem>
+                      <SelectItem value="unavailable" className="text-sm py-2">
+                        ❌ Currently Unavailable
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Sort By */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Sort By</label>
+                  <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+                    <SelectTrigger className="h-10 border border-gray-300 rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name" className="text-sm py-2">
+                        📝 Name (A-Z)
+                      </SelectItem>
+                      <SelectItem value="price" className="text-sm py-2">
+                        💰 Price (Low to High)
+                      </SelectItem>
+                      <SelectItem value="rating" className="text-sm py-2">
+                        ⭐ Rating (High to Low)
+                      </SelectItem>
+                      <SelectItem value="popular" className="text-sm py-2">
+                        🔥 Most Popular
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            
-            {/* Quick Actions */}
-            <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">Quick Actions</label>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearSearch}
-                  className="text-xs"
-                >
-                  Clear All
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSortBy('popular')
-                    setSelectedCategory('all')
-                  }}
-                  className="text-xs"
-                >
-                  Show Popular
-                </Button>
+
+              {/* Secondary Filters Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+                {/* Price Range */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Price Range</label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Input
+                        type="number"
+                        placeholder="Min Price"
+                        value={priceRange.min || ''}
+                        onChange={(e) => setPriceRange(prev => ({...prev, min: Number(e.target.value) || 0}))}
+                        className="h-10 text-sm border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                    <span className="text-gray-400 font-medium">to</span>
+                    <div className="flex-1">
+                      <Input
+                        type="number"
+                        placeholder="Max Price"
+                        value={priceRange.max || ''}
+                        onChange={(e) => setPriceRange(prev => ({...prev, max: Number(e.target.value) || 1000}))}
+                        className="h-10 text-sm border border-gray-300 rounded-lg"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-1 flex justify-between text-xs text-gray-500">
+                    <span>Min: ₹{priceRange.min}</span>
+                    <span>Max: ₹{priceRange.max}</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Actions</label>
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearSearch}
+                      className="h-10 w-full text-sm"
+                    >
+                      Clear All Filters
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          
-          {/* Category Pills */}
-          <div className="flex flex-wrap gap-2 lg:gap-4">
-            {categories.slice(0, 8).map(category => (
-              <Button
-                key={category}
-                variant={selectedCategory === category ? 'default' : 'outline'}
-                onClick={() => setSelectedCategory(category)}
-                className={`h-10 lg:h-12 px-3 lg:px-6 font-bold transition-all duration-300 rounded-xl lg:rounded-2xl text-xs lg:text-sm ${
-                  selectedCategory === category 
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-xl' 
-                    : 'border-2 lg:border-3 border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-700'
-                }`}
-              >
-                {category === 'all' ? '🍽️ All Items' : `🍴 ${category}`}
-              </Button>
-            ))}
-          </div>
-          
-          {/* Search Results Summary */}
-          {(searchQuery || selectedCategory !== 'all') && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-blue-800">
-                  <strong>{filteredItems.length}</strong> items found
-                  {searchQuery && ` for "${searchQuery}"`}
-                  {selectedCategory !== 'all' && ` in ${selectedCategory}`}
+
+              {/* Filter Results Summary */}
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-sm text-gray-600">
+                  Showing <span className="font-medium text-orange-600">{filteredItems.length}</span> of {menuItems.length} items
+                  {(searchQuery || selectedCategory !== 'all' || availabilityFilter !== 'all' || selectedMealTypeFilter !== 'all' || priceRange.min > 0 || priceRange.max < 1000) && (
+                    <span className="text-xs text-gray-500 ml-1">with active filters</span>
+                  )}
                 </p>
-                {(searchQuery || selectedCategory !== 'all') && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearSearch}
-                    className="text-blue-600 hover:text-blue-800 text-xs"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
               </div>
+            </div>
+          )}
+
+          {/* Category Quick Access */}
+          {!showFilters && (
+            <div className="flex flex-wrap gap-2 justify-center">
+              {categories.slice(0, 6).map(category => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                  className={`h-8 px-4 text-xs font-medium transition-all rounded-full ${
+                    selectedCategory === category 
+                      ? 'bg-orange-500 hover:bg-orange-600 text-white shadow-md' 
+                      : 'border border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-700'
+                  }`}
+                >
+                  {category === 'all' ? 'All' : category}
+                </Button>
+              ))}
             </div>
           )}
         </div>
