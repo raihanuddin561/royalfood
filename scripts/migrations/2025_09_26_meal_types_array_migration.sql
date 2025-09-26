@@ -4,11 +4,21 @@
 --              to support multiple meal types per menu item
 
 -- This migration:
+-- 0. Creates MealType enum if it doesn't exist
 -- 1. Adds the new mealTypes array column with default value
 -- 2. Migrates existing mealType data to mealTypes array
 -- 3. Removes the old mealType column
 
 BEGIN;
+
+-- Step 0: Create the MealType enum if it doesn't exist
+-- This ensures we have the enum type before creating array columns
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'MealType') THEN
+        CREATE TYPE "public"."MealType" AS ENUM ('BREAKFAST', 'LUNCH', 'DINNER');
+    END IF;
+END $$;
 
 -- Step 1: Add the new mealTypes column with default value
 -- This ensures all existing records get a default value of ['LUNCH']
