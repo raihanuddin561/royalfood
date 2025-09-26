@@ -322,17 +322,57 @@ export default function AdminOrdersPage() {
                   {/* Order Info */}
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-lg">{order.orderNumber}</h3>
+                      <div>
+                        <h3 className="font-semibold text-lg">{order.orderNumber}</h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Ordered on {new Date(order.orderDate).toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
+                        </p>
+                      </div>
                       <Badge className={`${getStatusColor(order.status)} text-white`}>
                         {order.status.replace('_', ' ')}
                       </Badge>
                     </div>
                     <div className="space-y-1 text-sm text-gray-600">
+                      <p className="font-medium text-gray-800">
+                        <Calendar className="w-4 h-4 inline mr-1" />
+                        {formatDate(order.orderDate)}
+                      </p>
                       <p><Clock className="w-3 h-3 inline mr-1" />{formatTime(order.orderDate)}</p>
+                      {order.confirmedAt && (
+                        <p className="text-green-600 font-medium">
+                          <CheckCircle className="w-3 h-3 inline mr-1" />
+                          Confirmed: {formatDate(order.confirmedAt)}
+                        </p>
+                      )}
                       <p><MapPin className="w-3 h-3 inline mr-1" />{order.orderType.replace('_', ' ')}</p>
                       {order.tableNumber && (
                         <p>Table: {order.tableNumber}</p>
                       )}
+                      
+                      {/* Status Timestamps */}
+                      <div className="mt-2 pt-2 border-t border-gray-100 space-y-1">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Timeline</p>
+                        {order.preparingAt && (
+                          <p className="text-xs text-orange-600">
+                            🍳 Preparing: {formatTime(order.preparingAt)}
+                          </p>
+                        )}
+                        {order.readyAt && (
+                          <p className="text-xs text-green-600">
+                            ✅ Ready: {formatTime(order.readyAt)}
+                          </p>
+                        )}
+                        {order.deliveredAt && (
+                          <p className="text-xs text-blue-600">
+                            🚚 Delivered: {formatTime(order.deliveredAt)}
+                          </p>
+                        )}
+                      </div>
                       {order.isPreOrder && (
                         <div className="text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
                           <p className="font-semibold flex items-center gap-1">
