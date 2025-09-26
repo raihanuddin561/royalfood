@@ -24,6 +24,7 @@ export async function GET() {
         price: item.price,
         image: item.image,
         category: item.category?.name || 'Uncategorized',
+        mealTypes: item.mealTypes,
         prepTime: item.prepTime,
         isAvailable: item.isAvailable
       }))

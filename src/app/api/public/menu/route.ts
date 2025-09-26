@@ -5,21 +5,12 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   try {
     const [menuItems, categories] = await Promise.all([
-      // Get active and available menu items with categories
+      // Get active menu items (both available and unavailable for display)
       prisma.menuItem.findMany({
         where: {
-          isActive: true,
-          isAvailable: true
+          isActive: true
         },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          price: true,
-          deliveryCharge: true,
-          image: true,
-          prepTime: true,
-          categoryId: true,
+        include: {
           category: {
             select: {
               id: true,
@@ -69,8 +60,9 @@ export async function GET() {
       price: item.price,
       image: item.image,
       category: item.category.name,
+      mealTypes: item.mealTypes,
       prepTime: item.prepTime,
-      isAvailable: true
+      isAvailable: item.isAvailable
     }))
 
     return NextResponse.json({

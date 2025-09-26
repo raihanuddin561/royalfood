@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getContactPhone } from '@/lib/restaurant-config'
+import { getContactPhone, getOrderSettings } from '@/lib/restaurant-config'
 import { Badge } from '@/components/ui/badge'
 import { 
   Plus, 
@@ -41,6 +41,7 @@ import { toast } from 'sonner'
 import CustomerAuthModal from '@/components/auth/CustomerAuthModal'
 import { formatCurrency } from '@/lib/currency-config'
 import { CartIcon } from '@/components/ui/cart-icon'
+import MenuItemCard from '@/components/ui/MenuItemCard'
 import Head from 'next/head'
 
 type MenuItem = {
@@ -50,6 +51,7 @@ type MenuItem = {
   price: number
   image?: string
   category: string
+  mealTypes?: string[]
   prepTime?: number
   isAvailable: boolean
 }
@@ -113,6 +115,17 @@ function OrderPageContent() {
   const [isPreOrder, setIsPreOrder] = useState(false)
   const [scheduledDate, setScheduledDate] = useState('')
   const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner'>('lunch')
+  
+  // Get restaurant settings
+  const orderSettings = getOrderSettings()
+  const preorderEnabled = orderSettings.preorderEnabled
+  
+  // Reset preorder state if preorders are disabled
+  useEffect(() => {
+    if (!preorderEnabled && isPreOrder) {
+      setIsPreOrder(false)
+    }
+  }, [preorderEnabled, isPreOrder])
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [currentCustomer, setCurrentCustomer] = useState<CustomerInfo | null>(null)
   const [guestInfo, setGuestInfo] = useState({
@@ -270,7 +283,11 @@ function OrderPageContent() {
     const itemId = searchParams.get('item')
     if (itemId && menuItems.length > 0) {
       const item = menuItems.find(menuItem => menuItem.id === itemId)
-      if (item && item.isAvailable) {
+      if (item) {
+        if (!item.isAvailable) {
+          toast.error(`${item.name} is currently unavailable`)
+          return
+        }
         // Check if item is already in cart
         const existingItem = cart.find(cartItem => cartItem.menuItemId === itemId)
         if (!existingItem) {
@@ -333,16 +350,32 @@ function OrderPageContent() {
     }
   }
 
-  // Filter menu items
+  // Filter menu items - now includes unavailable items to show availability status
   const filteredItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesCategory && matchesSearch && item.isAvailable
+    const matchesMealType = mealType === 'breakfast' ? (item.mealTypes?.includes('BREAKFAST') ?? false) :
+                           mealType === 'lunch' ? (item.mealTypes?.includes('LUNCH') ?? false) :
+                           mealType === 'dinner' ? (item.mealTypes?.includes('DINNER') ?? false) : true
+    return matchesCategory && matchesSearch && matchesMealType
   })
 
   // Cart functions
   const addToCart = (item: MenuItem) => {
+    // Check if item is available before adding to cart
+    if (!item.isAvailable) {
+      toast.error(`${item.name} is currently unavailable`)
+      return
+    }
+
+    // Check if item is compatible with selected meal type
+    const selectedMealTypeUpper = mealType.toUpperCase()
+    if (!(item.mealTypes?.includes(selectedMealTypeUpper as any) ?? false)) {
+      toast.error(`${item.name} is not available for ${mealType}. Please select a different meal type or choose another item.`)
+      return
+    }
+
     setCart(prev => {
       const existing = prev.find(cartItem => cartItem.menuItemId === item.id)
       if (existing) {
@@ -398,6 +431,22 @@ function OrderPageContent() {
     return cart.find(item => item.menuItemId === menuItemId)?.quantity || 0
   }
 
+  // Adapter functions for MenuItemCard component compatibility
+  const addToCartById = (itemId: string) => {
+    const menuItem = menuItems.find(item => item.id === itemId)
+    if (menuItem) {
+      addToCart(menuItem)
+    }
+  }
+
+  const updateQuantityById = (itemId: string, newQuantity: number) => {
+    updateQuantity(itemId, newQuantity)
+  }
+
+  const removeFromCartById = (itemId: string) => {
+    removeFromCart(itemId)
+  }
+
   const handleCustomerAuth = (customer: CustomerInfo) => {
     setCurrentCustomer(customer)
     setShowAuthModal(false)
@@ -421,8 +470,25 @@ function OrderPageContent() {
       return
     }
 
+    // Validate meal type compatibility
+    const selectedMealTypeUpper = mealType.toUpperCase()
+    const incompatibleItems = cart.filter(cartItem => {
+      const menuItem = menuItems.find(m => m.id === cartItem.menuItemId)
+      return menuItem && !(menuItem.mealTypes?.includes(selectedMealTypeUpper as any) ?? false)
+    })
+
+    if (incompatibleItems.length > 0) {
+      const itemNames = incompatibleItems.map(item => item.name).join(', ')
+      toast.error(`The following items are not available for ${mealType}: ${itemNames}. Please remove them from your cart or change the meal type.`)
+      return
+    }
+
     // Validate pre-order restrictions
     if (isPreOrder) {
+      if (!preorderEnabled) {
+        toast.error('Pre-orders are currently disabled')
+        return
+      }
       if (!scheduledDate) {
         toast.error('Please select a date for your pre-order')
         return
@@ -579,10 +645,36 @@ function OrderPageContent() {
             
             {/* Mobile Trust Badges */}
             <div className="lg:hidden pb-4">
-              <div className="flex items-center justify-center space-x-3">
+              <div className="flex items-center justify-center space-x-3 mb-4">
                 <Badge className="bg-yellow-500 text-white text-xs font-bold">4.9★ 50K+</Badge>
                 <Badge className="bg-green-500 text-white text-xs font-bold">Express</Badge>
                 <Badge className="bg-blue-500 text-white text-xs font-bold">100% Safe</Badge>
+              </div>
+              
+              {/* Mobile Meal Type Selector - Prominent */}
+              <div className="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-xl p-4 border-2 border-orange-200">
+                <h3 className="text-sm font-bold text-gray-800 mb-3 text-center">🍽️ Choose Your Meal Time</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'breakfast', label: '🌅 Breakfast', icon: '🥐' },
+                    { value: 'lunch', label: '🌞 Lunch', icon: '🍽️' },
+                    { value: 'dinner', label: '🌙 Dinner', icon: '🍝' }
+                  ].map(({ value, label, icon }) => (
+                    <Button
+                      key={value}
+                      variant={mealType === value ? 'default' : 'outline'}
+                      onClick={() => setMealType(value as 'breakfast' | 'lunch' | 'dinner')}
+                      className={`h-16 flex flex-col items-center justify-center font-bold text-xs transition-all duration-300 rounded-xl ${
+                        mealType === value 
+                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg scale-105' 
+                          : 'border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-700 hover:scale-105'
+                      }`}
+                    >
+                      <span className="text-lg mb-1">{icon}</span>
+                      <span className="text-[10px] leading-tight">{label.split(' ')[1]}</span>
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -590,8 +682,8 @@ function OrderPageContent() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
-            {/* Main Content - Menu Items */}
-            <div className="lg:col-span-3">
+            {/* Main Content - Menu Items - Shows first on mobile */}
+            <div className="lg:col-span-3 order-1 lg:order-1">
               {/* Premium Search and Filters - Amazon Style */}
               <div className="bg-gradient-to-r from-white via-orange-50/50 to-white rounded-xl lg:rounded-3xl shadow-xl border-2 border-orange-200 p-4 lg:p-8 mb-6 lg:mb-10">
                 {/* Main Search Bar */}
@@ -614,15 +706,36 @@ function OrderPageContent() {
                   </div>
                   
                   {/* Filter Controls */}
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col lg:flex-row items-stretch lg:items-center space-y-4 lg:space-y-0 lg:space-x-4">
+                    {/* Meal Type Selector */}
+                    <Select value={mealType} onValueChange={(value) => setMealType(value as 'breakfast' | 'lunch' | 'dinner')}>
+                      <SelectTrigger className="w-full lg:w-56 h-12 lg:h-16 border-2 lg:border-3 border-gray-300 rounded-xl lg:rounded-2xl bg-white shadow-lg text-base lg:text-lg font-medium">
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 lg:h-5 lg:w-5 mr-2 lg:mr-3 text-orange-500" />
+                          <SelectValue />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="breakfast" className="text-base lg:text-lg py-2 lg:py-3">
+                          🌅 Breakfast
+                        </SelectItem>
+                        <SelectItem value="lunch" className="text-base lg:text-lg py-2 lg:py-3">
+                          🌞 Lunch
+                        </SelectItem>
+                        <SelectItem value="dinner" className="text-base lg:text-lg py-2 lg:py-3">
+                          🌙 Dinner
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="w-56 h-16 border-3 border-gray-300 rounded-2xl bg-white shadow-lg text-lg font-medium">
-                        <Filter className="h-5 w-5 mr-3 text-orange-500" />
+                      <SelectTrigger className="w-full lg:w-56 h-12 lg:h-16 border-2 lg:border-3 border-gray-300 rounded-xl lg:rounded-2xl bg-white shadow-lg text-base lg:text-lg font-medium">
+                        <Filter className="h-4 w-4 lg:h-5 lg:w-5 mr-2 lg:mr-3 text-orange-500" />
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {categories.map(category => (
-                          <SelectItem key={category} value={category} className="text-lg py-3">
+                          <SelectItem key={category} value={category} className="text-base lg:text-lg py-2 lg:py-3">
                             {category === 'all' ? '🍽️ All Categories' : `🍴 ${category}`}
                           </SelectItem>
                         ))}
@@ -720,188 +833,15 @@ function OrderPageContent() {
                     const cartQuantity = getCartQuantity(item.id)
                     
                     return (
-                      <Card key={item.id} className={`group hover:shadow-2xl transition-all duration-300 border-2 border-gray-200 hover:border-orange-400 bg-white overflow-hidden hover:scale-[1.02] transform ${
-                        viewMode === 'list' ? 'flex flex-col sm:flex-row' : ''
-                      }`}>
-                        {/* Product Image Section */}
-                        <div className={`relative ${
-                          viewMode === 'list' ? 'w-full sm:w-64 sm:flex-shrink-0 h-48 sm:h-auto' : 'aspect-[4/3]'
-                        } overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100`}>
-                          {item.image ? (
-                            <Image
-                              src={item.image}
-                              alt={item.name}
-                              fill
-                              className="object-cover group-hover:scale-105 transition-transform duration-300"
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-yellow-100">
-                              <ChefHat className="h-20 w-20 text-orange-400" />
-                            </div>
-                          )}
-                          
-                          {/* Premium Badges */}
-                          <div className="absolute top-4 left-4 flex flex-col gap-2">
-                            <Badge className="bg-red-500 text-white text-xs font-bold px-2 py-1">
-                              25% OFF
-                            </Badge>
-                            <Badge className="bg-green-600 text-white text-xs font-semibold px-2 py-1">
-                              <Zap className="h-3 w-3 mr-1" />
-                              Fast Delivery
-                            </Badge>
-                          </div>
-                          
-                          {/* Wishlist Button */}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-700 h-10 w-10 p-0 rounded-full shadow-md"
-                          >
-                            <Heart className="h-5 w-5" />
-                          </Button>
-                        </div>
-                        
-                        {/* Product Details Section */}
-                        <CardContent className={`p-6 flex-1 ${viewMode === 'list' ? 'flex flex-col justify-between' : ''}`}>
-                          <div className="space-y-4">
-                            {/* Product Title & Rating */}
-                            <div>
-                              <h3 className="font-bold text-xl text-gray-900 leading-tight mb-2 hover:text-orange-600 transition-colors cursor-pointer line-clamp-2">
-                                {item.name}
-                              </h3>
-                              <div className="flex items-center space-x-2">
-                                <div className="flex items-center space-x-1">
-                                  {[...Array(5)].map((_, i) => (
-                                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                                  ))}
-                                </div>
-                                <span className="text-sm font-medium text-gray-700">(4.8)</span>
-                                <span className="text-sm text-gray-700">1,234 reviews</span>
-                              </div>
-                            </div>
-                            
-                            {/* Product Description */}
-                            {item.description && (
-                              <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
-                                {item.description}
-                              </p>
-                            )}
-                            
-                            {/* Features & Benefits */}
-                            <div className="flex flex-wrap gap-2">
-                              <Badge variant="outline" className="text-xs border-green-200 text-green-700 bg-green-50">
-                                <Shield className="h-3 w-3 mr-1" />
-                                Fresh & Hygienic
-                              </Badge>
-                              <Badge variant="outline" className="text-xs border-blue-200 text-blue-700 bg-blue-50">
-                                <Award className="h-3 w-3 mr-1" />
-                                Chef's Special
-                              </Badge>
-                              {item.prepTime && (
-                                <Badge variant="outline" className="text-xs border-orange-200 text-orange-700 bg-orange-50">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {item.prepTime} min
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            {/* Price Section */}
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <div className="flex items-baseline space-x-2">
-                                  <span className="text-3xl font-bold text-orange-600">
-                                    {formatCurrency(item.price)}
-                                  </span>
-                                  <span className="text-lg text-gray-600 line-through">
-                                    {formatCurrency(Math.round(item.price * 1.33))}
-                                  </span>
-                                </div>
-                                <div className="flex items-center space-x-1 text-xs text-green-600 font-medium">
-                                  <Truck className="h-3 w-3" />
-                                  <span>Free delivery on orders over BDT 500</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {/* Action Buttons - Amazon Style */}
-                            <div className="pt-4 space-y-3">
-                              {cartQuantity > 0 ? (
-                                <div className="space-y-3">
-                                  {/* Quantity Controls */}
-                                  <div className="flex items-center justify-center space-x-4 bg-orange-50 rounded-lg p-3 border border-orange-200">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => updateQuantity(item.id, cartQuantity - 1)}
-                                      className="h-10 w-10 p-0 border-orange-300 hover:bg-orange-100 text-orange-600"
-                                    >
-                                      <Minus className="h-5 w-5" />
-                                    </Button>
-                                    <span className="font-bold text-2xl text-orange-700 min-w-[60px] text-center">
-                                      {cartQuantity}
-                                    </span>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => updateQuantity(item.id, cartQuantity + 1)}
-                                      className="h-10 w-10 p-0 border-orange-300 hover:bg-orange-100 text-orange-600"
-                                    >
-                                      <Plus className="h-5 w-5" />
-                                    </Button>
-                                  </div>
-                                  
-                                  {/* Remove from Cart */}
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => removeFromCart(item.id)}
-                                    className="w-full h-12 border-red-300 text-red-600 hover:bg-red-50 font-medium"
-                                  >
-                                    Remove from Cart
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {/* Primary Add to Cart Button - Amazon Style */}
-                                  <Button
-                                    onClick={() => addToCart(item)}
-                                    className="w-full h-14 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg"
-                                  >
-                                    <ShoppingCart className="h-5 w-5 mr-3" />
-                                    Add to Cart
-                                  </Button>
-                                  
-                                  {/* Secondary Order Now Button - Alibaba Style */}
-                                  <Button
-                                    onClick={() => addToCart(item)}
-                                    variant="outline"
-                                    className="w-full h-10 sm:h-12 md:h-12 lg:h-12 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold rounded-lg text-sm sm:text-base md:text-base lg:text-base px-3 sm:px-4 md:px-4 lg:px-4"
-                                  >
-                                    <Zap className="h-3 w-3 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-4 lg:w-4 mr-1 sm:mr-2 md:mr-2 lg:mr-2" />
-                                    <span className="text-xs sm:text-sm md:text-base lg:text-base">Order Now</span>
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Trust Indicators */}
-                            <div className="flex items-center justify-between text-xs text-gray-700 pt-2 border-t border-gray-100">
-                              <div className="flex items-center space-x-1">
-                                <Shield className="h-3 w-3 text-green-500" />
-                                <span>Secure Payment</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Truck className="h-3 w-3 text-blue-500" />
-                                <span>Fast Shipping</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Award className="h-3 w-3 text-purple-500" />
-                                <span>Quality Guaranteed</span>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <MenuItemCard
+                        key={item.id}
+                        item={item}
+                        cartQuantity={cartQuantity}
+                        onAddToCart={addToCartById}
+                        onUpdateQuantity={updateQuantityById}
+                        onRemoveFromCart={removeFromCartById}
+                        variant={viewMode === 'list' ? 'compact' : 'default'}
+                      />
                     )
                   })}
                 </div>
@@ -934,8 +874,8 @@ function OrderPageContent() {
               )}
             </div>
 
-            {/* Sidebar - Cart & Order Details */}
-            <div className="lg:col-span-1 order-first lg:order-last">
+            {/* Sidebar - Cart & Order Details - Hidden on mobile, replaced with floating cart */}
+            <div className="lg:col-span-1 order-2 lg:order-2 hidden lg:block">
               <div className="lg:sticky lg:top-24 space-y-4 lg:space-y-6">
                 {/* Cart Summary */}
                 <Card className="bg-gradient-to-br from-white to-orange-50/50 shadow-xl lg:shadow-2xl border-2 border-orange-100 backdrop-blur-sm">
@@ -1032,17 +972,18 @@ function OrderPageContent() {
                         )}
 
                         {/* Pre-order Options */}
-                        <div className="mt-4">
-                          <div className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id="preorder"
-                              checked={isPreOrder}
-                              onChange={(e) => setIsPreOrder(e.target.checked)}
-                              className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-                            />
-                            <Label htmlFor="preorder" className="text-sm text-gray-700">Schedule for later (Pre-order)</Label>
-                          </div>
+                        {preorderEnabled && (
+                          <div className="mt-4">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id="preorder"
+                                checked={isPreOrder}
+                                onChange={(e) => setIsPreOrder(e.target.checked)}
+                                className="rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+                              />
+                              <Label htmlFor="preorder" className="text-sm text-gray-700">Schedule for later (Pre-order)</Label>
+                            </div>
 
                           {isPreOrder && (
                             <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -1101,7 +1042,8 @@ function OrderPageContent() {
                               </div>
                             </div>
                           )}
-                        </div>
+                          </div>
+                        )}
 
                         {/* Order Notes */}
                         <div className="mt-4">
@@ -1332,24 +1274,50 @@ function OrderPageContent() {
           onSuccess={handleCustomerAuth}
         />
 
-        {/* Floating Cart Summary - Only show when cart has items */}
-        {cart.length > 0 && (
-          <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex items-center space-x-2 sm:space-x-3">
-            {/* Cart Summary */}
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl rounded-lg px-3 py-2 sm:px-4 sm:py-3 border border-orange-600 backdrop-blur-sm max-w-[200px] sm:max-w-none">
-              <p className="text-xs sm:text-sm font-medium leading-tight">
-                {cart.reduce((sum, item) => sum + item.quantity, 0)} items • {formatCurrency(total)}
-              </p>
+        {/* Mobile Floating Cart - Enhanced for better UX */}
+        <div className="lg:hidden">
+          {cart.length > 0 && (
+            <div className="fixed bottom-4 left-4 right-4 z-50">
+              <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-2xl rounded-xl p-4 border-2 border-orange-400 backdrop-blur-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="font-bold text-lg">
+                      {cart.reduce((sum, item) => sum + item.quantity, 0)} items
+                    </p>
+                    <p className="text-orange-100 text-sm">Total: {formatCurrency(total)}</p>
+                  </div>
+                  <Link href="/public/cart">
+                    <Button className="bg-white text-orange-600 hover:bg-orange-50 font-bold px-6 py-3 rounded-lg shadow-lg">
+                      View Cart
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </div>
-            {/* Floating Cart Icon */}
-            <CartIcon 
-              itemCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
-              variant="floating"
-              className="w-14 h-14 sm:w-16 sm:h-16 hover:scale-110 transition-transform shadow-2xl"
-              href="/public/cart"
-            />
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Desktop Floating Cart - Compact version */}
+        <div className="hidden lg:block">
+          {cart.length > 0 && (
+            <div className="fixed bottom-6 right-6 z-50 flex items-center space-x-3">
+              {/* Cart Summary */}
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl rounded-lg px-4 py-3 border border-orange-600 backdrop-blur-sm">
+                <p className="text-sm font-medium leading-tight">
+                  {cart.reduce((sum, item) => sum + item.quantity, 0)} items • {formatCurrency(total)}
+                </p>
+              </div>
+              {/* Floating Cart Icon */}
+              <CartIcon 
+                itemCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+                variant="floating"
+                className="w-16 h-16 hover:scale-110 transition-transform shadow-2xl"
+                href="/public/cart"
+              />
+            </div>
+          )}
+        </div>
       </div>
     </>
   )

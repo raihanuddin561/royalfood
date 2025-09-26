@@ -41,7 +41,12 @@ DATABASE_URL_NEW="postgresql://user:pass@host:5432/database?sslmode=require"
   console.log(`✅ Creating Prisma client (NODE_ENV: ${process.env.NODE_ENV})`)
   
   return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL_NEW
+      }
+    }
   })
 }
 

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('📄 [MENU_ITEM_CREATE] Parsing request body...')
     const body = await request.json()
-    const { name, categoryId, description, price, deliveryCharge, prepTime, image, isAvailable, ingredients } = body
+    const { name, categoryId, description, price, deliveryCharge, prepTime, image, mealTypes, isAvailable, ingredients } = body
 
     console.log('📋 [MENU_ITEM_CREATE] Request data:', {
       name,
@@ -51,6 +51,15 @@ export async function POST(request: NextRequest) {
       console.error('❌ [MENU_ITEM_CREATE] Missing required fields:', { name: !!name, categoryId: !!categoryId, price: !!price })
       return NextResponse.json(
         { error: 'Name, category, and price are required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate meal types
+    if (!mealTypes || !Array.isArray(mealTypes) || mealTypes.length === 0) {
+      console.error('❌ [MENU_ITEM_CREATE] Invalid meal types:', mealTypes)
+      return NextResponse.json(
+        { error: 'At least one meal type must be selected' },
         { status: 400 }
       )
     }
@@ -97,6 +106,7 @@ export async function POST(request: NextRequest) {
       costPrice,
       prepTime: prepTime ? parseInt(prepTime) : null,
       image: image || null,
+      mealTypes: mealTypes && mealTypes.length > 0 ? mealTypes : ['LUNCH'],
       isAvailable: isAvailable !== undefined ? isAvailable : true
     }
 

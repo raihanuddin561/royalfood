@@ -39,6 +39,7 @@ export default function AddMenuItemPage() {
     deliveryCharge: '',
     prepTime: '',
     image: '',
+    mealTypes: ['LUNCH'],
     isAvailable: true
   })
 
@@ -162,6 +163,13 @@ export default function AddMenuItemPage() {
     e.preventDefault()
     setLoading(true)
 
+    // Validate meal types
+    if (formData.mealTypes.length === 0) {
+      showNotification('error', 'Please select at least one meal type')
+      setLoading(false)
+      return
+    }
+
     console.log('📤 [MENU_FORM] Starting form submission...')
     console.log('📋 [MENU_FORM] Form data:', {
       name: formData.name,
@@ -173,6 +181,8 @@ export default function AddMenuItemPage() {
       image: formData.image ? 'provided' : 'empty',
       imageUrl: formData.image,
       imageLength: formData.image?.length,
+      mealTypesCount: formData.mealTypes.length,
+      mealTypes: formData.mealTypes,
       isAvailable: formData.isAvailable,
       ingredientsCount: selectedIngredients.length,
       noIngredients
@@ -305,6 +315,42 @@ export default function AddMenuItemPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Meal Types *
+                </label>
+                <div className="mt-1 space-y-2">
+                  {['BREAKFAST', 'LUNCH', 'DINNER'].map((mealType) => (
+                    <label key={mealType} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.mealTypes.includes(mealType)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({ 
+                              ...formData, 
+                              mealTypes: [...formData.mealTypes, mealType]
+                            })
+                          } else {
+                            setFormData({ 
+                              ...formData, 
+                              mealTypes: formData.mealTypes.filter(mt => mt !== mealType)
+                            })
+                          }
+                        }}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        {mealType.charAt(0) + mealType.slice(1).toLowerCase()}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Select one or more meal types for this item
+                </p>
               </div>
 
               <div className="sm:col-span-6">

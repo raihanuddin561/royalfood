@@ -3,10 +3,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     const menuItem = await prisma.menuItem.findUnique({
       where: { id },
@@ -39,12 +39,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
-    const { name, categoryId, description, price, prepTime, image, isAvailable, ingredients } = body
+    const { name, categoryId, description, price, prepTime, image, mealTypes, isAvailable, ingredients } = body
 
     console.log('📝 [MENU_ITEM_UPDATE] Updating menu item:', {
       id,
@@ -62,6 +62,14 @@ export async function PUT(
     if (!name || !categoryId || !price) {
       return NextResponse.json(
         { error: 'Name, category, and price are required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate meal types
+    if (!mealTypes || !Array.isArray(mealTypes) || mealTypes.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one meal type must be selected' },
         { status: 400 }
       )
     }
@@ -95,6 +103,7 @@ export async function PUT(
           costPrice,
           prepTime: prepTime ? parseInt(prepTime) : null,
           image: image || null,
+          mealTypes: mealTypes && mealTypes.length > 0 ? mealTypes : ['LUNCH'],
           isAvailable: isAvailable !== undefined ? isAvailable : true
         },
         include: {
@@ -137,10 +146,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params
+    const { id } = await params
 
     // Check if menu item exists
     const existingMenuItem = await prisma.menuItem.findUnique({

@@ -19,6 +19,7 @@ interface MenuItemData {
   price: number
   costPrice: number
   prepTime: number | null
+  mealTypes: string[]
   isAvailable: boolean
   image?: string
   category: {
@@ -79,6 +80,7 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
     price: '',
     prepTime: '',
     image: '',
+    mealTypes: [] as string[],
     isAvailable: true
   })
 
@@ -116,6 +118,7 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
         price: menuItemData.price.toString(),
         prepTime: menuItemData.prepTime?.toString() || '',
         image: menuItemData.image || '',
+        mealTypes: menuItemData.mealTypes || ['LUNCH'],
         isAvailable: menuItemData.isAvailable
       })
 
@@ -176,6 +179,13 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate meal types
+    if (formData.mealTypes.length === 0) {
+      showNotification('error', 'Please select at least one meal type')
+      return
+    }
+
     setSaving(true)
 
     try {
@@ -338,6 +348,39 @@ export default function EditMenuItemPage({ params }: { params: { id: string } })
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Meal Types * (Select at least one)
+              </label>
+              <div className="space-y-2">
+                {['BREAKFAST', 'LUNCH', 'DINNER'].map((mealType) => (
+                  <label key={mealType} className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.mealTypes.includes(mealType)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            mealTypes: [...formData.mealTypes, mealType]
+                          })
+                        } else {
+                          setFormData({
+                            ...formData,
+                            mealTypes: formData.mealTypes.filter(type => type !== mealType)
+                          })
+                        }
+                      }}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700 capitalize">
+                      {mealType.toLowerCase()}
+                    </span>
+                  </label>
+                ))}
+              </div>
             </div>
 
             <div className="sm:col-span-2">

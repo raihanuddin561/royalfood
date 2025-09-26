@@ -43,6 +43,8 @@ interface OrderDetails {
 export default function CartPage() {
   const router = useRouter()
   const [cart, setCart] = useState<CartItem[]>([])
+  const [menuItems, setMenuItems] = useState<any[]>([]) // For meal type validation
+  const [mealType, setMealType] = useState<'breakfast' | 'lunch' | 'dinner'>('lunch')
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: '',
     phone: '',
@@ -57,8 +59,23 @@ export default function CartPage() {
   })
   const [isLoading, setIsLoading] = useState(false)
 
+  // Fetch menu items for meal type validation
+  const fetchMenuItems = async () => {
+    try {
+      const response = await fetch('/api/public/menu')
+      if (response.ok) {
+        const data = await response.json()
+        setMenuItems(data)
+      }
+    } catch (error) {
+      console.error('Error fetching menu items:', error)
+    }
+  }
+
   // Load cart from localStorage
   useEffect(() => {
+    fetchMenuItems()
+    
     const savedCart = localStorage.getItem('royal-food-cart')
     if (savedCart) {
       try {
@@ -243,6 +260,19 @@ export default function CartPage() {
       return
     }
 
+    // Validate meal type compatibility
+    const selectedMealTypeUpper = mealType.toUpperCase()
+    const incompatibleItems = cart.filter(cartItem => {
+      const menuItem = menuItems.find(m => m.id === cartItem.menuItemId)
+      return menuItem && !(menuItem.mealTypes?.includes(selectedMealTypeUpper as any) ?? false)
+    })
+
+    if (incompatibleItems.length > 0) {
+      const itemNames = incompatibleItems.map(item => item.name).join(', ')
+      toast.error(`The following items are not available for ${mealType}: ${itemNames}. Please remove them from your cart or change the meal type.`)
+      return
+    }
+
     if (!customerInfo.name || !customerInfo.phone) {
       toast.error('Please fill in your name and phone number')
       return
@@ -421,7 +451,7 @@ export default function CartPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex items-center gap-4 mb-6">
             <Link href="/public/order">
               <Button variant="outline" size="sm" className="flex items-center gap-2 text-xs sm:text-sm whitespace-nowrap overflow-hidden">
                 <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
@@ -434,6 +464,37 @@ export default function CartPage() {
               {cart.length} {cart.length === 1 ? 'item' : 'items'}
             </Badge>
           </div>
+
+          {/* Meal Type Selection */}
+          <Card className="mb-8 bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-200">
+            <CardContent className="p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">🍽️ Select Meal Time</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { value: 'breakfast', label: '🌅 Breakfast', time: '7:00 AM - 11:00 AM' },
+                  { value: 'lunch', label: '🌞 Lunch', time: '12:00 PM - 4:00 PM' },
+                  { value: 'dinner', label: '🌙 Dinner', time: '6:00 PM - 11:00 PM' }
+                ].map(({ value, label, time }) => (
+                  <Button
+                    key={value}
+                    variant={mealType === value ? 'default' : 'outline'}
+                    onClick={() => setMealType(value as 'breakfast' | 'lunch' | 'dinner')}
+                    className={`h-20 flex flex-col items-center justify-center font-bold transition-all duration-300 rounded-xl ${
+                      mealType === value 
+                        ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg scale-105' 
+                        : 'border-2 border-orange-200 hover:border-orange-400 hover:bg-orange-50 text-orange-700 hover:scale-105'
+                    }`}
+                  >
+                    <span className="text-base">{label}</span>
+                    <span className="text-xs mt-1 opacity-75">{time}</span>
+                  </Button>
+                ))}
+              </div>
+              <p className="text-sm text-gray-600 text-center mt-4">
+                ⚠️ Items will be validated against your selected meal time before checkout
+              </p>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Cart Items & Customer Info */}

@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import Image from 'next/image'
 import { formatCurrency } from '@/lib/currency-config'
+import MenuItemCard from '@/components/ui/MenuItemCard'
 
 type MenuItem = {
   id: string
@@ -22,6 +23,7 @@ type MenuItem = {
   price: number
   image?: string
   category: string
+  mealTypes?: string[]
   prepTime?: number
   isAvailable: boolean
   rating?: number
@@ -758,116 +760,15 @@ export default function HomePage() {
               {filteredItems.map((item) => {
                 const cartQuantity = getCartQuantity(item.id)
                 return (
-                  <Card key={item.id} className="group hover:shadow-2xl transition-all duration-300 border-2 border-gray-200 hover:border-orange-400 bg-white overflow-hidden hover:scale-[1.02] transform">
-                    <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-                      {item.image ? (
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-100 to-yellow-100">
-                          <ChefHat className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 text-orange-400" />
-                        </div>
-                      )}
-                      
-                      <div className="absolute top-3 left-3 sm:top-4 sm:left-4">
-                        <Badge className="bg-red-500 text-white text-xs font-bold px-2 py-1">
-                          25% OFF
-                        </Badge>
-                      </div>
-                      
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-3 right-3 sm:top-4 sm:right-4 bg-white/90 hover:bg-white text-gray-700 h-8 w-8 sm:h-10 sm:w-10 p-0 rounded-full shadow-md"
-                      >
-                        <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </Button>
-                    </div>
-                    
-                    <CardContent className="p-6">
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="font-bold text-lg text-gray-900 leading-tight mb-2 hover:text-orange-600 transition-colors cursor-pointer line-clamp-2">
-                            {item.name}
-                          </h3>
-                          <div className="flex items-center space-x-2">
-                            <div className="flex items-center space-x-1">
-                              {[...Array(5)].map((_, i) => (
-                                <Star key={i} className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 fill-current" />
-                              ))}
-                            </div>
-                            <span className="text-xs sm:text-sm font-medium text-gray-700">(4.8)</span>
-                          </div>
-                        </div>
-                        
-                        {item.description && (
-                          <p className="text-gray-600 text-sm leading-relaxed line-clamp-2">
-                            {item.description}
-                          </p>
-                        )}
-                        
-                        <div className="flex items-baseline space-x-2">
-                          <span className="text-2xl font-bold text-orange-600">
-                            {formatCurrency(item.price)}
-                          </span>
-                          <span className="text-sm text-gray-600 line-through">
-                            {formatCurrency(Math.round(item.price * 1.33))}
-                          </span>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {cartQuantity > 0 ? (
-                            <div className="flex items-center justify-center space-x-3 sm:space-x-4 bg-orange-100 rounded-xl p-2 sm:p-3 border-2 border-orange-300">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => updateQuantity(item.id, cartQuantity - 1)}
-                                className="h-8 w-8 sm:h-10 sm:w-10 p-0 border-2 border-red-500 hover:bg-red-100 text-red-700 hover:text-red-800 hover:border-red-600 bg-white font-bold shadow-sm"
-                              >
-                                <Minus className="h-3 w-3 sm:h-5 sm:w-5" />
-                              </Button>
-                              <span className="font-bold text-xl sm:text-2xl text-orange-800 min-w-[40px] sm:min-w-[50px] text-center">
-                                {cartQuantity}
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => updateQuantity(item.id, cartQuantity + 1)}
-                                className="h-8 w-8 sm:h-10 sm:w-10 p-0 border-2 border-green-500 hover:bg-green-100 text-green-700 hover:text-green-800 hover:border-green-600 bg-white font-bold shadow-sm"
-                              >
-                                <Plus className="h-3 w-3 sm:h-5 sm:w-5" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <>
-                              <Button
-                                onClick={() => addToCart(item.id)}
-                                className="w-full h-10 sm:h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 rounded-lg text-sm sm:text-base"
-                              >
-                                <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                                Add to Cart
-                              </Button>
-                              
-                              <Link href="/public/order">
-                                <Button
-                                  variant="outline"
-                                  className="w-full h-9 sm:h-10 md:h-11 lg:h-12 border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold rounded-lg text-xs sm:text-sm md:text-base lg:text-base px-2 sm:px-3 md:px-4 lg:px-4"
-                                >
-                                  <Zap className="h-3 w-3 sm:h-4 sm:w-4 md:h-4 md:w-4 lg:h-4 lg:w-4 mr-1 sm:mr-2 md:mr-2 lg:mr-2" />
-                                  <span className="text-xs sm:text-sm md:text-base lg:text-base">Order Now</span>
-                                </Button>
-                              </Link>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <MenuItemCard
+                    key={item.id}
+                    item={item}
+                    cartQuantity={cartQuantity}
+                    onAddToCart={addToCart}
+                    onUpdateQuantity={updateQuantity}
+                    onRemoveFromCart={removeFromCart}
+                    showOrderNowButton={true}
+                  />
                 )
               })}
             </div>
@@ -910,61 +811,15 @@ export default function HomePage() {
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {popularItems.map((item) => (
-                <Card key={item.id} className="group hover:shadow-xl transition-all duration-300 border-0 overflow-hidden">
-                  <div className="relative">
-                    <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
-                      {item.image ? (
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                        />
-                      ) : (
-                        <span className="text-gray-700 text-3xl">🍽️</span>
-                      )}
-                    </div>
-                    <div className="absolute top-2 right-2 flex flex-col gap-1">
-                      {item.isNew && (
-                        <Badge className="bg-green-500 text-white border-0">New</Badge>
-                      )}
-                      {item.isPopular && (
-                        <Badge className="bg-orange-500 text-white border-0">Popular</Badge>
-                      )}
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-lg mb-2 group-hover:text-blue-600 transition-colors">{item.name}</h3>
-                    {item.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{item.description}</p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        {formatCurrency(item.price)}
-                      </span>
-                      {item.prepTime && (
-                        <Badge variant="outline" className="text-xs">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {item.prepTime}min
-                        </Badge>
-                      )}
-                    </div>
-                    {item.rating && (
-                      <div className="flex items-center mt-2">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 ${i < Math.floor(item.rating!) ? 'text-yellow-400 fill-current' : 'text-gray-400'}`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-600 ml-2">({item.rating})</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                <MenuItemCard
+                  key={item.id}
+                  item={item}
+                  cartQuantity={getCartQuantity(item.id)}
+                  onAddToCart={addToCart}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveFromCart={removeFromCart}
+                  variant="compact"
+                />
               ))}
             </div>
           </section>
@@ -1015,137 +870,15 @@ export default function HomePage() {
           {filteredItems.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredItems.map((item) => (
-                <Card key={item.id} className="group hover:shadow-xl transition-all duration-300 border-0 overflow-hidden bg-white">
-                  <div className="relative">
-                    <div className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center overflow-hidden">
-                      {item.image ? (
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                        />
-                      ) : (
-                        <div className="h-48 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-                          <span className="text-blue-500 text-3xl">🍽️</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="absolute top-2 right-2 flex flex-col gap-1">
-                      {item.isNew && (
-                        <Badge className="bg-green-500 text-white border-0">New</Badge>
-                      )}
-                      {item.isPopular && (
-                        <Badge className="bg-orange-500 text-white border-0">Popular</Badge>
-                      )}
-                      {!item.isAvailable && (
-                        <Badge variant="destructive" className="bg-red-500 text-white border-0">Out of Stock</Badge>
-                      )}
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <div className="mb-2">
-                      <Badge variant="outline" className="text-xs text-blue-600 border-blue-200 bg-blue-50">
-                        {item.category}
-                      </Badge>
-                    </div>
-                    <h3 className="font-semibold text-lg mb-2 group-hover:text-blue-600 transition-colors">{item.name}</h3>
-                    {item.description && (
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{item.description}</p>
-                    )}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        {formatCurrency(item.price)}
-                      </span>
-                      {item.prepTime && (
-                        <Badge variant="outline" className="text-xs border-green-200 text-green-700">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {item.prepTime}min
-                        </Badge>
-                      )}
-                    </div>
-                    {item.rating && (
-                      <div className="flex items-center mb-3">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 ${i < Math.floor(item.rating!) ? 'text-yellow-400 fill-current' : 'text-gray-400'}`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-gray-600 ml-2">({item.rating})</span>
-                      </div>
-                    )}
-                    
-                    {/* Order Controls */}
-                    <div className="flex gap-2 mt-4">
-                      {/* If item is in cart, show quantity controls */}
-                      {cart.find(cartItem => cartItem.id === item.id) ? (
-                        <>
-                          <div className="flex items-center gap-3 bg-gray-100 rounded-xl p-3 flex-1">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                const cartItem = cart.find(cartItem => cartItem.id === item.id);
-                                if (cartItem && cartItem.quantity > 1) {
-                                  setCart(cart.map(cartItem =>
-                                    cartItem.id === item.id 
-                                      ? {...cartItem, quantity: cartItem.quantity - 1}
-                                      : cartItem
-                                  ));
-                                } else {
-                                  setCart(cart.filter(cartItem => cartItem.id !== item.id));
-                                  toast.success(`${item.name} removed from cart`);
-                                }
-                              }}
-                              className="h-10 w-10 p-0 border-2 border-red-500 text-red-700 hover:bg-red-100 hover:border-red-600 hover:text-red-800 bg-white font-bold text-lg shadow-sm"
-                            >
-                              <Minus className="w-5 h-5" />
-                            </Button>
-                            <span className="flex-1 text-center font-bold text-lg text-gray-900 min-w-0">
-                              {cart.find(cartItem => cartItem.id === item.id)?.quantity || 0} in cart
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setCart(cart.map(cartItem =>
-                                  cartItem.id === item.id 
-                                    ? {...cartItem, quantity: cartItem.quantity + 1}
-                                    : cartItem
-                                ));
-                                toast.success(`Added another ${item.name} to cart`);
-                              }}
-                              className="h-10 w-10 p-0 border-2 border-green-500 text-green-700 hover:bg-green-100 hover:border-green-600 hover:text-green-800 bg-white font-bold text-lg shadow-sm"
-                            >
-                              <Plus className="w-5 h-5" />
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <Button
-                          className="flex-1 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold shadow-lg"
-                          disabled={!item.isAvailable}
-                          onClick={() => {
-                            setCart([...cart, {...item, quantity: 1}]);
-                            toast.success(`${item.name} added to cart!`);
-                          }}
-                        >
-                          <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                          Add to Cart
-                        </Button>
-                      )}
-                      <CartIcon 
-                        itemCount={getCartItemCount()}
-                        variant="default"
-                        className="hover:scale-105 transition-transform"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+                <MenuItemCard
+                  key={item.id}
+                  item={item}
+                  cartQuantity={getCartQuantity(item.id)}
+                  onAddToCart={addToCart}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveFromCart={removeFromCart}
+                  showOrderNowButton={true}
+                />
               ))}
             </div>
           ) : (

@@ -48,6 +48,18 @@ export interface RestaurantConfig {
     coverageAreas?: string[]
   }
   
+  // Order Settings
+  orderSettings: {
+    preorderEnabled: boolean
+    mealTypes: Array<{
+      id: string
+      name: string
+      startTime: string
+      endTime: string
+      isActive: boolean
+    }>
+  }
+  
   // Social Media
   social?: {
     facebook?: string
@@ -144,6 +156,34 @@ export const RESTAURANT_CONFIG: RestaurantConfig = {
     taxId: 'VAT-123456789',
     ownerName: 'Royal Food Limited',
     establishedYear: 2024
+  },
+  
+  // Order Settings
+  orderSettings: {
+    preorderEnabled: false, // Disabled for now
+    mealTypes: [
+      {
+        id: 'breakfast',
+        name: 'Breakfast',
+        startTime: '06:00',
+        endTime: '11:00',
+        isActive: true
+      },
+      {
+        id: 'lunch',
+        name: 'Lunch',
+        startTime: '11:00',
+        endTime: '16:00',
+        isActive: true
+      },
+      {
+        id: 'dinner',
+        name: 'Dinner',
+        startTime: '16:00',
+        endTime: '23:00',
+        isActive: true
+      }
+    ]
   }
 }
 
@@ -272,6 +312,51 @@ export function getMinimumOrder(): number {
 // Get estimated delivery time
 export function getEstimatedDeliveryTime(): string {
   return RESTAURANT_CONFIG.delivery.estimatedTime
+}
+
+// Get order settings
+export function getOrderSettings(): RestaurantConfig['orderSettings'] {
+  return RESTAURANT_CONFIG.orderSettings
+}
+
+// Check if preorder is enabled
+export function isPreorderEnabled(): boolean {
+  return RESTAURANT_CONFIG.orderSettings.preorderEnabled
+}
+
+// Get meal types
+export function getMealTypes(): RestaurantConfig['orderSettings']['mealTypes'] {
+  return RESTAURANT_CONFIG.orderSettings.mealTypes
+}
+
+// Get current meal type based on time
+export function getCurrentMealType(time?: string): string | null {
+  const currentTime = time || new Date().toTimeString().slice(0, 5)
+  
+  for (const mealType of RESTAURANT_CONFIG.orderSettings.mealTypes) {
+    if (!mealType.isActive) continue
+    
+    if (currentTime >= mealType.startTime && currentTime < mealType.endTime) {
+      return mealType.id
+    }
+  }
+  
+  return null
+}
+
+// Check if a meal type is currently available
+export function isMealTypeAvailable(mealTypeId: string, time?: string): boolean {
+  const currentTime = time || new Date().toTimeString().slice(0, 5)
+  const mealType = RESTAURANT_CONFIG.orderSettings.mealTypes.find(m => m.id === mealTypeId)
+  
+  if (!mealType || !mealType.isActive) return false
+  
+  return currentTime >= mealType.startTime && currentTime < mealType.endTime
+}
+
+// Get meal type by id
+export function getMealTypeById(mealTypeId: string): RestaurantConfig['orderSettings']['mealTypes'][0] | null {
+  return RESTAURANT_CONFIG.orderSettings.mealTypes.find(m => m.id === mealTypeId) || null
 }
 
 // Export the main config for direct access when needed

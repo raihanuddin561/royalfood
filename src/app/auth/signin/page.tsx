@@ -36,17 +36,20 @@ export default function SignInPage() {
         // Poll getSession briefly to ensure NextAuth has restored the JWT/session
         let attempts = 0
         let session = await getSession()
-        while (!session && attempts < 10) {
-          // wait 150ms between attempts
-          await new Promise((r) => setTimeout(r, 150))
+        while (!session && attempts < 5) {
+          // wait 100ms between attempts
+          await new Promise((r) => setTimeout(r, 100))
           session = await getSession()
           attempts += 1
         }
 
         if (session?.user?.role === 'ADMIN') {
           router.push('/admin/users')
-        } else {
+        } else if (session?.user) {
           router.push('/dashboard')
+        } else {
+          // Fallback if session is still not available
+          router.push('/menu')
         }
       }
     } catch (err) {
