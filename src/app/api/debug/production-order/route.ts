@@ -220,6 +220,15 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Check for customer system issues
+    if (diagnostics.checks.tables?.Customer?.status === 'missing_or_error') {
+      diagnostics.recommendations.push({
+        priority: 'HIGH',
+        issue: 'Customer system not configured - missing password column',
+        solution: 'Use /admin/migrate/customer-system endpoint to fix customer tables'
+      })
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Production diagnostics completed',

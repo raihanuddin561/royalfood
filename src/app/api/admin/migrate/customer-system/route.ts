@@ -17,17 +17,80 @@ export async function POST(request: NextRequest) {
 
     console.log('🔄 Starting customer system migration...')
     
-    // Read the migration SQL file
-    const migrationPath = path.join(process.cwd(), 'scripts', 'migrations', '2025_09_01_customer_system_migration.sql')
+    // Check if customers table exists and has password column
+    const tableCheck = await prisma.$queryRaw`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'customers' AND table_schema = 'public'
+    ` as Array<{column_name: string}>
     
-    if (!fs.existsSync(migrationPath)) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Migration file not found. Please ensure the migration SQL file exists.' 
-      }, { status: 404 })
+    const hasCustomersTable = tableCheck.length > 0
+    const hasPasswordColumn = tableCheck.some(col => col.column_name === 'password')
+    
+    console.log('📊 Current state:', { hasCustomersTable, hasPasswordColumn })
+    
+    if (hasCustomersTable && hasPasswordColumn) {
+      return NextResponse.json({
+        success: true,
+        message: 'Customer system is already properly configured',
+        status: 'already_applied'
+      })
     }
     
-    const migrationSQL = fs.readFileSync(migrationPath, 'utf8')
+    // Use updated migration SQL that includes password field
+    const migrationSQL = `
+      -- Customer system migration with password support
+      
+      -- Create customers table with password field
+      CREATE TABLE IF NOT EXISTS "customers" (
+        "id" TEXT NOT NULL,
+        "email" TEXT NOT NULL,
+        "phone" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "password" TEXT NOT NULL,
+        "address" TEXT NOT NULL,
+        "city" TEXT,
+        "zipCode" TEXT,
+        "dateOfBirth" TIMESTAMP(3),
+        "preferences" TEXT,
+        "isActive" BOOLEAN NOT NULL DEFAULT true,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "customers_pkey" PRIMARY KEY ("id")
+      );
+      
+      -- Add missing columns if table exists but columns are missing
+      ALTER TABLE "customers" ADD COLUMN IF NOT EXISTS "password" TEXT NOT NULL DEFAULT 'temp_password_change_required';
+      ALTER TABLE "customers" ADD COLUMN IF NOT EXISTS "dateOfBirth" TIMESTAMP(3);
+      ALTER TABLE "customers" ADD COLUMN IF NOT EXISTS "preferences" TEXT;
+      
+      -- Create unique indexes
+      CREATE UNIQUE INDEX IF NOT EXISTS "customers_email_key" ON "customers"("email");
+      CREATE UNIQUE INDEX IF NOT EXISTS "customers_phone_key" ON "customers"("phone");
+      
+      -- Create delivery addresses table
+      CREATE TABLE IF NOT EXISTS "delivery_addresses" (
+        "id" TEXT NOT NULL,
+        "customerId" TEXT NOT NULL,
+        "label" TEXT NOT NULL,
+        "address" TEXT NOT NULL,
+        "city" TEXT,
+        "zipCode" TEXT,
+        "landmark" TEXT,
+        "isDefault" BOOLEAN NOT NULL DEFAULT false,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "delivery_addresses_pkey" PRIMARY KEY ("id")
+      );
+      
+      -- Update orders table for customer support
+      ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "customerId" TEXT;
+      ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "deliveryAddressId" TEXT;
+      ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "guestName" TEXT;
+      ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "guestPhone" TEXT;
+      ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "guestEmail" TEXT;
+      ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "guestAddress" TEXT;
+    `
     
     // Execute the migration using raw SQL
     console.log('📋 Executing migration SQL...')
@@ -68,7 +131,21 @@ export async function POST(request: NextRequest) {
       console.log(`   - Customers table: ${customerCount} records`)
       console.log(`   - Delivery addresses table: ${deliveryAddressCount} records`)
       
-      // Test a simple customer creation to ensure everything works
+      // Verify password column exists
+      const finalCheck = await prisma.$queryRaw`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'customers' AND table_schema = 'public'
+        ORDER BY ordinal_position
+      ` as Array<{column_name: string}>
+      
+      const hasPasswordAfterMigration = finalCheck.some(col => col.column_name === 'password')
+      
+      if (!hasPasswordAfterMigration) {
+        throw new Error('Password column was not created properly')
+      }
+      
+      // Test a simple customer creation to ensure everything works including password
       await prisma.customer.upsert({
         where: { email: 'migration-test@royalfood.com' },
         update: { updatedAt: new Date() },
@@ -76,12 +153,13 @@ export async function POST(request: NextRequest) {
           email: 'migration-test@royalfood.com',
           phone: '+8801999999999',
           name: 'Migration Test Customer',
+          password: 'test_password_123',
           address: 'Migration Test Address',
           city: 'Dhaka'
         }
       })
       
-      console.log('✅ Customer creation test successful')
+      console.log('✅ Customer creation test with password successful')
       
       return NextResponse.json({ 
         success: true, 
@@ -127,11 +205,34 @@ export async function GET(request: NextRequest) {
     // Check if customer system tables exist and have expected structure
     const checks = []
     
+    // Check customers table and password column
     try {
       const customerCount = await prisma.customer.count()
-      checks.push({ table: 'customers', exists: true, recordCount: customerCount })
-    } catch {
-      checks.push({ table: 'customers', exists: false, recordCount: 0 })
+      
+      // Check if password column exists
+      const columns = await prisma.$queryRaw`
+        SELECT column_name 
+        FROM information_schema.columns 
+        WHERE table_name = 'customers' AND table_schema = 'public'
+      ` as Array<{column_name: string}>
+      
+      const hasPasswordColumn = columns.some(col => col.column_name === 'password')
+      
+      checks.push({ 
+        table: 'customers', 
+        exists: true, 
+        recordCount: customerCount,
+        hasPasswordColumn,
+        columns: columns.map(c => c.column_name)
+      })
+    } catch (error: any) {
+      checks.push({ 
+        table: 'customers', 
+        exists: false, 
+        recordCount: 0,
+        hasPasswordColumn: false,
+        error: error.message
+      })
     }
     
     try {
@@ -153,14 +254,18 @@ export async function GET(request: NextRequest) {
     }
     
     const allTablesExist = checks.every(check => check.exists)
+    const hasPasswordColumn = (checks[0] as any)?.hasPasswordColumn || false
+    const isFullyMigrated = allTablesExist && hasPasswordColumn
     
     return NextResponse.json({
       success: true,
-      migrationStatus: allTablesExist ? 'COMPLETED' : 'INCOMPLETE',
+      migrationStatus: isFullyMigrated ? 'COMPLETED' : 'INCOMPLETE',
       checks,
-      message: allTablesExist 
+      message: isFullyMigrated
         ? 'Customer system is fully migrated and operational'
-        : 'Customer system migration is incomplete. Run POST /api/admin/migrate/customer-system to complete.'
+        : hasPasswordColumn 
+        ? 'Customer system tables exist but may be missing some features. Run POST /api/admin/migrate/customer-system to ensure completeness.'
+        : 'Customer system is missing the password column. Run POST /api/admin/migrate/customer-system to fix.'
     })
     
   } catch (error: any) {
