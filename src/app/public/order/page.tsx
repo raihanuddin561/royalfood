@@ -363,9 +363,9 @@ function OrderPageContent() {
       const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            item.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesMealType = mealType === 'breakfast' ? (item.mealTypes?.includes('BREAKFAST') ?? false) :
-                             mealType === 'lunch' ? (item.mealTypes?.includes('LUNCH') ?? false) :
-                             mealType === 'dinner' ? (item.mealTypes?.includes('DINNER') ?? false) : true
+      const matchesMealType = mealType === 'breakfast' ? (Array.isArray(item.mealTypes) && item.mealTypes.includes('BREAKFAST')) :
+                             mealType === 'lunch' ? (Array.isArray(item.mealTypes) && item.mealTypes.includes('LUNCH')) :
+                             mealType === 'dinner' ? (Array.isArray(item.mealTypes) && item.mealTypes.includes('DINNER')) : true
       
       // Advanced filters
       const matchesPriceRange = item.price >= priceRange.min && item.price <= priceRange.max
@@ -373,7 +373,7 @@ function OrderPageContent() {
                                  (availabilityFilter === 'available' && item.isAvailable) ||
                                  (availabilityFilter === 'unavailable' && !item.isAvailable)
       const matchesMealTypeFilter = selectedMealTypeFilter === 'all' ||
-                                   (item.mealTypes?.includes(selectedMealTypeFilter.toUpperCase() as any) ?? false)
+                                   (Array.isArray(item.mealTypes) && item.mealTypes.includes(selectedMealTypeFilter.toUpperCase() as any))
       
       return matchesCategory && matchesSearch && matchesMealType && matchesPriceRange && matchesAvailability && matchesMealTypeFilter
     })
@@ -407,7 +407,7 @@ function OrderPageContent() {
 
     // Check if item is compatible with selected meal type
     const selectedMealTypeUpper = mealType.toUpperCase()
-    if (!(item.mealTypes?.includes(selectedMealTypeUpper as any) ?? false)) {
+    if (!(Array.isArray(item.mealTypes) && item.mealTypes.includes(selectedMealTypeUpper as any))) {
       toast.error(`${item.name} is not available for ${mealType}. Please select a different meal type or choose another item.`)
       return
     }
@@ -507,7 +507,7 @@ function OrderPageContent() {
     const selectedMealTypeUpper = mealType.toUpperCase()
     const incompatibleItems = cart.filter(cartItem => {
       const menuItem = menuItems.find(m => m.id === cartItem.menuItemId)
-      return menuItem && !(menuItem.mealTypes?.includes(selectedMealTypeUpper as any) ?? false)
+      return menuItem && !(Array.isArray(menuItem.mealTypes) && menuItem.mealTypes.includes(selectedMealTypeUpper as any))
     })
 
     if (incompatibleItems.length > 0) {

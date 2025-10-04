@@ -198,7 +198,7 @@ export default function HomePage() {
     // Filter by meal type
     if (selectedMealTypeFilter !== 'all') {
       filtered = filtered.filter(item => 
-        (item.mealTypes?.includes(selectedMealTypeFilter.toUpperCase() as any) ?? false)
+        (Array.isArray(item.mealTypes) && item.mealTypes.includes(selectedMealTypeFilter.toUpperCase() as any))
       )
     }
 

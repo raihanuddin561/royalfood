@@ -264,7 +264,7 @@ export default function CartPage() {
     const selectedMealTypeUpper = mealType.toUpperCase()
     const incompatibleItems = cart.filter(cartItem => {
       const menuItem = menuItems.find(m => m.id === cartItem.menuItemId)
-      return menuItem && !(menuItem.mealTypes?.includes(selectedMealTypeUpper as any) ?? false)
+      return menuItem && !(Array.isArray(menuItem.mealTypes) && menuItem.mealTypes.includes(selectedMealTypeUpper as any))
     })
 
     if (incompatibleItems.length > 0) {
