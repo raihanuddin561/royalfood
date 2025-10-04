@@ -60,7 +60,7 @@ export async function GET() {
       price: item.price,
       image: item.image,
       category: item.category.name,
-      mealTypes: item.mealTypes,
+      mealTypes: Array.isArray(item.mealTypes) ? item.mealTypes : ['LUNCH'], // Ensure it's always an array
       prepTime: item.prepTime,
       isAvailable: item.isAvailable
     }))

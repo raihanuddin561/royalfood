@@ -19,7 +19,13 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json(menuItems)
+    // Ensure mealTypes is always an array
+    const safeMenuItems = menuItems.map(item => ({
+      ...item,
+      mealTypes: Array.isArray(item.mealTypes) ? item.mealTypes : ['LUNCH']
+    }))
+
+    return NextResponse.json(safeMenuItems)
   } catch (error) {
     console.error('Error fetching admin menu items:', error)
     return NextResponse.json(

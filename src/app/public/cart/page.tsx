@@ -65,7 +65,13 @@ export default function CartPage() {
       const response = await fetch('/api/public/menu')
       if (response.ok) {
         const data = await response.json()
-        setMenuItems(data)
+        // Set the menuItems array from the API response, with safety checks
+        const menuItemsArray = data.menuItems || data || []
+        const safeMenuItems = Array.isArray(menuItemsArray) ? menuItemsArray.map((item: any) => ({
+          ...item,
+          mealTypes: Array.isArray(item.mealTypes) ? item.mealTypes : ['LUNCH']
+        })) : []
+        setMenuItems(safeMenuItems)
       }
     } catch (error) {
       console.error('Error fetching menu items:', error)

@@ -241,7 +241,12 @@ export default function HomePage() {
       const response = await fetch('/api/menu/list')
       if (response.ok) {
         const data = await response.json()
-        setMenuItems(data.items || [])
+        // Ensure mealTypes is always an array for each menu item
+        const safeMenuItems = (data.items || []).map((item: any) => ({
+          ...item,
+          mealTypes: Array.isArray(item.mealTypes) ? item.mealTypes : ['LUNCH']
+        }))
+        setMenuItems(safeMenuItems)
       } else {
         console.error('Failed to load menu items')
       }

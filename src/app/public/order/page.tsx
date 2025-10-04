@@ -341,8 +341,13 @@ function OrderPageContent() {
       const data = await response.json()
       
       if (data.success) {
-        setMenuItems(data.menuItems || [])
-        const uniqueCategories = ['all', ...Array.from(new Set((data.menuItems || []).map((item: MenuItem) => item.category)))] as string[]
+        // Ensure mealTypes is always an array for each menu item
+        const safeMenuItems = (data.menuItems || []).map((item: any) => ({
+          ...item,
+          mealTypes: Array.isArray(item.mealTypes) ? item.mealTypes : ['LUNCH']
+        }))
+        setMenuItems(safeMenuItems)
+        const uniqueCategories = ['all', ...Array.from(new Set(safeMenuItems.map((item: MenuItem) => item.category)))] as string[]
         setCategories(uniqueCategories)
       } else {
         console.error('API Error:', data.error)

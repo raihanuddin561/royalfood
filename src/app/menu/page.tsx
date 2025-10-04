@@ -146,7 +146,7 @@ export default function MenuPage() {
   // Filter menu items
   const filteredItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'all' || item.category.name === selectedCategory
-    const matchesMealType = selectedMealType === 'all' || (item.mealTypes?.includes(selectedMealType) ?? false)
+    const matchesMealType = selectedMealType === 'all' || (Array.isArray(item.mealTypes) && item.mealTypes.includes(selectedMealType))
     const matchesAvailability = 
       availabilityFilter === 'all' ||
       (availabilityFilter === 'available' && item.isAvailable) ||
