@@ -703,8 +703,8 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Enhanced Cart Section with Responsive Icons - Hidden for now to prevent overlap */}
-        {false && cart.length > 0 && (
+        {/* Enhanced Cart Section with Responsive Icons */}
+        {cart.length > 0 && (
           <div className="bg-white/95 backdrop-blur-sm border-2 border-orange-200 rounded-2xl lg:rounded-3xl shadow-2xl p-4 lg:p-8 mb-8 lg:mb-10 relative">
             <div className="flex items-center justify-between mb-4 lg:mb-6">
               <div className="flex items-center gap-2 lg:gap-3">
