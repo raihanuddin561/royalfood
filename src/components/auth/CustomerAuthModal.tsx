@@ -68,8 +68,29 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
   }
 
   const handleRegister = async () => {
-    if (!registerData.name || !registerData.email || !registerData.password || !registerData.phone) {
-      toast.error('Please fill in all required fields')
+    if (!registerData.name || !registerData.email || !registerData.password || !registerData.phone || !registerData.address) {
+      toast.error('Please fill in all required fields (Name, Email, Password, Phone, Address)')
+      return
+    }
+
+    // Additional client-side validation
+    if (registerData.name.length < 2) {
+      toast.error('Name must be at least 2 characters long')
+      return
+    }
+
+    if (registerData.phone.length < 10) {
+      toast.error('Phone number must be at least 10 digits')
+      return
+    }
+
+    if (registerData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long')
+      return
+    }
+
+    if (registerData.address.length < 10) {
+      toast.error('Address must be at least 10 characters (include street, city)')
       return
     }
 
@@ -86,7 +107,15 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
         toast.success('Account created successfully!')
         onSuccess(result.customer)
       } else {
-        toast.error(result.error || 'Registration failed')
+        // Show detailed validation errors if available
+        if (result.message) {
+          toast.error(result.message)
+        } else if (result.validationErrors && result.validationErrors.length > 0) {
+          const errors = result.validationErrors.map((err: any) => err.message).join('. ')
+          toast.error(`Validation errors: ${errors}`)
+        } else {
+          toast.error(result.error || 'Registration failed')
+        }
       }
     } catch (error) {
       toast.error('Registration failed')
@@ -193,7 +222,7 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
                   type="password"
                   value={registerData.password}
                   onChange={(e) => setRegisterData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Create a password"
+                  placeholder="Create a password (6+ characters)"
                 />
               </div>
               <div>
@@ -205,19 +234,19 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
                   id="register-phone"
                   value={registerData.phone}
                   onChange={(e) => setRegisterData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="Enter your phone number"
+                  placeholder="Enter your phone number (10+ digits)"
                 />
               </div>
               <div>
                 <Label htmlFor="register-address" className="flex items-center">
                   <MapPin className="w-4 h-4 mr-1" />
-                  Address
+                  Address *
                 </Label>
                 <Input
                   id="register-address"
                   value={registerData.address}
                   onChange={(e) => setRegisterData(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="Enter your address"
+                  placeholder="Enter your full address (e.g., 123 Main St, City)"
                 />
               </div>
               <div>
@@ -252,7 +281,7 @@ export default function CustomerAuthModal({ isOpen, onClose, onSuccess }: AuthMo
                 {isLoading ? 'Creating Account...' : 'Create Account'}
               </Button>
               <p className="text-sm text-gray-600 text-center">
-                * Required fields
+                * Required fields: Name, Email, Password, Phone, Address
               </p>
             </TabsContent>
           </Tabs>

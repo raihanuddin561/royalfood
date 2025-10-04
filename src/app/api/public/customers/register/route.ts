@@ -5,11 +5,11 @@ import bcrypt from 'bcryptjs'
 
 // Validation schema for customer registration
 const registerCustomerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Valid email is required'),
-  phone: z.string().min(10, 'Valid phone number is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  address: z.string().min(10, 'Address must be at least 10 characters'),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be less than 100 characters'),
+  email: z.string().email('Please enter a valid email address (e.g., john@example.com)'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits').max(15, 'Phone number must be less than 15 digits'),
+  password: z.string().min(6, 'Password must be at least 6 characters').max(100, 'Password must be less than 100 characters'),
+  address: z.string().min(10, 'Address must be at least 10 characters (e.g., 123 Main St, City)').max(200, 'Address must be less than 200 characters'),
   city: z.string().optional(),
   zipCode: z.string().optional(),
   dateOfBirth: z.string().optional(),
@@ -84,10 +84,29 @@ export async function POST(request: NextRequest) {
     console.error('Customer registration error:', error)
     
     if (error instanceof z.ZodError) {
+      // Create user-friendly error messages
+      const errorMessages = error.issues.map(issue => {
+        switch (issue.path[0]) {
+          case 'name':
+            return `Name: ${issue.message}`
+          case 'email':
+            return `Email: ${issue.message}`
+          case 'phone':
+            return `Phone: ${issue.message}`
+          case 'password':
+            return `Password: ${issue.message}`
+          case 'address':
+            return `Address: ${issue.message}`
+          default:
+            return `${String(issue.path[0])}: ${issue.message}`
+        }
+      })
+      
       return NextResponse.json({
         success: false,
-        error: 'Validation failed',
-        details: error.issues
+        error: 'Registration information is invalid',
+        message: errorMessages.join('. '),
+        validationErrors: error.issues
       }, { status: 400 })
     }
     

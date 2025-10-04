@@ -135,20 +135,34 @@ export async function POST(request: NextRequest) {
     // Skip the column check - just try to fetch menu items and handle gracefully
     debugInfo.deliveryChargeColumnMissing = false
     
-    const menuItems = await prisma.menuItem.findMany({
-      where: {
-        id: { in: menuItemIds },
-        isActive: true,
-        isAvailable: true
-      },
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        prepTime: true
-        // Don't select deliveryCharge to avoid the error
-      }
-    })
+    let menuItems: any[] = []
+    try {
+      menuItems = await prisma.menuItem.findMany({
+        where: {
+          id: { in: menuItemIds },
+          isActive: true,
+          isAvailable: true
+        },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          prepTime: true
+          // Don't select deliveryCharge to avoid the error
+        }
+      })
+    } catch (menuFetchError) {
+      console.error('Error fetching menu items:', menuFetchError)
+      debugInfo.menuFetchError = menuFetchError instanceof Error ? menuFetchError.message : 'Unknown error'
+      
+      // If we can't fetch menu items, this is a critical error
+      return NextResponse.json({
+        success: false,
+        error: 'Unable to fetch menu items from database',
+        details: menuFetchError instanceof Error ? menuFetchError.message : 'Database connection or schema error',
+        debug: debugInfo
+      }, { status: 500 })
+    }
     
     debugInfo.foundMenuItems = menuItems.length
     debugInfo.hasDeliveryChargeColumn = false // Assume false for now
@@ -302,6 +316,7 @@ export async function POST(request: NextRequest) {
     // Create order with proper error handling for finalAmount
     let newOrder
     try {
+      // Try with finalAmount first
       newOrder = await prisma.order.create({
         data: {
           ...orderData,
@@ -321,15 +336,53 @@ export async function POST(request: NextRequest) {
         }
       })
     } catch (orderCreationError) {
-      console.error('Error creating order:', orderCreationError)
-      debugInfo.step = 'order-creation-error'
-      debugInfo.error = orderCreationError instanceof Error ? orderCreationError.message : 'Unknown error'
+      console.error('Error creating order with finalAmount:', orderCreationError)
       
-      return NextResponse.json({
-        error: 'Failed to create order',
-        details: orderCreationError instanceof Error ? orderCreationError.message : 'Unknown error',
-        debug: debugInfo
-      }, { status: 500 })
+      // If finalAmount column doesn't exist, try without it
+      if (orderCreationError instanceof Error && orderCreationError.message.includes('finalAmount')) {
+        console.log('Attempting to create order without finalAmount column...')
+        debugInfo.finalAmountColumnMissing = true
+        
+        try {
+          // Remove finalAmount from orderData and try again
+          const { finalAmount, ...orderDataWithoutFinalAmount } = orderData as any
+          newOrder = await prisma.order.create({
+            data: orderDataWithoutFinalAmount,
+            include: {
+              orderItems: {
+                include: {
+                  menuItem: {
+                    select: {
+                      name: true,
+                      image: true
+                    }
+                  }
+                }
+              }
+            }
+          })
+        } catch (secondOrderCreationError) {
+          console.error('Error creating order without finalAmount:', secondOrderCreationError)
+          debugInfo.step = 'order-creation-error-second-attempt'
+          debugInfo.error = secondOrderCreationError instanceof Error ? secondOrderCreationError.message : 'Unknown error'
+          
+          return NextResponse.json({
+            error: 'Failed to create order (both attempts)',
+            details: secondOrderCreationError instanceof Error ? secondOrderCreationError.message : 'Unknown error',
+            originalError: orderCreationError instanceof Error ? orderCreationError.message : 'Unknown error',
+            debug: debugInfo
+          }, { status: 500 })
+        }
+      } else {
+        debugInfo.step = 'order-creation-error'
+        debugInfo.error = orderCreationError instanceof Error ? orderCreationError.message : 'Unknown error'
+        
+        return NextResponse.json({
+          error: 'Failed to create order',
+          details: orderCreationError instanceof Error ? orderCreationError.message : 'Unknown error',
+          debug: debugInfo
+        }, { status: 500 })
+      }
     }
     
     debugInfo.step = 'order-creation-success'
